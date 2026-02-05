@@ -43,6 +43,17 @@ jobs:
           architecture: x64
           github-token: ${{ github.server_url == 'https://github.com' && github.token || '' }}
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Shaka Streamer
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install shaka-streamer
+          python3 -m streamer.main --version
+
       - name: Setup Shaka Packager
         if: runner.os == 'Linux'
         run: |
