@@ -76,7 +76,7 @@ class ShakaStreamer
     /**
      * Package with Shaka Streamer config
      *
-     * @param array $config Configuration array
+     * @param array $config Configuration array with 'input_config' and 'pipeline_config'
      * @return string Output from Shaka Streamer
      *
      * @throws \RuntimeException

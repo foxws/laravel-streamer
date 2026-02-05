@@ -14,21 +14,21 @@ $basicConfig = [
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'video'
+                'media_type' => 'video',
             ],
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'audio'
-            ]
-        ]
+                'media_type' => 'audio',
+            ],
+        ],
     ],
     'pipeline_config' => [
         'streaming_mode' => 'vod',
         'manifest_format' => ['dash'],
         'dash_output' => '/output/manifest.mpd',
-        'segment_size' => 10.0
-    ]
+        'segment_size' => 10.0,
+    ],
 ];
 
 // Example 2: Adaptive Bitrate with multiple video streams
@@ -38,14 +38,14 @@ $adaptiveBitrateConfig = [
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'video'
+                'media_type' => 'video',
             ],
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'audio'
-            ]
-        ]
+                'media_type' => 'audio',
+            ],
+        ],
     ],
     'pipeline_config' => [
         'streaming_mode' => 'vod',
@@ -55,8 +55,8 @@ $adaptiveBitrateConfig = [
         'segment_size' => 6.0,
         'resolutions' => ['1080p', '720p', '480p'],
         'video_codecs' => ['h264', 'vp9'],
-        'audio_codecs' => ['aac']
-    ]
+        'audio_codecs' => ['aac'],
+    ],
 ];
 
 // Example 3: Encrypted DASH/HLS with raw key encryption
@@ -66,14 +66,14 @@ $encryptedConfig = [
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'video'
+                'media_type' => 'video',
             ],
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'audio'
-            ]
-        ]
+                'media_type' => 'audio',
+            ],
+        ],
     ],
     'pipeline_config' => [
         'streaming_mode' => 'vod',
@@ -90,16 +90,16 @@ $encryptedConfig = [
                 [
                     'key_id' => 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
                     'key' => 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-                    'label' => 'AUDIO'
+                    'label' => 'AUDIO',
                 ],
                 [
                     'key_id' => 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy',
                     'key' => 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy',
-                    'label' => 'HD'
-                ]
-            ]
-        ]
-    ]
+                    'label' => 'HD',
+                ],
+            ],
+        ],
+    ],
 ];
 
 // Example 4: Live streaming configuration
@@ -109,14 +109,14 @@ $liveConfig = [
             [
                 'input_type' => 'looped_file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'video'
+                'media_type' => 'video',
             ],
             [
                 'input_type' => 'looped_file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'audio'
-            ]
-        ]
+                'media_type' => 'audio',
+            ],
+        ],
     ],
     'pipeline_config' => [
         'streaming_mode' => 'live',
@@ -127,8 +127,8 @@ $liveConfig = [
         'segment_per_file' => true,
         'availability_window' => 60,
         'presentation_delay' => 20,
-        'update_period' => 3
-    ]
+        'update_period' => 3,
+    ],
 ];
 
 // Example 5: Using withOption() for custom settings
@@ -138,9 +138,9 @@ $customConfig = [
             [
                 'input_type' => 'file',
                 'name' => '/tmp/input.mp4',
-                'media_type' => 'video'
-            ]
-        ]
+                'media_type' => 'video',
+            ],
+        ],
     ],
     'pipeline_config' => [
         'streaming_mode' => 'vod',
@@ -148,8 +148,8 @@ $customConfig = [
         'dash_output' => '/output/manifest.mpd',
         'segment_size' => 10.0,
         'low_latency_dash_mode' => true,
-        'generate_iframe_playlist' => true
-    ]
+        'generate_iframe_playlist' => true,
+    ],
 ];
 
 // Usage examples showing how CommandBuilder builds these configs:

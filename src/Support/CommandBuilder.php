@@ -28,21 +28,21 @@ class CommandBuilder
 
     public function __construct()
     {
-        $this->streams = new Collection();
-        $this->pipelineOptions = new Collection();
+        $this->streams = new Collection;
+        $this->pipelineOptions = new Collection;
     }
 
     public static function make(): self
     {
-        return new self();
+        return new self;
     }
 
     /**
      * Add video stream with codec specification
      *
-     * @param string $input Input file path
-     * @param string $output Output file name (not path)
-     * @param array $options Stream-specific options (bandwidth, resolution, codec, etc.)
+     * @param  string  $input  Input file path
+     * @param  string  $output  Output file name (not path)
+     * @param  array  $options  Stream-specific options (bandwidth, resolution, codec, etc.)
      */
     public function addVideoStream(string $input, string $output, array $options = []): self
     {
