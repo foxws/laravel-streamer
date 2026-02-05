@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Commands;
 
 use Foxws\Streamer\Exceptions\ExecutableNotFoundException;
-use Foxws\Streamer\Support\ShakaPackager;
+use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 
@@ -54,7 +54,7 @@ class VerifyInstallationCommand extends Command
         // Try to get version with spinner
         try {
             $version = spin(
-                fn () => ShakaPackager::create()->getVersion(),
+                fn () => ShakaStreamer::create()->getVersion(),
                 'Checking packager version...'
             );
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Commands;
 
-use Foxws\Streamer\Support\ShakaPackager;
+use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 
@@ -36,7 +36,7 @@ class PackageInfoCommand extends Command
         $packagerVersion = 'Not available';
 
         try {
-            $packager = ShakaPackager::create();
+            $packager = ShakaStreamer::create();
 
             $packagerVersion = $packager->getVersion();
         } catch (\Exception $e) {

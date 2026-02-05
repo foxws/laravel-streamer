@@ -7,7 +7,7 @@ namespace Foxws\Streamer\Exporters;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\MediaOpener;
-use Foxws\Streamer\Support\Packager;
+use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\PackagerResult;
 use Illuminate\Support\Traits\ForwardsCalls;
 
@@ -15,7 +15,7 @@ class MediaExporter
 {
     use ForwardsCalls;
 
-    protected ?Packager $packager = null;
+    protected ?Streamer $streamer = null;
 
     protected ?Disk $toDisk = null;
 
@@ -25,9 +25,9 @@ class MediaExporter
 
     protected ?array $afterSavingCallbacks = [];
 
-    public function __construct(Packager $packager)
+    public function __construct(Streamer $streamer)
     {
-        $this->packager = $packager;
+        $this->streamer = $streamer;
     }
 
     protected function getDisk(): Disk
@@ -36,7 +36,7 @@ class MediaExporter
             return $this->toDisk;
         }
 
-        $media = $this->packager->getMediaCollection();
+        $media = $this->streamer->getMediaCollection();
 
         /** @var Disk $disk */
         $disk = $media->first()->getDisk();
@@ -70,7 +70,7 @@ class MediaExporter
      */
     public function getCommand(): array
     {
-        return $this->packager->getCommand();
+        return $this->streamer->getCommand();
     }
 
     /**
@@ -114,7 +114,7 @@ class MediaExporter
     public function save(?string $path = null): MediaOpener
     {
         // Execute the packaging operation (writes to temporary directory)
-        $result = $this->packager->export();
+        $result = $this->streamer->export();
 
         // Determine target disk
         $targetDisk = $this->toDisk ?: $this->getDisk();
@@ -130,9 +130,9 @@ class MediaExporter
     protected function getMediaOpener(): MediaOpener
     {
         return new MediaOpener(
-            $this->packager->getMediaCollection()->last()->getDisk()->getName(),
-            $this->packager,
-            $this->packager->getMediaCollection()
+            $this->streamer->getMediaCollection()->last()->getDisk()->getName(),
+            $this->streamer,
+            $this->streamer->getMediaCollection()
         );
     }
 
@@ -142,8 +142,8 @@ class MediaExporter
      */
     public function __call($method, $arguments)
     {
-        $result = $this->forwardCallTo($packager = $this->packager, $method, $arguments);
+        $result = $this->forwardCallTo($streamer = $this->streamer, $method, $arguments);
 
-        return ($result === $packager) ? $this : $result;
+        return ($result === $streamer) ? $this : $result;
     }
 }

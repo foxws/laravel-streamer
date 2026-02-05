@@ -6,7 +6,7 @@ namespace Foxws\Streamer\Filesystem;
 
 use Closure;
 use Foxws\Streamer\MediaOpener;
-use Foxws\Streamer\Support\Packager;
+use Foxws\Streamer\Support\Streamer;
 use Illuminate\Support\Traits\ForwardsCalls;
 
 class MediaOpenerFactory
@@ -15,34 +15,34 @@ class MediaOpenerFactory
 
     protected ?string $defaultDisk = null;
 
-    protected ?Packager $packager = null;
+    protected ?Streamer $streamer = null;
 
-    protected ?Closure $packagerResolver = null;
+    protected ?Closure $streamerResolver = null;
 
     public function __construct(
         ?string $defaultDisk = null,
-        ?Packager $packager = null,
-        ?Closure $packagerResolver = null
+        ?Streamer $streamer = null,
+        ?Closure $streamerResolver = null
     ) {
         $this->defaultDisk = $defaultDisk;
-        $this->packager = $packager;
-        $this->packagerResolver = $packagerResolver;
+        $this->streamer = $streamer;
+        $this->streamerResolver = $streamerResolver;
     }
 
-    protected function packager(): Packager
+    protected function streamer(): Streamer
     {
-        if ($this->packager) {
-            return $this->packager;
+        if ($this->streamer) {
+            return $this->streamer;
         }
 
-        $resolver = $this->packagerResolver;
+        $resolver = $this->streamerResolver;
 
-        return $this->packager = $resolver();
+        return $this->streamer = $resolver();
     }
 
     public function new(): MediaOpener
     {
-        return new MediaOpener($this->defaultDisk, $this->packager());
+        return new MediaOpener($this->defaultDisk, $this->streamer());
     }
 
     /**

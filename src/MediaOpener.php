@@ -8,7 +8,7 @@ use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
-use Foxws\Streamer\Support\Packager;
+use Foxws\Streamer\Support\Streamer;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Http\UploadedFile;
@@ -23,18 +23,18 @@ class MediaOpener
 
     protected ?Disk $disk = null;
 
-    protected ?Packager $packager = null;
+    protected ?Streamer $streamer = null;
 
     protected ?MediaCollection $collection = null;
 
     public function __construct(
         Disk|string|null $disk = null,
-        ?Packager $packager = null,
+        ?Streamer $streamer = null,
         ?MediaCollection $mediaCollection = null
     ) {
         $this->fromDisk($disk ?: Config::string('filesystems.default'));
 
-        $this->packager = $packager ?: app(Packager::class)->fresh();
+        $this->streamer = $streamer ?: app(Streamer::class)->fresh();
 
         $this->collection = $mediaCollection ?: new MediaCollection;
     }
@@ -43,7 +43,7 @@ class MediaOpener
     {
         return new MediaOpener(
             $this->disk,
-            $this->packager,
+            $this->streamer,
             $this->collection
         );
     }
@@ -86,8 +86,8 @@ class MediaOpener
             $this->collection->push($media);
         }
 
-        // Initialize the packager with the collection
-        $this->packager->open($this->collection);
+        // Initialize the streamer with the collection
+        $this->streamer->open($this->collection);
 
         return $this;
     }
@@ -114,17 +114,17 @@ class MediaOpener
         return $this;
     }
 
-    public function getPackager(): Packager
+    public function getStreamer(): Streamer
     {
-        return $this->packager;
+        return $this->streamer;
     }
 
     /**
-     * Returns an instance of MediaExporter with the packager.
+     * Returns an instance of MediaExporter with the streamer.
      */
     public function export(): Exporters\MediaExporter
     {
-        return new Exporters\MediaExporter($this->packager);
+        return new Exporters\MediaExporter($this->streamer);
     }
 
     /**
@@ -152,8 +152,8 @@ class MediaOpener
 
     public function __call($method, $arguments)
     {
-        $result = $this->forwardCallTo($packager = $this->getPackager(), $method, $arguments);
+        $result = $this->forwardCallTo($streamer = $this->getStreamer(), $method, $arguments);
 
-        return ($result === $packager) ? $this : $result;
+        return ($result === $streamer) ? $this : $result;
     }
 }

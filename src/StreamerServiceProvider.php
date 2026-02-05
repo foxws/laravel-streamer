@@ -6,8 +6,8 @@ namespace Foxws\Streamer;
 
 use Foxws\Streamer\Filesystem\MediaOpenerFactory;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
-use Foxws\Streamer\Support\Packager;
-use Foxws\Streamer\Support\ShakaPackager;
+use Foxws\Streamer\Support\Streamer;
+use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Support\Facades\Config;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -57,20 +57,20 @@ class StreamerServiceProvider extends PackageServiceProvider
             );
         });
 
-        // Register the Shaka Packager Driver
-        $this->app->singleton(ShakaPackager::class, function ($app) {
+        // Register the Shaka Streamer Driver
+        $this->app->singleton(ShakaStreamer::class, function ($app) {
             $logger = $app->make('laravel-streamer-logger');
             $config = $app->make('laravel-streamer-configuration');
 
-            return ShakaPackager::create($logger, $config);
+            return ShakaStreamer::create($logger, $config);
         });
 
-        // Register the Packager
-        $this->app->singleton(Packager::class, function ($app) {
-            $driver = $app->make(ShakaPackager::class);
+        // Register the Streamer
+        $this->app->singleton(Streamer::class, function ($app) {
+            $driver = $app->make(ShakaStreamer::class);
             $logger = $app->make('laravel-streamer-logger');
 
-            return new Packager($driver, $logger);
+            return new Streamer($driver, $logger);
         });
 
         // Register the main class to use with the facade
@@ -78,7 +78,7 @@ class StreamerServiceProvider extends PackageServiceProvider
             return new MediaOpenerFactory(
                 Config::string('filesystems.default'),
                 null,
-                fn () => app(Packager::class)
+                fn () => app(Streamer::class)
             );
         });
     }
