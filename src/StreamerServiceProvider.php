@@ -6,8 +6,8 @@ namespace Foxws\Streamer;
 
 use Foxws\Streamer\Filesystem\MediaOpenerFactory;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
-use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\ShakaStreamer;
+use Foxws\Streamer\Support\Streamer;
 use Illuminate\Support\Facades\Config;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
