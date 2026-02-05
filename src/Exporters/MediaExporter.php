@@ -66,15 +66,15 @@ class MediaExporter
     }
 
     /**
-     * Returns the final command, useful for debugging purposes.
+     * Returns the final config, useful for debugging purposes.
      */
-    public function getCommand(): string
+    public function getCommand(): array
     {
         return $this->packager->getCommand();
     }
 
     /**
-     * Dump the final command and end the script.
+     * Dump the final config and end the script.
      */
     public function dd(): void
     {

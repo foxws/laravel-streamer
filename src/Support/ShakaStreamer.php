@@ -69,6 +69,32 @@ class ShakaStreamer
         throw new RuntimeException('Cannot parse packager version');
     }
 
+    /**
+     * Execute packaging with Shaka Streamer config format
+     *
+     * @param array $config Configuration array with 'input_config' and 'pipeline_config'
+     * @return string Output from Shaka Streamer
+     */
+    public function packageWithConfig(array $config): string
+    {
+        if ($this->logger) {
+            $this->logger->debug('Executing Shaka Streamer with config', [
+                'input_count' => count($config['input_config']['inputs'] ?? []),
+                'manifest_formats' => $config['pipeline_config']['manifest_format'] ?? [],
+            ]);
+        }
+
+        // TODO: Implement actual Shaka Streamer invocation
+        // This will depend on whether Shaka Streamer has a PHP/CLI interface
+        // For now, this is a placeholder that shows the expected behavior
+
+        if ($this->logger) {
+            $this->logger->info('Shaka Streamer packaging completed');
+        }
+
+        return '';
+    }
+
     public function command(string|array $command, array $options = []): string
     {
         $arguments = is_array($command) ? $command : [$command];

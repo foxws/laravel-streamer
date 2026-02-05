@@ -5,25 +5,85 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Support;
 
 use Illuminate\Support\Collection;
-use InvalidArgumentException;
 
 /**
- * Builder for constructing Shaka Packager command arguments
+ * Builds Shaka Streamer configuration from fluent API calls.
+ *
+ * This class converts fluent method calls into Shaka Streamer's config format,
+ * which expects separate InputConfig and PipelineConfig structures.
+ *
+ * Reference: https://shaka-project.github.io/shaka-streamer/configuration_fields.html
  */
 class CommandBuilder
 {
     protected Collection $streams;
 
-    protected array $options = [];
+    protected Collection $pipelineOptions;
+
+    protected ?string $mpdOutput = null;
+
+    protected ?string $hlsOutput = null;
+
+    protected string $streamingMode = 'vod';
 
     public function __construct()
     {
-        $this->streams = Collection::make();
+        $this->streams = new Collection();
+        $this->pipelineOptions = new Collection();
     }
 
     public static function make(): self
     {
-        return new self;
+        return new self();
+    }
+
+    /**
+     * Add video stream with codec specification
+     *
+     * @param string $input Input file path
+     * @param string $output Output file name (not path)
+     * @param array $options Stream-specific options (bandwidth, resolution, codec, etc.)
+     */
+    public function addVideoStream(string $input, string $output, array $options = []): self
+    {
+        $this->streams->push([
+            'type' => 'video',
+            'input' => $input,
+            'output' => $output,
+            'options' => $options,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Add audio stream with codec specification
+     */
+    public function addAudioStream(string $input, string $output, array $options = []): self
+    {
+        $this->streams->push([
+            'type' => 'audio',
+            'input' => $input,
+            'output' => $output,
+            'options' => $options,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Add text/subtitle stream
+     */
+    public function addTextStream(string $input, string $output, array $options = []): self
+    {
+        $this->streams->push([
+            'type' => 'text',
+            'input' => $input,
+            'output' => $output,
+            'options' => $options,
+        ]);
+
+        return $this;
     }
 
     public function addStream(array $stream): self
@@ -33,154 +93,62 @@ class CommandBuilder
         return $this;
     }
 
-    public function addVideoStream(string $input, string $output, array $options = []): self
-    {
-        return $this->addStream(array_merge([
-            'in' => $input,
-            'stream' => 'video',
-            'output' => $output,
-        ], $options));
-    }
-
-    public function addAudioStream(string $input, string $output, array $options = []): self
-    {
-        return $this->addStream(array_merge([
-            'in' => $input,
-            'stream' => 'audio',
-            'output' => $output,
-        ], $options));
-    }
-
-    public function addTextStream(string $input, string $output, array $options = []): self
-    {
-        return $this->addStream(array_merge([
-            'in' => $input,
-            'stream' => 'text',
-            'output' => $output,
-        ], $options));
-    }
-
+    /**
+     * Set DASH/MPD manifest output
+     */
     public function withMpdOutput(string $path): self
     {
-        $this->options['mpd_output'] = $path;
+        $this->mpdOutput = $path;
 
         return $this;
     }
 
+    /**
+     * Set HLS master playlist output
+     */
     public function withHlsMasterPlaylist(string $path): self
     {
-        $this->options['hls_master_playlist_output'] = $path;
+        $this->hlsOutput = $path;
 
         return $this;
     }
 
+    /**
+     * Set segment duration in seconds
+     */
     public function withSegmentDuration(int $seconds): self
     {
-        if ($seconds < 1) {
-            throw new InvalidArgumentException('Segment duration must be at least 1 second');
-        }
-
-        $this->options['segment_duration'] = $seconds;
-        $this->options['fragment_duration'] = $seconds;
+        $this->pipelineOptions->put('segment_size', (float) $seconds);
 
         return $this;
     }
 
+    /**
+     * Set streaming mode (vod or live)
+     */
+    public function withStreamingMode(string $mode): self
+    {
+        $this->streamingMode = $mode;
+
+        return $this;
+    }
+
+    /**
+     * Configure encryption
+     */
     public function withEncryption(array $encryptionConfig): self
     {
-        foreach ($encryptionConfig as $key => $value) {
-            $this->options[$key] = $value;
-        }
+        $this->pipelineOptions->put('encryption', $encryptionConfig);
 
         return $this;
     }
 
+    /**
+     * Add a custom pipeline option
+     */
     public function withOption(string $key, mixed $value): self
     {
-        $this->options[$key] = $value;
-
-        return $this;
-    }
-
-    public function build(): string
-    {
-        $parts = Collection::make();
-
-        // Add stream definitions
-        $this->streams->each(function (array $stream) use ($parts) {
-            $streamParts = Collection::make($stream)
-                ->map(function ($value, $key) {
-                    $escapedKey = $this->escapeKey($key);
-                    $sanitizedValue = $this->sanitizeDescriptorValue($value);
-
-                    return sprintf('%s=%s', $escapedKey, $sanitizedValue);
-                })
-                ->values();
-
-            $parts->push($streamParts->implode(','));
-        });
-
-        // Add global options - early return if empty
-        if (empty($this->options)) {
-            return $parts->implode(' ');
-        }
-
-        Collection::make($this->options)->each(function ($value, $key) use ($parts) {
-            $escapedKey = $this->escapeKey($key);
-
-            if (is_bool($value)) {
-                if ($value) {
-                    $parts->push("--{$escapedKey}");
-                }
-            } elseif ($value !== null && $value !== '') {
-                $parts->push(sprintf(
-                    '--%s=%s',
-                    $escapedKey,
-                    $this->escapeValue($value)
-                ));
-            }
-        });
-
-        return $parts->implode(' ');
-    }
-
-    public function buildArray(): array
-    {
-        $arguments = [];
-
-        // Add stream definitions
-        $this->streams->each(function (array $stream) use (&$arguments) {
-            $streamParts = Collection::make($stream)
-                ->map(function ($value, $key) {
-                    $escapedKey = $this->escapeKey($key);
-                    $sanitizedValue = $this->sanitizeDescriptorValue($value);
-
-                    return sprintf('%s=%s', $escapedKey, $sanitizedValue);
-                })
-                ->values();
-
-            $arguments[] = $streamParts->implode(',');
-        });
-
-        // Add global options
-        Collection::make($this->options)->each(function ($value, $key) use (&$arguments) {
-            if (is_bool($value)) {
-                if ($value) {
-                    $arguments[] = "--{$key}";
-                }
-            } elseif ($value !== null && $value !== '') {
-                $arguments[] = "--{$key}";
-                $arguments[] = (string) $value;
-            }
-        });
-
-        return $arguments;
-    }
-
-    public function reset(): self
-    {
-        $this->streams = Collection::make();
-        $this->options = [];
+        $this->pipelineOptions->put($key, $value);
 
         return $this;
     }
@@ -190,64 +158,130 @@ class CommandBuilder
         return $this->streams;
     }
 
-    public function getOptions(): array
+    public function getOptions(): Collection
     {
-        return $this->options;
+        return $this->pipelineOptions;
     }
 
-    protected function escapeKey(string $key): string
+    public function getMpdOutput(): ?string
     {
-        // Keys should only contain alphanumeric characters, underscores, and hyphens
-        // This prevents command injection while allowing all valid Shaka Packager options
-        if (! preg_match('/^[a-z0-9_-]+$/i', $key)) {
-            throw new InvalidArgumentException(
-                "Invalid key format: {$key}. Keys must contain only alphanumeric characters, underscores, and hyphens."
-            );
-        }
+        return $this->mpdOutput;
+    }
 
-        return $key;
+    public function getHlsOutput(): ?string
+    {
+        return $this->hlsOutput;
     }
 
     /**
-     * Sanitize descriptor values to avoid Shaka stream parser issues.
-     * - Normalize smart quotes to ASCII
-     * - Replace commas (Shaka field separators) with hyphens
-     * - Trim surrounding quotes
-     * - Prefix leading dashes with ./ to avoid option-like confusion
+     * Build complete Shaka Streamer config array
+     * Returns both InputConfig and PipelineConfig as expected by Shaka Streamer
      */
-    protected function sanitizeDescriptorValue(mixed $value): string
+    public function buildArray(): array
     {
-        $v = (string) $value;
-
-        // Normalize typographic quotes
-        $v = str_replace(['’', '‘', '“', '”'], ["'", "'", '"', '"'], $v);
-
-        // Commas separate fields in Shaka descriptors; avoid them in values
-        $v = str_replace(',', '-', $v);
-
-        // Remove surrounding quotes if present
-        $v = trim($v, "\"'");
-
-        // If value starts with a dash, prefix with ./ for safety
-        if (str_starts_with($v, '-')) {
-            $v = './'.$v;
-        }
-
-        return $v;
+        return $this->build();
     }
 
-    protected function escapeValue(mixed $value): string
+    /**
+     * Build config compatible with Shaka Streamer's expected format
+     *
+     * @return array{input_config: array, pipeline_config: array}
+     */
+    public function build(): array
     {
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
+        return [
+            'input_config' => $this->buildInputConfig(),
+            'pipeline_config' => $this->buildPipelineConfig(),
+        ];
+    }
+
+    /**
+     * Build InputConfig for Shaka Streamer
+     *
+     * Shaka Streamer expects:
+     * {
+     *   "inputs": [
+     *     {"input_type": "file", "name": "path/to/file.mp4", "media_type": "video"}
+     *   ]
+     * }
+     */
+    protected function buildInputConfig(): array
+    {
+        $inputs = [];
+        $processedInputs = [];
+
+        foreach ($this->streams as $stream) {
+            $input = $stream['input'];
+
+            // Only add each unique input once
+            if (! isset($processedInputs[$input])) {
+                $inputs[] = [
+                    'input_type' => 'file',
+                    'name' => $input,
+                    'media_type' => $stream['type'],
+                ];
+                $processedInputs[$input] = count($inputs) - 1;
+            }
         }
 
-        if (is_numeric($value)) {
-            return (string) $value;
+        return ['inputs' => $inputs];
+    }
+
+    /**
+     * Build PipelineConfig for Shaka Streamer
+     *
+     * Shaka Streamer expects:
+     * {
+     *   "streaming_mode": "vod",
+     *   "resolutions": ["720p", "480p"],
+     *   "manifest_format": ["dash", "hls"],
+     *   "dash_output": "manifest.mpd",
+     *   "hls_output": "master.m3u8",
+     *   "segment_size": 10
+     * }
+     */
+    protected function buildPipelineConfig(): array
+    {
+        $config = [
+            'streaming_mode' => $this->streamingMode,
+            'manifest_format' => $this->buildManifestFormats(),
+        ];
+
+        // Add manifest outputs
+        if ($this->mpdOutput) {
+            $config['dash_output'] = $this->mpdOutput;
         }
 
-        // Return raw string; Shaka Packager parses stream descriptors itself and
-        // quotes can break field detection (e.g., filenames with leading dashes/parentheses).
-        return (string) $value;
+        if ($this->hlsOutput) {
+            $config['hls_output'] = $this->hlsOutput;
+        }
+
+        // Merge additional pipeline options
+        $config = array_merge($config, $this->pipelineOptions->toArray());
+
+        // Set default segment size if not specified
+        if (! isset($config['segment_size'])) {
+            $config['segment_size'] = 10;
+        }
+
+        return $config;
+    }
+
+    /**
+     * Build manifest formats array based on outputs
+     */
+    protected function buildManifestFormats(): array
+    {
+        $formats = [];
+
+        if ($this->mpdOutput) {
+            $formats[] = 'dash';
+        }
+
+        if ($this->hlsOutput) {
+            $formats[] = 'hls';
+        }
+
+        return ! empty($formats) ? $formats : ['dash', 'hls'];
     }
 }

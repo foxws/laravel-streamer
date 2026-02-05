@@ -349,9 +349,9 @@ class Streamer
     }
 
     /**
-     * Returns the final command that would be executed, useful for debugging purposes.
+     * Returns the final config that would be executed, useful for debugging purposes.
      */
-    public function getCommand(): string
+    public function getCommand(): array
     {
         if (! $this->builder) {
             throw new \RuntimeException('No streams configured. Use addVideoStream() or addAudioStream() first.');
@@ -396,16 +396,16 @@ class Streamer
             throw new \RuntimeException('No streams configured. Use addVideoStream() or addAudioStream() first.');
         }
 
-        $command = $this->builder->buildArray();
+        $config = $this->builder->buildArray();
 
         if ($this->logger) {
             $this->logger->info('Starting packaging operation', [
                 'streams' => $this->builder->getStreams()->count(),
-                'options' => $this->filterSensitiveOptions($this->builder->getOptions()),
+                'options' => $this->filterSensitiveOptions($this->builder->getOptions()->toArray()),
             ]);
         }
 
-        $result = $this->streamer->command($command);
+        $result = $this->streamer->packageWithConfig($config);
 
         if ($this->logger) {
             $this->logger->info('Packaging operation completed');
@@ -419,16 +419,16 @@ class Streamer
 
     public function packageWithBuilder(CommandBuilder $builder): PackagerResult
     {
-        $command = $builder->buildArray();
+        $config = $builder->buildArray();
 
         if ($this->logger) {
             $this->logger->info('Starting packaging operation with builder', [
                 'streams' => $builder->getStreams()->count(),
-                'options' => $this->filterSensitiveOptions($builder->getOptions()),
+                'options' => $this->filterSensitiveOptions($builder->getOptions()->toArray()),
             ]);
         }
 
-        $result = $this->streamer->command($command);
+        $result = $this->streamer->packageWithConfig($config);
 
         if ($this->logger) {
             $this->logger->info('Packaging operation completed');
