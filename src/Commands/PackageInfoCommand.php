@@ -14,7 +14,7 @@ use function Laravel\Prompts\table;
 
 class PackageInfoCommand extends Command
 {
-    protected $signature = 'shaka:info';
+    protected $signature = 'streamer:info';
 
     protected $description = 'Display Laravel Shaka Packager package information';
 

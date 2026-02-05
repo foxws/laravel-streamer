@@ -52,13 +52,13 @@ composer require foxws/laravel-streamer
 ### Publish Configuration
 
 ```bash
-php artisan vendor:publish --tag="shaka-config"
+php artisan vendor:publish --tag="streamer-config"
 ```
 
 ### Verify Installation
 
 ```bash
-php artisan shaka:verify
+php artisan streamer:verify
 ```
 
 This command checks:

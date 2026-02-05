@@ -234,7 +234,7 @@ STREAMER_FORCE_GENERIC_INPUT=true
 After configuration, verify your setup:
 
 ```bash
-php artisan shaka:verify
+php artisan streamer:verify
 ```
 
 This command checks:

@@ -17,7 +17,7 @@ use function Laravel\Prompts\warning;
 
 class VerifyInstallationCommand extends Command
 {
-    protected $signature = 'shaka:verify';
+    protected $signature = 'streamer:verify';
 
     protected $description = 'Verify Shaka Streamer installation and configuration';
 

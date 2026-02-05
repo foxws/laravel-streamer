@@ -70,7 +70,7 @@ Install Shaka Streamer binary on your system. Visit the [Shaka Streamer releases
 After installation, verify that Shaka Streamer is properly configured:
 
 ```bash
-php artisan shaka:verify
+php artisan streamer:verify
 ```
 
 This will check:
@@ -85,7 +85,7 @@ This will check:
 View package and binary information:
 
 ```bash
-php artisan shaka:info
+php artisan streamer:info
 ```
 
 ## Quick Start

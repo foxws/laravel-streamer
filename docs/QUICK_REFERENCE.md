@@ -199,7 +199,7 @@ return [
 
 ```bash
 # Verify streamer installation
-php artisan shaka:verify
+php artisan streamer:verify
 ```
 
 ## Direct Driver Usage
