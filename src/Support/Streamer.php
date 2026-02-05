@@ -327,6 +327,18 @@ class Streamer
     }
 
     /**
+     * Enable or disable using system binaries for streaming
+     *
+     * @param  bool  $use  Whether to use system binaries
+     */
+    public function useSystemBinaries(bool $use = true): self
+    {
+        $this->builder()->withOption('use_system_binaries', $use);
+
+        return $this;
+    }
+
+    /**
      * Add a custom option to the builder
      */
     public function withOption(string $key, mixed $value): self
