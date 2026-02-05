@@ -5,6 +5,13 @@ declare(strict_types=1);
 return [
 
     /**
+     * Streamer (Shaka Streamer) configuration and settings.
+     */
+    'streamer' => [
+        'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
+    ],
+
+    /**
      * Path to the packager binary and other related settings.
      */
     'packager' => [

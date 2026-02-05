@@ -39,8 +39,8 @@ class StreamerServiceProvider extends PackageServiceProvider
 
         $this->app->singleton('laravel-streamer-configuration', function () {
             $baseConfig = [
-                'packager.binaries' => Config::string('laravel-streamer.packager.binaries'),
-                'timeout' => Config::integer('laravel-streamer.timeout'),
+                'streamer.python_binary' => Config::string('laravel-streamer.streamer.python_binary', 'python3'),
+                'timeout' => Config::integer('laravel-streamer.timeout', 3600),
             ];
 
             if ($configuredTemporaryRoot = Config::string('laravel-streamer.temporary_files_root')) {

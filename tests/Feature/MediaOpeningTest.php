@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Foxws\Streamer\Facades\Streamer;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\MediaOpener;
@@ -67,7 +68,7 @@ it('can chain disk and open operations', function () {
 it('can get packager instance from opener', function () {
     $opener = new MediaOpener;
 
-    expect($opener->getPackager())->toBeInstanceOf(\Foxws\Streamer\Support\Packager::class);
+    expect($opener->getStreamer())->toBeInstanceOf(\Foxws\Streamer\Support\Streamer::class);
 });
 
 it('can export from media opener', function () {
