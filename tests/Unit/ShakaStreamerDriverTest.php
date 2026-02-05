@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Foxws\Streamer\Exceptions\ExecutableNotFoundException;
 use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Support\Facades\Config;
 
