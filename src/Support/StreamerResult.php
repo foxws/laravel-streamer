@@ -47,10 +47,18 @@ class StreamerResult
 
         // Copy all files to target disk
         foreach ($files as $file) {
-            $filename = basename($file);
-            $targetPath = $targetDirectory ? $targetDirectory.$filename : $filename;
+            // Determine the relative path from the base directory
+            $baseDir = $this->temporaryDirectory;
+            if ($this->cacheDirectory && str_starts_with($file, $this->cacheDirectory)) {
+                $baseDir = $this->cacheDirectory;
+            }
+
+            // Get relative path (preserves subdirectory structure)
+            $relativePath = substr($file, strlen($baseDir) + 1);
+            $targetPath = $targetDirectory ? $targetDirectory.$relativePath : $relativePath;
 
             // Check if this is an encryption key file
+            $filename = basename($file);
             $extension = pathinfo($filename, PATHINFO_EXTENSION);
             $baseWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
             $isRotationKey = preg_match('/^[a-zA-Z_-]+_\d+$/', $baseWithoutExt);
@@ -93,16 +101,20 @@ class StreamerResult
             }
         }
 
-        // Clean up temporary directory if empty
+        // Clean up temporary directories if empty (recursively)
         if ($cleanup && is_dir($this->temporaryDirectory)) {
-            @rmdir($this->temporaryDirectory);
+            $this->cleanupDirectory($this->temporaryDirectory);
+        }
+
+        if ($cleanup && $this->cacheDirectory && is_dir($this->cacheDirectory)) {
+            $this->cleanupDirectory($this->cacheDirectory);
         }
 
         return $this;
     }
 
     /**
-     * Get all files in the temporary directory
+     * Get all files in the temporary directory (recursively)
      */
     protected function getAllFilesInTemporaryDirectory(string $directory): array
     {
@@ -122,10 +134,40 @@ class StreamerResult
 
             if (is_file($path)) {
                 $files[] = $path;
+            } elseif (is_dir($path)) {
+                // Recursively scan subdirectories
+                $files = array_merge($files, $this->getAllFilesInTemporaryDirectory($path));
             }
         }
 
         return $files;
+    }
+
+    /**
+     * Recursively clean up empty directories
+     */
+    protected function cleanupDirectory(string $directory): void
+    {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        $items = scandir($directory);
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory.DIRECTORY_SEPARATOR.$item;
+
+            if (is_dir($path)) {
+                $this->cleanupDirectory($path);
+            }
+        }
+
+        // Remove directory if empty
+        @rmdir($directory);
     }
 
     /**

@@ -422,6 +422,7 @@ class Streamer
         // Get temporary directory for output
         $outputDirectory = $this->getTemporaryDirectory();
 
+        // Pass temp directory to shaka-streamer via -o flag
         $result = $this->streamer->packageWithConfig($config, $outputDirectory);
 
         if ($this->logger) {
