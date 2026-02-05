@@ -20,7 +20,7 @@ it('can add video stream to streamer', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v');
 
     expect(method_exists($streamer, 'addVideoStream'))->toBeTrue();
@@ -31,7 +31,7 @@ it('can configure dash output', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
@@ -43,7 +43,7 @@ it('can configure hls output', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withHlsMasterPlaylist('playlist.m3u8');
 
@@ -55,7 +55,7 @@ it('can configure both dash and hls', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withHlsMasterPlaylist('playlist.m3u8')
@@ -69,7 +69,7 @@ it('can configure segment duration', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withSegmentDuration(10);
@@ -82,7 +82,7 @@ it('can get command builder from streamer', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
@@ -97,7 +97,7 @@ it('preserves video stream configuration', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('input.mp4', 'output.m4v')
         ->withSegmentDuration(10);
 
@@ -112,7 +112,7 @@ it('supports different video codecs', function () {
     foreach (['h264', 'hevc', 'av1'] as $codec) {
         Storage::disk('local')->put('video.mp4', file_get_contents(fixture("sample_{$codec}.mp4")));
 
-        $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        $streamer = Streamer::open('video.mp4')
             ->addVideoStream('video.mp4', 'output.m4v')
             ->withMpdOutput('manifest.mpd');
 
@@ -125,7 +125,7 @@ it('can chain multiple stream configuration methods', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withSegmentDuration(10);
@@ -138,7 +138,7 @@ it('can configure encryption options', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'output.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withOption('drm', ['widevine' => true]);

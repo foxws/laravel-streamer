@@ -19,7 +19,7 @@ it('can generate streamer configuration', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
@@ -32,7 +32,7 @@ it('can get command builder from configured streamer', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
@@ -46,7 +46,7 @@ it('can configure mpd output', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
@@ -58,7 +58,7 @@ it('can configure hls master playlist', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withHlsMasterPlaylist('playlist.m3u8');
 
@@ -70,7 +70,7 @@ it('can configure with options', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withOption('custom_key', 'custom_value');
@@ -83,7 +83,7 @@ it('can chain configuration methods', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withHlsMasterPlaylist('playlist.m3u8')
@@ -97,7 +97,7 @@ it('can get streamer packager driver', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v');
 
     $driver = $streamer->getPackager();
@@ -110,7 +110,7 @@ it('can get media collection from streamer', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v');
 
     $collection = $streamer->getMediaCollection();
@@ -123,7 +123,7 @@ it('can configure encryption with options', function () {
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+    $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'output.m4v')
         ->withMpdOutput('manifest.mpd')
         ->withOption('encryption', ['key' => 'secret']);
