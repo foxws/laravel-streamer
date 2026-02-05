@@ -76,7 +76,7 @@ class ShakaStreamer
     /**
      * Package with Shaka Streamer config
      *
-     * @param array $config Configuration array with 'input_config' and 'pipeline_config'
+     * @param  array  $config  Configuration array with 'input_config' and 'pipeline_config'
      * @return string Output from Shaka Streamer
      *
      * @throws \RuntimeException
@@ -132,7 +132,7 @@ class ShakaStreamer
 
         if ($result->failed()) {
             throw new \RuntimeException(
-                'Shaka Streamer is not installed or not accessible. ' .
+                'Shaka Streamer is not installed or not accessible. '.
                 'Install with: pip install shaka-streamer'
             );
         }
@@ -147,7 +147,7 @@ class ShakaStreamer
     /**
      * Create temporary configuration file
      *
-     * @param array $config Configuration array
+     * @param  array  $config  Configuration array
      * @return string Path to temporary config file
      *
      * @throws \RuntimeException
@@ -166,7 +166,7 @@ class ShakaStreamer
             unlink($configFile);
 
             throw new \RuntimeException(
-                'Failed to encode configuration: ' . json_last_error_msg()
+                'Failed to encode configuration: '.json_last_error_msg()
             );
         }
 
@@ -189,7 +189,7 @@ class ShakaStreamer
     /**
      * Invoke Shaka Streamer with configuration
      *
-     * @param string $configFile Path to config file
+     * @param  string  $configFile  Path to config file
      * @return string Process output
      *
      * @throws \RuntimeException
@@ -224,7 +224,7 @@ class ShakaStreamer
     /**
      * Handle process failure with detailed logging
      *
-     * @param \Illuminate\Contracts\Process\ProcessResult $result
+     * @param  \Illuminate\Contracts\Process\ProcessResult  $result
      *
      * @throws \RuntimeException
      */
@@ -262,7 +262,7 @@ class ShakaStreamer
     /**
      * Validate configuration structure
      *
-     * @param array $config Configuration array
+     * @param  array  $config  Configuration array
      *
      * @throws \RuntimeException
      */
@@ -315,7 +315,7 @@ class ShakaStreamer
         foreach ($config['pipeline_config']['manifest_format'] as $format) {
             if (! in_array($format, $validFormats)) {
                 throw new \RuntimeException(
-                    "Invalid manifest format: {$format}. Valid formats: " . implode(', ', $validFormats)
+                    "Invalid manifest format: {$format}. Valid formats: ".implode(', ', $validFormats)
                 );
             }
         }
