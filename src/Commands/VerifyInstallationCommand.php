@@ -51,7 +51,7 @@ class VerifyInstallationCommand extends Command
         $timeout = Config::get('laravel-streamer.timeout');
         $logChannel = Config::get('laravel-streamer.log_channel');
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: Config::get('logging.default'));
-        $tempDir = Config::get('laravel-streamer.temporary_files_root');
+        $tempDir = Config::get('laravel-streamer.temporary_files_root', storage_path('app/streamer/temp'));
 
         table(
             ['Configuration', 'Value', 'Status'],
