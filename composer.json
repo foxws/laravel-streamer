@@ -77,7 +77,7 @@
                 "Foxws\\Streamer\\StreamerServiceProvider"
             ],
             "aliases": {
-                "Shaka": "Foxws\\Streamer\\Facades\\Shaka"
+                "Streamer": "Foxws\\Streamer\\Facades\\Streamer"
             }
         }
     },
