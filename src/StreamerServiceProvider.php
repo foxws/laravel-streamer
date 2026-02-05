@@ -40,7 +40,7 @@ class StreamerServiceProvider extends PackageServiceProvider
         $this->app->singleton('laravel-streamer-configuration', function () {
             $baseConfig = [
                 'streamer.python_binary' => Config::string('laravel-streamer.streamer.python_binary', 'python3'),
-                'streamer.executable' => Config::string('laravel-streamer.streamer.executable', 'shaka-streamer'),
+                'streamer.streamer_binary' => Config::string('laravel-streamer.streamer.streamer_binary', 'shaka-streamer'),
                 'timeout' => Config::integer('laravel-streamer.timeout', 3600),
             ];
 

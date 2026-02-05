@@ -26,10 +26,10 @@ class VerifyInstallationCommand extends Command
         info('🔍 Verifying Shaka Streamer installation...');
 
         $pythonBinary = Config::get('laravel-streamer.streamer.python_binary', 'python3');
-        $executable = Config::get('laravel-streamer.streamer.executable', 'shaka-streamer');
+        $streamerBinary = Config::get('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
 
         note("Python Binary: {$pythonBinary}");
-        note("Streamer Executable: {$executable}");
+        note("Streamer Binary: {$streamerBinary}");
 
         $this->components->info('Configuration loaded successfully');
 

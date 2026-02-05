@@ -9,7 +9,7 @@ return [
      */
     'streamer' => [
         'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
-        'executable' => env('STREAMER_EXECUTABLE', 'shaka-streamer'),
+        'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
     ],
 
     /**

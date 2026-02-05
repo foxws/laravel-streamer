@@ -53,13 +53,13 @@ class PackageInfoCommand extends Command
 
         $forceGeneric = Config::get('laravel-streamer.force_generic_input') ? 'Enabled' : 'Disabled';
         $pythonBinary = Config::get('laravel-streamer.streamer.python_binary', 'python3');
-        $executable = Config::get('laravel-streamer.streamer.executable', 'shaka-streamer');
+        $streamerBinary = Config::get('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
 
         table(
             ['Configuration', 'Value'],
             [
                 ['Python Binary', $pythonBinary],
-                ['Streamer Executable', $executable],
+                ['Streamer Binary', $streamerBinary],
                 ['Timeout', Config::get('laravel-streamer.timeout').' seconds'],
                 ['Temp Directory', Config::get('laravel-streamer.temporary_files_root')],
                 ['Logging', $logStatus],
