@@ -9,11 +9,11 @@ use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Psr\Log\LoggerInterface;
 
-class Packager
+class Streamer
 {
     use ForwardsCalls;
 
-    protected ShakaPackager $packager;
+    protected ShakaStreamer $streamer;
 
     protected ?MediaCollection $mediaCollection = null;
 
@@ -26,10 +26,10 @@ class Packager
     protected ?string $cacheDirectory = null;
 
     public function __construct(
-        ShakaPackager $packager,
+        ShakaStreamer $streamer,
         ?LoggerInterface $logger = null
     ) {
-        $this->packager = $packager;
+        $this->streamer = $streamer;
         $this->logger = $logger;
     }
 
@@ -37,24 +37,24 @@ class Packager
         ?LoggerInterface $logger = null,
         ?array $configuration = null
     ): self {
-        $packager = ShakaPackager::create($logger, $configuration);
+        $streamer = ShakaStreamer::create($logger, $configuration);
 
-        return new self($packager, $logger);
+        return new self($streamer, $logger);
     }
 
     public function fresh(): self
     {
-        return new self($this->packager, $this->logger);
+        return new self($this->streamer, $this->logger);
     }
 
-    public function getPackager(): ShakaPackager
+    public function getPackager(): ShakaStreamer
     {
-        return $this->packager;
+        return $this->streamer;
     }
 
-    public function setPackager(ShakaPackager $packager): self
+    public function setPackager(ShakaStreamer $streamer): self
     {
-        $this->packager = $packager;
+        $this->streamer = $streamer;
 
         return $this;
     }
@@ -405,7 +405,7 @@ class Packager
             ]);
         }
 
-        $result = $this->packager->command($command);
+        $result = $this->streamer->command($command);
 
         if ($this->logger) {
             $this->logger->info('Packaging operation completed');
@@ -428,7 +428,7 @@ class Packager
             ]);
         }
 
-        $result = $this->packager->command($command);
+        $result = $this->streamer->command($command);
 
         if ($this->logger) {
             $this->logger->info('Packaging operation completed');
