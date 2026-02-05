@@ -30,7 +30,7 @@ it('can resolve media opener via container', function () {
 it('facade resolves to media opener instance', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener = Shaka::open('video.mp4');
+    $opener = Streamer::open('video.mp4');
 
     expect($opener)->toBeInstanceOf(MediaOpener::class);
 });
@@ -38,7 +38,7 @@ it('facade resolves to media opener instance', function () {
 it('can access facade methods statically', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener = Shaka::fromDisk('local')->open('video.mp4');
+    $opener = Streamer::fromDisk('local')->open('video.mp4');
 
     expect($opener)->toBeInstanceOf(MediaOpener::class);
 });
@@ -47,8 +47,8 @@ it('can instantiate multiple independent packagers', function () {
     Storage::disk('local')->put('video1.mp4', file_get_contents(fixture('sample_h264.mp4')));
     Storage::disk('local')->put('video2.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $packager1 = Shaka::open('video1.mp4');
-    $packager2 = Shaka::open('video2.mp4');
+    $packager1 = Streamer::open('video1.mp4');
+    $packager2 = Streamer::open('video2.mp4');
 
     expect($packager1->get()->first()->getPath())->toBe('video1.mp4');
     expect($packager2->get()->first()->getPath())->toBe('video2.mp4');
@@ -69,7 +69,7 @@ it('facade methods return independent state', function () {
 it('can chain facade methods with instance methods', function () {
     Storage::disk('local')->put('test.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $result = Shaka::fromDisk('local')
+    $result = Streamer::fromDisk('local')
         ->open('test.mp4');
 
     expect($result->getDisk()->getName())->toBe('local');
@@ -79,7 +79,7 @@ it('can chain facade methods with instance methods', function () {
 it('can export from facade chain', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')->export();
+    $exporter = Streamer::open('video.mp4')->export();
 
     expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
 });

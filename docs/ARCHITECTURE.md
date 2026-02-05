@@ -245,7 +245,7 @@ The package uses a clear exception hierarchy:
 
 ```php
 try {
-    $result = Shaka::open('input.mp4')->export();
+    $result = Streamer::open('input.mp4')->export();
 } catch (ExecutableNotFoundException $e) {
     // Binary not found
 } catch (RuntimeException $e) {
@@ -316,7 +316,7 @@ class DetailedPackagerResult extends PackagerResult
 ## Best Practices
 
 1. **Always use dependency injection** - Get `Packager` from the container
-2. **Use the facade for simple operations** - `Shaka::open()` for quick tasks
+2. **Use the facade for simple operations** - `Streamer::open()` for quick tasks
 3. **Use the driver directly only when needed** - For low-level control
 4. **Enable logging in production** - Track packaging operations
 5. **Set appropriate timeouts** - Based on your content size

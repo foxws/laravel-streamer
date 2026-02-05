@@ -40,7 +40,7 @@ it('can open multiple media files', function () {
 it('can use facade to open media', function () {
     Storage::disk('local')->put('test-video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener = Shaka::open('test-video.mp4');
+    $opener = Streamer::open('test-video.mp4');
 
     expect($opener)->toBeInstanceOf(MediaOpener::class);
     expect($opener->get()->count())->toBe(1);
@@ -49,7 +49,7 @@ it('can use facade to open media', function () {
 it('can open media from specific disk', function () {
     Storage::disk('export')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener = Shaka::fromDisk('export')->open('video.mp4');
+    $opener = Streamer::fromDisk('export')->open('video.mp4');
 
     expect($opener->getDisk()->getName())->toBe('export');
     expect($opener->get()->count())->toBe(1);
@@ -58,7 +58,7 @@ it('can open media from specific disk', function () {
 it('can chain disk and open operations', function () {
     Storage::disk('local')->put('test.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $result = Shaka::fromDisk('local')
+    $result = Streamer::fromDisk('local')
         ->open('test.mp4');
 
     expect($result->getDisk()->getName())->toBe('local');
@@ -74,7 +74,7 @@ it('can get packager instance from opener', function () {
 it('can export from media opener', function () {
     Storage::disk('local')->put('test.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener = Shaka::open('test.mp4');
+    $opener = Streamer::open('test.mp4');
     $exporter = $opener->export();
 
     expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
@@ -90,7 +90,7 @@ it('validates that media collection is not empty before opening', function () {
 it('can clone media opener instance', function () {
     Storage::disk('local')->put('test.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $opener1 = Shaka::fromDisk('local')->open('test.mp4');
+    $opener1 = Streamer::fromDisk('local')->open('test.mp4');
     $opener2 = $opener1->clone();
 
     expect($opener2)->not->toBe($opener1);

@@ -8,7 +8,7 @@
 use Foxws\Streamer\Facades\Shaka;
 
 // Default disk
-$result = Shaka::open('input.mp4')
+$result = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withMpdOutput('manifest.mpd')
@@ -19,7 +19,7 @@ $result = Shaka::open('input.mp4')
 
 ```php
 // From S3, save to a different disk (e.g., local, s3, etc.)
-$result = Shaka::fromDisk('s3')
+$result = Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->withMpdOutput('manifest.mpd')
@@ -28,7 +28,7 @@ $result = Shaka::fromDisk('s3')
     ->save();
 
 // Helper method
-$result = Shaka::openFromDisk('s3', 'videos/input.mp4')
+$result = Streamer::openFromDisk('s3', 'videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->export()
     ->toDisk('export')
@@ -101,7 +101,7 @@ $result = Shaka::openFromDisk('s3', 'videos/input.mp4')
 ### Adding Captions/Subtitles (WebVTT)
 
 ```php
-Shaka::fromDisk('s3')
+Streamer::fromDisk('s3')
     ->open('videos/source.mp4')
     ->addVideoStream('videos/source.mp4', 'video_1080p.mp4', [
         'bandwidth' => '5000000',
@@ -118,7 +118,7 @@ Shaka::fromDisk('s3')
 ### Adaptive Bitrate Streaming
 
 ```php
-Shaka::fromDisk('s3')
+Streamer::fromDisk('s3')
     ->open('videos/source.mp4')
     ->addVideoStream('videos/source.mp4', 'video_1080p.mp4', [
         'bandwidth' => '5000000',
@@ -138,7 +138,7 @@ Shaka::fromDisk('s3')
 ### HLS with Encryption
 
 ```php
-Shaka::fromDisk('s3')
+Streamer::fromDisk('s3')
     ->open('secure/video.mp4')
     ->addVideoStream('secure/video.mp4', 'video.m3u8')
     ->addAudioStream('secure/video.mp4', 'audio.m3u8')
@@ -153,7 +153,7 @@ Shaka::fromDisk('s3')
 ### Multiple Files
 
 ```php
-Shaka::fromDisk('videos')
+Streamer::fromDisk('videos')
     ->open(['intro.mp4', 'main.mp4', 'outro.mp4'])
     ->addVideoStream('intro.mp4', 'intro_video.mp4')
     ->addVideoStream('main.mp4', 'main_video.mp4')
@@ -166,7 +166,7 @@ Shaka::fromDisk('videos')
 
 ```php
 try {
-    $result = Shaka::fromDisk('s3')
+    $result = Streamer::fromDisk('s3')
         ->open('video.mp4')
         ->addVideoStream('video.mp4', 'output.mp4')
         ->withMpdOutput('manifest.mpd')

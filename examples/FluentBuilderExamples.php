@@ -17,7 +17,7 @@ class FluentBuilderExamples
      */
     public function simpleFluentApi(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             ->addVideoStream('input.mp4', 'video.mp4')
             ->addAudioStream('input.mp4', 'audio.mp4')
             ->withMpdOutput('manifest.mpd')
@@ -29,7 +29,7 @@ class FluentBuilderExamples
      */
     public function adaptiveBitrateStreaming(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             ->addVideoStream('input.mp4', 'video_1080p.mp4', [
                 'bandwidth' => '5000000',
             ])
@@ -50,7 +50,7 @@ class FluentBuilderExamples
      */
     public function hlsWithEncryption(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             ->addVideoStream('input.mp4', 'video.m3u8')
             ->addAudioStream('input.mp4', 'audio.m3u8')
             ->withHlsMasterPlaylist('master.m3u8')
@@ -67,7 +67,7 @@ class FluentBuilderExamples
      */
     public function multipleInputFiles(): void
     {
-        $result = Shaka::open(['input1.mp4', 'input2.mp4', 'input3.mp4'])
+        $result = Streamer::open(['input1.mp4', 'input2.mp4', 'input3.mp4'])
             ->addVideoStream('input1.mp4', 'video_1.mp4')
             ->addAudioStream('input1.mp4', 'audio_1.mp4')
             ->addVideoStream('input2.mp4', 'video_2.mp4')
@@ -101,7 +101,7 @@ class FluentBuilderExamples
      */
     public function complexStreamConfiguration(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             ->addStream([
                 'in' => 'input.mp4',
                 'stream' => 'video',
@@ -137,7 +137,7 @@ class FluentBuilderExamples
      */
     public function advancedBuilderAccess(): void
     {
-        $shaka = Shaka::open('input.mp4');
+        $shaka = Streamer::open('input.mp4');
 
         // Access the builder directly for advanced configuration
         $builder = $shaka->builder();
@@ -160,7 +160,7 @@ class FluentBuilderExamples
     public function fluentWithErrorHandling(): void
     {
         try {
-            $result = Shaka::open('input.mp4')
+            $result = Streamer::open('input.mp4')
                 ->addVideoStream('input.mp4', 'video.mp4')
                 ->addAudioStream('input.mp4', 'audio.mp4')
                 ->withMpdOutput('manifest.mpd')
@@ -179,7 +179,7 @@ class FluentBuilderExamples
      */
     public function mixedStreamTypes(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             // High quality video
             ->addVideoStream('input.mp4', 'video_high.mp4', [
                 'bandwidth' => '8000000',
@@ -210,7 +210,7 @@ class FluentBuilderExamples
      */
     public function addingSubtitles(): void
     {
-        $result = Shaka::open('input.mp4')
+        $result = Streamer::open('input.mp4')
             ->export()
             ->addVideoStream('input.mp4', 'video.mp4')
             ->addAudioStream('input.mp4', 'audio.mp4')
@@ -238,7 +238,7 @@ class FluentBuilderExamples
     {
         $uuid = '01234567-89ab-cdef-0123-456789abcdef';
 
-        $result = Shaka::fromDisk('videos')
+        $result = Streamer::fromDisk('videos')
             ->open('source/input.mp4')
             ->export()
             ->outputPath($uuid)  // Files saved to: {uuid}/master.m3u8, {uuid}/video.mp4, etc.
@@ -255,7 +255,7 @@ class FluentBuilderExamples
     public function configuringSegmentDuration(): void
     {
         // Shorter segments (2s) - better for live streaming, more seeking precision
-        $liveResult = Shaka::open('input.mp4')
+        $liveResult = Streamer::open('input.mp4')
             ->export()
             ->addVideoStream('input.mp4', 'video.mp4')
             ->addAudioStream('input.mp4', 'audio.mp4')
@@ -265,7 +265,7 @@ class FluentBuilderExamples
             ->save();
 
         // Longer segments (10s) - better for VOD, reduces overhead
-        $vodResult = Shaka::open('input.mp4')
+        $vodResult = Streamer::open('input.mp4')
             ->export()
             ->addVideoStream('input.mp4', 'video.mp4')
             ->addAudioStream('input.mp4', 'audio.mp4')
@@ -275,7 +275,7 @@ class FluentBuilderExamples
             ->save();
 
         // Default (6s) - balanced for most use cases
-        $balancedResult = Shaka::open('input.mp4')
+        $balancedResult = Streamer::open('input.mp4')
             ->export()
             ->addVideoStream('input.mp4', 'video.mp4')
             ->addAudioStream('input.mp4', 'audio.mp4')

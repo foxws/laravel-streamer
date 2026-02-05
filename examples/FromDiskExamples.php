@@ -17,7 +17,7 @@ class FromDiskExamples
     public function basicFromDisk(): void
     {
         // Package video from a specific disk
-        $result = Shaka::fromDisk('s3')
+        $result = Streamer::fromDisk('s3')
             ->open('videos/input.mp4')
             ->addVideoStream('videos/input.mp4', 'video.mp4')
             ->addAudioStream('videos/input.mp4', 'audio.mp4')
@@ -31,7 +31,7 @@ class FromDiskExamples
     public function openFromDiskHelper(): void
     {
         // Combine fromDisk and open in one method
-        $result = Shaka::openFromDisk('s3', 'videos/input.mp4')
+        $result = Streamer::openFromDisk('s3', 'videos/input.mp4')
             ->addVideoStream('videos/input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
             ->addVideoStream('videos/input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
             ->addAudioStream('videos/input.mp4', 'audio.mp4')
@@ -46,14 +46,14 @@ class FromDiskExamples
     public function multipleDisks(): void
     {
         // Process video from S3
-        $result1 = Shaka::fromDisk('s3')
+        $result1 = Streamer::fromDisk('s3')
             ->open('videos/video1.mp4')
             ->addVideoStream('videos/video1.mp4', 'output1/video.mp4')
             ->withMpdOutput('output1/manifest.mpd')
             ->export();
 
         // Process video from local disk
-        $result2 = Shaka::fromDisk('local')
+        $result2 = Streamer::fromDisk('local')
             ->open('videos/video2.mp4')
             ->addVideoStream('videos/video2.mp4', 'output2/video.mp4')
             ->withMpdOutput('output2/manifest.mpd')
@@ -65,7 +65,7 @@ class FromDiskExamples
      */
     public function privateS3Bucket(): void
     {
-        $result = Shaka::fromDisk('s3-private')
+        $result = Streamer::fromDisk('s3-private')
             ->open('private-videos/source.mp4')
             ->addVideoStream('private-videos/source.mp4', 'video_4k.mp4', [
                 'bandwidth' => '10000000',
@@ -90,7 +90,7 @@ class FromDiskExamples
      */
     public function multipleFilesFromS3(): void
     {
-        $result = Shaka::fromDisk('s3')
+        $result = Streamer::fromDisk('s3')
             ->open([
                 'videos/intro.mp4',
                 'videos/main.mp4',
@@ -112,7 +112,7 @@ class FromDiskExamples
     public function switchingDisks(): void
     {
         // Start with default disk
-        $shaka = Shaka::open('local-video.mp4');
+        $shaka = Streamer::open('local-video.mp4');
 
         // Switch to S3 disk
         $result = $shaka->fromDisk('s3')
@@ -128,7 +128,7 @@ class FromDiskExamples
     public function customFilesystem(): void
     {
         // Use a custom configured filesystem
-        $result = Shaka::fromDisk('videos-archive')
+        $result = Streamer::fromDisk('videos-archive')
             ->open('2024/december/event.mp4')
             ->addVideoStream('2024/december/event.mp4', 'video_high.mp4', [
                 'bandwidth' => '8000000',
@@ -150,7 +150,7 @@ class FromDiskExamples
      */
     public function hlsEncryptionFromS3(): void
     {
-        $result = Shaka::fromDisk('s3')
+        $result = Streamer::fromDisk('s3')
             ->open('secure-content/video.mp4')
             ->addVideoStream('secure-content/video.mp4', 'video.m3u8')
             ->addAudioStream('secure-content/video.mp4', 'audio.m3u8')
@@ -175,7 +175,7 @@ class FromDiskExamples
         ];
 
         foreach ($videos as $index => $video) {
-            $result = Shaka::fromDisk($video['disk'])
+            $result = Streamer::fromDisk($video['disk'])
                 ->open($video['path'])
                 ->addVideoStream($video['path'], "output_{$index}/video.mp4")
                 ->addAudioStream($video['path'], "output_{$index}/audio.mp4")
@@ -195,7 +195,7 @@ class FromDiskExamples
     public function errorHandlingWithFromDisk(): void
     {
         try {
-            $result = Shaka::fromDisk('s3')
+            $result = Streamer::fromDisk('s3')
                 ->open('videos/input.mp4')
                 ->addVideoStream('videos/input.mp4', 'video.mp4')
                 ->addAudioStream('videos/input.mp4', 'audio.mp4')
@@ -220,7 +220,7 @@ class FromDiskExamples
         $basePath = 'videos/source.mp4';
 
         // High quality for premium users
-        $premiumResult = Shaka::fromDisk($baseDisk)
+        $premiumResult = Streamer::fromDisk($baseDisk)
             ->open($basePath)
             ->addVideoStream($basePath, 'premium/video_4k.mp4', ['bandwidth' => '10000000'])
             ->addVideoStream($basePath, 'premium/video_1080p.mp4', ['bandwidth' => '5000000'])
@@ -229,7 +229,7 @@ class FromDiskExamples
             ->export();
 
         // Standard quality for regular users
-        $standardResult = Shaka::fromDisk($baseDisk)
+        $standardResult = Streamer::fromDisk($baseDisk)
             ->open($basePath)
             ->addVideoStream($basePath, 'standard/video_720p.mp4', ['bandwidth' => '3000000'])
             ->addVideoStream($basePath, 'standard/video_480p.mp4', ['bandwidth' => '1500000'])
@@ -243,7 +243,7 @@ class FromDiskExamples
      */
     public function getDiskInformation(): void
     {
-        $shaka = Shaka::fromDisk('s3')->open('videos/input.mp4');
+        $shaka = Streamer::fromDisk('s3')->open('videos/input.mp4');
 
         // Access disk information
         $disk = $shaka->getDisk();

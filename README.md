@@ -10,7 +10,7 @@ A Laravel integration for [Google's Shaka Packager](https://github.com/shaka-pro
 ```php
 use Foxws\Streamer\Facades\Shaka;
 
-$result = Shaka::fromDisk('s3')
+$result = Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
     ->addVideoStream('videos/input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
@@ -95,7 +95,7 @@ php artisan shaka:info
 ```php
 use Foxws\Streamer\Facades\Shaka;
 
-$result = Shaka::open('input.mp4')
+$result = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
@@ -106,7 +106,7 @@ $result = Shaka::open('input.mp4')
 ### Adaptive Bitrate Streaming
 
 ```php
-$result = Shaka::open('input.mp4')
+$result = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
     ->addVideoStream('input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
     ->addVideoStream('input.mp4', 'video_480p.mp4', ['bandwidth' => '1500000'])
@@ -120,7 +120,7 @@ $result = Shaka::open('input.mp4')
 ### Working with Different Disks
 
 ```php
-$result = Shaka::fromDisk('s3')
+$result = Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->addAudioStream('videos/input.mp4', 'audio.mp4')
@@ -135,7 +135,7 @@ $result = Shaka::fromDisk('s3')
 
 ```php
 // Basic encryption with auto-generated AES-128 key
-Shaka::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
@@ -144,7 +144,7 @@ Shaka::open('input.mp4')
     ->save();
 
 // With key rotation (generates key_0.key, key_1.key, etc.)
-Shaka::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')

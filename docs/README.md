@@ -75,7 +75,7 @@ This command checks:
 ```php
 use Foxws\Streamer\Facades\Shaka;
 
-$result = Shaka::open('input.mp4')
+$result = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withMpdOutput('manifest.mpd')
@@ -88,7 +88,7 @@ $result = Shaka::open('input.mp4')
 ### Using Different Disks
 
 ```php
-$result = Shaka::fromDisk('s3')
+$result = Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->addAudioStream('videos/input.mp4', 'audio.mp4')
@@ -101,7 +101,7 @@ $result = Shaka::fromDisk('s3')
 ### Adaptive Bitrate Streaming
 
 ```php
-$result = Shaka::open('input.mp4')
+$result = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video_1080p.mp4', [
         'bandwidth' => '5000000',
     ])

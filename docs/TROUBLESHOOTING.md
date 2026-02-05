@@ -142,7 +142,7 @@ InvalidArgumentException: MediaCollection cannot be empty
 
 ```php
 // Ensure you call open() before adding streams
-Shaka::open('input.mp4')  // ← Must call open first
+Streamer::open('input.mp4')  // ← Must call open first
     ->addVideoStream('input.mp4', 'output.mp4')
     ->export()
     ->save();
@@ -160,7 +160,7 @@ RuntimeException: No streams configured. Use addVideoStream() or addAudioStream(
 
 ```php
 // Add at least one stream before exporting
-Shaka::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')  // ← Add streams
     ->export()
     ->save();
@@ -175,7 +175,7 @@ Shaka::open('input.mp4')
 **Solution:** Use `cbc1` protection scheme for browser compatibility:
 
 ```php
-Shaka::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.ts')  // Use .ts not .mp4
     ->withHlsMasterPlaylist('master.m3u8')
     ->withEncryption([
@@ -253,7 +253,7 @@ $builder = CommandBuilder::make()->addVideoStream(...);
 $packager->packageWithBuilder($builder)->toDisk('s3');
 
 // ✓ Correct
-Shaka::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'output.mp4')
     ->export()
     ->toDisk('s3')
@@ -314,7 +314,7 @@ tail -f storage/logs/laravel.log
 ### Get Raw Command
 
 ```php
-$command = Shaka::open('input.mp4')
+$command = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'output.mp4')
     ->export()
     ->getCommand();

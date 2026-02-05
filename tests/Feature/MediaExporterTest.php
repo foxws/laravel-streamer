@@ -13,7 +13,7 @@ beforeEach(function () {
 it('can create exporter from media opener', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')->export();
+    $exporter = Streamer::open('video.mp4')->export();
 
     expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
 });
@@ -21,7 +21,7 @@ it('can create exporter from media opener', function () {
 it('can specify target disk for export', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')
+    $exporter = Streamer::open('video.mp4')
         ->export()
         ->toDisk('export');
 
@@ -31,7 +31,7 @@ it('can specify target disk for export', function () {
 it('can specify path for export', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')
+    $exporter = Streamer::open('video.mp4')
         ->export()
         ->toPath('output/');
 
@@ -41,7 +41,7 @@ it('can specify path for export', function () {
 it('can set file visibility for export', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')
+    $exporter = Streamer::open('video.mp4')
         ->export()
         ->withVisibility('public');
 
@@ -51,7 +51,7 @@ it('can set file visibility for export', function () {
 it('can chain path and disk methods', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Shaka::open('video.mp4')
+    $exporter = Streamer::open('video.mp4')
         ->export()
         ->toDisk('export')
         ->toPath('videos/')
@@ -63,7 +63,7 @@ it('can chain path and disk methods', function () {
 it('can get command for debugging', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $command = Shaka::open('video.mp4')
+    $command = Streamer::open('video.mp4')
         ->export()
         ->getCommand();
 
@@ -75,7 +75,7 @@ it('can add after saving callbacks', function () {
 
     $callbackExecuted = false;
 
-    $exporter = Shaka::open('video.mp4')
+    $exporter = Streamer::open('video.mp4')
         ->export()
         ->afterSaving(function () use (&$callbackExecuted) {
             $callbackExecuted = true;
@@ -87,8 +87,8 @@ it('can add after saving callbacks', function () {
 it('can handle multiple export destinations', function () {
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter1 = Shaka::open('video.mp4')->export()->toDisk('local');
-    $exporter2 = Shaka::open('video.mp4')->export()->toDisk('export');
+    $exporter1 = Streamer::open('video.mp4')->export()->toDisk('local');
+    $exporter2 = Streamer::open('video.mp4')->export()->toDisk('export');
 
     expect($exporter1)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
     expect($exporter2)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);

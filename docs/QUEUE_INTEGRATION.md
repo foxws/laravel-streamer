@@ -30,7 +30,7 @@ class PackageMediaJob implements ShouldQueue
 
     public function handle(): void
     {
-        Shaka::fromDisk($this->disk)
+        Streamer::fromDisk($this->disk)
             ->open($this->inputPath)
             ->addVideoStream($this->inputPath, 'video_1080p.mp4', ['bandwidth' => '5000000'])
             ->addVideoStream($this->inputPath, 'video_720p.mp4', ['bandwidth' => '3000000'])
@@ -95,7 +95,7 @@ class PackageMediaWithProgressJob implements ShouldQueue
         }
 
         try {
-            Shaka::fromDisk('s3')
+            Streamer::fromDisk('s3')
                 ->open($this->inputPath)
                 ->addVideoStream($this->inputPath, 'video.mp4')
                 ->addAudioStream($this->inputPath, 'audio.mp4')
@@ -210,7 +210,7 @@ If using Laravel Horizon, add to `config/horizon.php`:
 public function handle(): void
 {
     try {
-        Shaka::fromDisk('s3')
+        Streamer::fromDisk('s3')
             ->open($this->inputPath)
             ->addVideoStream($this->inputPath, 'video.mp4')
             ->withHlsMasterPlaylist('master.m3u8')
@@ -219,10 +219,10 @@ public function handle(): void
             ->save();
 
         // Clean up temporary files
-        Shaka::cleanupTemporaryFiles();
+        Streamer::cleanupTemporaryFiles();
     } catch (\Exception $e) {
         // Clean up on error too
-        Shaka::cleanupTemporaryFiles();
+        Streamer::cleanupTemporaryFiles();
         throw $e;
     }
 }
