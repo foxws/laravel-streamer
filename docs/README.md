@@ -46,7 +46,7 @@ All examples are available in the `examples/` directory:
 ### Install the Package
 
 ```bash
-composer require foxws/laravel-shaka
+composer require foxws/laravel-streamer
 ```
 
 ### Publish Configuration
@@ -144,8 +144,8 @@ Laravel Shaka follows a clean driver-based architecture similar to PHP-FFmpeg:
 
 ## Support & Contributing
 
-- [GitHub Repository](https://github.com/foxws/laravel-shaka)
-- [Issue Tracker](https://github.com/foxws/laravel-shaka/issues)
+- [GitHub Repository](https://github.com/foxws/laravel-streamer)
+- [Issue Tracker](https://github.com/foxws/laravel-streamer/issues)
 - [Contributing Guidelines](../CONTRIBUTING.md)
 
 ## License

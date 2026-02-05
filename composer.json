@@ -1,10 +1,11 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "foxws/laravel-shaka",
-    "description": "A Laravel package to interact with Shaka Packager for media packaging.",
+    "name": "foxws/laravel-streamer",
+    "description": "A Laravel package to interact with Shaka Streamer for media packaging.",
     "keywords": [
         "laravel",
         "shaka",
+        "streamer",
         "packager",
         "media",
         "video",
@@ -13,7 +14,7 @@
         "dash",
         "hls"
     ],
-    "homepage": "https://github.com/foxws/laravel-shaka",
+    "homepage": "https://github.com/foxws/laravel-streamer",
     "license": "MIT",
     "authors": [
         {

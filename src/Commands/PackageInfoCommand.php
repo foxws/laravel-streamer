@@ -23,7 +23,7 @@ class PackageInfoCommand extends Command
         info('Laravel Shaka Packager');
 
         // Package version
-        $composerPath = base_path('vendor/foxws/laravel-shaka/composer.json');
+        $composerPath = base_path('vendor/foxws/laravel-streamer/composer.json');
 
         $packageVersion = 'dev-main';
 
@@ -47,18 +47,18 @@ class PackageInfoCommand extends Command
         note("Packager Version: {$packagerVersion}");
 
         // Configuration table
-        $logChannel = Config::get('laravel-shaka.log_channel');
+        $logChannel = Config::get('laravel-streamer.log_channel');
 
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: 'Default');
 
-        $forceGeneric = Config::get('laravel-shaka.force_generic_input') ? 'Enabled' : 'Disabled';
+        $forceGeneric = Config::get('laravel-streamer.force_generic_input') ? 'Enabled' : 'Disabled';
 
         table(
             ['Configuration', 'Value'],
             [
-                ['Binary Path', Config::get('laravel-shaka.packager.binaries')],
-                ['Timeout', Config::get('laravel-shaka.timeout').' seconds'],
-                ['Temp Directory', Config::get('laravel-shaka.temporary_files_root')],
+                ['Binary Path', Config::get('laravel-streamer.packager.binaries')],
+                ['Timeout', Config::get('laravel-streamer.timeout').' seconds'],
+                ['Temp Directory', Config::get('laravel-streamer.temporary_files_root')],
                 ['Logging', $logStatus],
                 ['Force Generic Input', $forceGeneric],
             ]

@@ -6,4 +6,4 @@ parameters:
         -
             message: "#Called 'env' outside of the config directory#"
             paths:
-                - config/laravel-shaka.php
+                - config/laravel-streamer.php

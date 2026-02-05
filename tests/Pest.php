@@ -11,7 +11,7 @@ uses(TestCase::class)->in(__DIR__);
  */
 function hasPackager(): bool
 {
-    $binary = config('laravel-shaka.packager.binaries', '/usr/local/bin/packager');
+    $binary = config('laravel-streamer.packager.binaries', '/usr/local/bin/packager');
 
     return file_exists($binary) && is_executable($binary);
 }

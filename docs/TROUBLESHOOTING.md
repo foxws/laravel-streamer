@@ -16,28 +16,28 @@ ExecutableNotFoundException: Shaka Packager binary not found at: /usr/local/bin/
 
 1. Install Shaka Packager:
 
-   ```bash
-   # Linux
-   wget https://github.com/shaka-project/shaka-packager/releases/download/v3.4.2/packager-linux-x64
-   sudo mv packager-linux-x64 /usr/local/bin/packager
-   sudo chmod +x /usr/local/bin/packager
+    ```bash
+    # Linux
+    wget https://github.com/shaka-project/shaka-packager/releases/download/v3.4.2/packager-linux-x64
+    sudo mv packager-linux-x64 /usr/local/bin/packager
+    sudo chmod +x /usr/local/bin/packager
 
-   # macOS
-   brew install shaka-packager
-   ```
+    # macOS
+    brew install shaka-packager
+    ```
 
 2. Update config path:
 
-   ```bash
-   # .env
-   PACKAGER_PATH=/path/to/packager
-   ```
+    ```bash
+    # .env
+    PACKAGER_PATH=/path/to/packager
+    ```
 
 3. Verify installation:
 
-   ```bash
-   php artisan shaka:verify
-   ```
+    ```bash
+    php artisan shaka:verify
+    ```
 
 ### Binary Not Executable
 
@@ -67,17 +67,17 @@ Temporary directory is not writable
 
 1. Create directory:
 
-   ```bash
-   mkdir -p storage/app/packager/temp
-   chmod 755 storage/app/packager/temp
-   ```
+    ```bash
+    mkdir -p storage/app/packager/temp
+    chmod 755 storage/app/packager/temp
+    ```
 
 2. Update config:
 
-   ```php
-   // config/laravel-shaka.php
-   'temporary_files_root' => storage_path('app/packager/temp'),
-   ```
+    ```php
+    // config/laravel-streamer.php
+    'temporary_files_root' => storage_path('app/packager/temp'),
+    ```
 
 ### Timeout Errors
 
@@ -91,17 +91,17 @@ RuntimeException: Process timeout exceeded
 
 1. Increase timeout in config:
 
-   ```php
-   // config/laravel-shaka.php
-   'timeout' => 60 * 60 * 8, // 8 hours
-   ```
+    ```php
+    // config/laravel-streamer.php
+    'timeout' => 60 * 60 * 8, // 8 hours
+    ```
 
 2. Or set dynamically:
 
-   ```php
-   $packager = app(ShakaPackager::class);
-   $packager->setTimeout(28800); // 8 hours
-   ```
+    ```php
+    $packager = app(ShakaPackager::class);
+    $packager->setTimeout(28800); // 8 hours
+    ```
 
 ## Packaging Issues
 
@@ -117,18 +117,18 @@ Unknown field in stream descriptor: filename_with,comma.mp4
 
 1. Enable generic input (recommended):
 
-   ```bash
-   # .env
-   PACKAGER_FORCE_GENERIC_INPUT=true
-   ```
+    ```bash
+    # .env
+    PACKAGER_FORCE_GENERIC_INPUT=true
+    ```
 
 2. Or sanitize filename manually:
 
-   ```php
-   use Foxws\Streamer\Support\MediaHelper;
+    ```php
+    use Foxws\Streamer\Support\MediaHelper;
 
-   $sanitized = MediaHelper::sanitizeFilename($filename);
-   ```
+    $sanitized = MediaHelper::sanitizeFilename($filename);
+    ```
 
 ### Empty MediaCollection
 
@@ -199,10 +199,10 @@ Cannot load key from URI
 
 1. Ensure key file is accessible:
 
-   ```php
-   // Make sure the key URL is publicly accessible
-   ->setKeyUrlResolver(fn ($key) => Storage::disk('public')->url($key))
-   ```
+    ```php
+    // Make sure the key URL is publicly accessible
+    ->setKeyUrlResolver(fn ($key) => Storage::disk('public')->url($key))
+    ```
 
 2. Check CORS settings for cross-origin requests
 
@@ -220,26 +220,22 @@ S3Exception: Access Denied
 
 1. Check IAM permissions:
 
-   ```json
-   {
-     "Effect": "Allow",
-     "Action": [
-       "s3:GetObject",
-       "s3:PutObject",
-       "s3:DeleteObject"
-     ],
-     "Resource": "arn:aws:s3:::your-bucket/*"
-   }
-   ```
+    ```json
+    {
+        "Effect": "Allow",
+        "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+        "Resource": "arn:aws:s3:::your-bucket/*"
+    }
+    ```
 
 2. Verify credentials in `.env`:
 
-   ```bash
-   AWS_ACCESS_KEY_ID=your-key
-   AWS_SECRET_ACCESS_KEY=your-secret
-   AWS_DEFAULT_REGION=us-east-1
-   AWS_BUCKET=your-bucket
-   ```
+    ```bash
+    AWS_ACCESS_KEY_ID=your-key
+    AWS_SECRET_ACCESS_KEY=your-secret
+    AWS_DEFAULT_REGION=us-east-1
+    AWS_BUCKET=your-bucket
+    ```
 
 ### Cannot Copy Files from Temporary Directory
 
@@ -272,17 +268,17 @@ Shaka::open('input.mp4')
 
 1. Use local disk for temporary files:
 
-   ```php
-   'temporary_files_root' => '/dev/shm/packager', // RAM disk
-   ```
+    ```php
+    'temporary_files_root' => '/dev/shm/packager', // RAM disk
+    ```
 
 2. Reduce quality/bitrate settings
 3. Use fewer ABR variants
 4. Process in background queue:
 
-   ```php
-   ProcessMediaJob::dispatch($inputPath);
-   ```
+    ```php
+    ProcessMediaJob::dispatch($inputPath);
+    ```
 
 ### Memory Issues
 
@@ -290,16 +286,16 @@ Shaka::open('input.mp4')
 
 1. Increase PHP memory limit:
 
-   ```ini
-   memory_limit = 512M
-   ```
+    ```ini
+    memory_limit = 512M
+    ```
 
 2. Process smaller chunks
 3. Use queue workers with memory limit:
 
-   ```bash
-   php artisan queue:work --memory=512
-   ```
+    ```bash
+    php artisan queue:work --memory=512
+    ```
 
 ## Debugging
 
@@ -341,11 +337,11 @@ If you're still experiencing issues:
 2. Check logs in `storage/logs/laravel.log`
 3. Test packager binary directly
 4. Create an issue with:
-   - Error message
-   - PHP version
-   - Laravel version
-   - Packager version
-   - Relevant code snippet
+    - Error message
+    - PHP version
+    - Laravel version
+    - Packager version
+    - Relevant code snippet
 
 ## Common Pitfalls
 

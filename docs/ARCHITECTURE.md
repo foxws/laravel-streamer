@@ -224,8 +224,8 @@ The package uses Laravel's service container for dependency injection:
 
 // Register driver
 $this->app->singleton(ShakaPackager::class, function ($app) {
-    $logger = $app->make('laravel-shaka-logger');
-    $config = $app->make('laravel-shaka-configuration');
+    $logger = $app->make('laravel-streamer-logger');
+    $config = $app->make('laravel-streamer-configuration');
 
     return ShakaPackager::create($logger, $config);
 });
@@ -233,7 +233,7 @@ $this->app->singleton(ShakaPackager::class, function ($app) {
 // Register packager
 $this->app->singleton(Packager::class, function ($app) {
     $driver = $app->make(ShakaPackager::class);
-    $logger = $app->make('laravel-shaka-logger');
+    $logger = $app->make('laravel-streamer-logger');
 
     return new Packager($driver, $logger);
 });

@@ -7,12 +7,12 @@ use Foxws\Streamer\Support\ShakaPackager;
 use Illuminate\Support\Facades\Config;
 
 beforeEach(function () {
-    Config::set('laravel-shaka.packager.binaries', '/usr/local/bin/packager');
-    Config::set('laravel-shaka.timeout', 3600);
+    Config::set('laravel-streamer.packager.binaries', '/usr/local/bin/packager');
+    Config::set('laravel-streamer.timeout', 3600);
 });
 
 it('throws exception when binary not found', function () {
-    Config::set('laravel-shaka.packager.binaries', '/nonexistent/packager');
+    Config::set('laravel-streamer.packager.binaries', '/nonexistent/packager');
 
     ShakaPackager::create();
 })->throws(ExecutableNotFoundException::class);
@@ -43,7 +43,7 @@ it('can get binary path from config', function () {
 it('respects custom binary path configuration', function () {
     $customPath = '/custom/path/to/packager';
 
-    Config::set('laravel-shaka.packager.binaries', $customPath);
+    Config::set('laravel-streamer.packager.binaries', $customPath);
 
     try {
         ShakaPackager::create();

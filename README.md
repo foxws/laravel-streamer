@@ -1,9 +1,9 @@
 # Laravel Shaka Packager
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/foxws/laravel-shaka.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-shaka)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-shaka/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/foxws/laravel-shaka/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-shaka/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/foxws/laravel-shaka/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/foxws/laravel-shaka.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-shaka)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
 
 A Laravel integration for [Google's Shaka Packager](https://github.com/shaka-project/shaka-packager), enabling you to create adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
 
@@ -52,7 +52,7 @@ $result = Shaka::fromDisk('s3')
 Install the package via composer:
 
 ```bash
-composer require foxws/laravel-shaka
+composer require foxws/laravel-streamer
 ```
 
 Publish the config file:

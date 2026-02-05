@@ -26,7 +26,7 @@ class VerifyInstallationCommand extends Command
     {
         info('🔍 Verifying Shaka Packager installation...');
 
-        $binaryPath = Config::get('laravel-shaka.packager.binaries');
+        $binaryPath = Config::get('laravel-streamer.packager.binaries');
 
         note("Binary Path: {$binaryPath}");
 
@@ -72,13 +72,13 @@ class VerifyInstallationCommand extends Command
         }
 
         // Configuration details
-        $timeout = Config::get('laravel-shaka.timeout');
+        $timeout = Config::get('laravel-streamer.timeout');
 
-        $logChannel = Config::get('laravel-shaka.log_channel');
+        $logChannel = Config::get('laravel-streamer.log_channel');
 
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: Config::get('logging.default'));
 
-        $tempDir = Config::get('laravel-shaka.temporary_files_root');
+        $tempDir = Config::get('laravel-streamer.temporary_files_root');
 
         table(
             ['Configuration', 'Value', 'Status'],
