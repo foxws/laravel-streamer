@@ -17,13 +17,14 @@ function hasStreamer(): bool
     try {
         // Check if Python is available
         $pythonCheck = shell_exec("{$pythonBinary} --version 2>&1");
-        if (!$pythonCheck) {
+        if (! $pythonCheck) {
             return false;
         }
 
         // Check if Shaka Streamer is installed via pip
         $streamerCheck = shell_exec("{$pythonBinary} -m pip show shaka-streamer 2>&1");
-        return !empty($streamerCheck);
+
+        return ! empty($streamerCheck);
     } catch (Exception $e) {
         return false;
     }
@@ -34,7 +35,7 @@ function hasStreamer(): bool
  */
 function skipIfNoStreamer(): void
 {
-    if (!hasStreamer()) {
+    if (! hasStreamer()) {
         test()->markTestSkipped('Shaka Streamer not available');
     }
 }
