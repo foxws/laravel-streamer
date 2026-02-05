@@ -89,11 +89,11 @@ class ShakaStreamer
         // Verify Shaka Streamer is installed
         $this->verifyInstallation();
 
-        // Create temporary config file
-        $configFile = $this->createConfigFile($config);
+        // Create temporary config files
+        [$inputConfigFile, $pipelineConfigFile] = $this->createConfigFiles($config);
 
         try {
-            $output = $this->invokeStreamer($configFile);
+            $output = $this->invokeStreamer($inputConfigFile, $pipelineConfigFile);
 
             if ($this->logger) {
                 $this->logger->info('Shaka Streamer completed successfully');
@@ -101,9 +101,12 @@ class ShakaStreamer
 
             return $output;
         } finally {
-            // Always clean up temp file
-            if (file_exists($configFile)) {
-                unlink($configFile);
+            // Always clean up temp files
+            if (file_exists($inputConfigFile)) {
+                unlink($inputConfigFile);
+            }
+            if (file_exists($pipelineConfigFile)) {
+                unlink($pipelineConfigFile);
             }
         }
     }
@@ -133,61 +136,83 @@ class ShakaStreamer
     }
 
     /**
-     * Create temporary configuration file
+     * Create temporary configuration files for input and pipeline configs
      *
      * @param  array  $config  Configuration array
-     * @return string Path to temporary config file
+     * @return array [inputConfigPath, pipelineConfigPath]
      *
      * @throws \RuntimeException
      */
-    protected function createConfigFile(array $config): string
+    protected function createConfigFiles(array $config): array
     {
-        $configFile = tempnam(sys_get_temp_dir(), 'shaka_config_');
+        $inputConfigFile = tempnam(sys_get_temp_dir(), 'shaka_input_');
+        $pipelineConfigFile = tempnam(sys_get_temp_dir(), 'shaka_pipeline_');
 
-        if ($configFile === false) {
-            throw new \RuntimeException('Failed to create temporary config file');
+        if ($inputConfigFile === false || $pipelineConfigFile === false) {
+            throw new \RuntimeException('Failed to create temporary config files');
         }
 
-        $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-
+        // Create input config JSON
+        $inputJson = json_encode($config['input_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            unlink($configFile);
-
+            unlink($inputConfigFile);
+            unlink($pipelineConfigFile);
             throw new \RuntimeException(
-                'Failed to encode configuration: '.json_last_error_msg()
+                'Failed to encode input configuration: '.json_last_error_msg()
             );
         }
 
-        if (file_put_contents($configFile, $json) === false) {
-            unlink($configFile);
+        // Create pipeline config JSON
+        $pipelineJson = json_encode($config['pipeline_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            unlink($inputConfigFile);
+            unlink($pipelineConfigFile);
+            throw new \RuntimeException(
+                'Failed to encode pipeline configuration: '.json_last_error_msg()
+            );
+        }
 
-            throw new \RuntimeException('Failed to write configuration file');
+        // Write input config
+        if (file_put_contents($inputConfigFile, $inputJson) === false) {
+            unlink($inputConfigFile);
+            unlink($pipelineConfigFile);
+            throw new \RuntimeException('Failed to write input configuration file');
+        }
+
+        // Write pipeline config
+        if (file_put_contents($pipelineConfigFile, $pipelineJson) === false) {
+            unlink($inputConfigFile);
+            unlink($pipelineConfigFile);
+            throw new \RuntimeException('Failed to write pipeline configuration file');
         }
 
         if ($this->logger) {
-            $this->logger->debug('Created temporary config file', [
-                'path' => $configFile,
-                'size' => filesize($configFile),
+            $this->logger->debug('Created temporary config files', [
+                'input_config' => $inputConfigFile,
+                'pipeline_config' => $pipelineConfigFile,
             ]);
         }
 
-        return $configFile;
+        return [$inputConfigFile, $pipelineConfigFile];
     }
 
     /**
      * Invoke Shaka Streamer with configuration
      *
-     * @param  string  $configFile  Path to config file
+     * @param  string  $inputConfigFile  Path to input config file
+     * @param  string  $pipelineConfigFile  Path to pipeline config file
      * @return string Process output
      *
      * @throws \RuntimeException
      */
-    protected function invokeStreamer(string $configFile): string
+    protected function invokeStreamer(string $inputConfigFile, string $pipelineConfigFile): string
     {
         $command = [
             $this->streamerBinary,
-            '--config',
-            $configFile,
+            '-i',
+            $inputConfigFile,
+            '-p',
+            $pipelineConfigFile,
         ];
 
         if ($this->logger) {
