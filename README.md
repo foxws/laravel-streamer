@@ -1,11 +1,11 @@
-# Laravel Shaka Packager
+# Laravel Shaka Streamer
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
 
-A Laravel integration for [Google's Shaka Packager](https://github.com/shaka-project/shaka-packager), enabling you to create adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
+A Laravel integration for [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer), enabling you to create adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
 
 ```php
 use Foxws\Streamer\Facades\Shaka;
@@ -45,7 +45,7 @@ $result = Streamer::fromDisk('s3')
 
 - PHP 8.3 or higher
 - Laravel 11.x or higher
-- Shaka Packager binary installed on your system or Docker container
+- Shaka Streamer binary installed on your system or Docker container
 
 ## Installation
 
@@ -61,13 +61,13 @@ Publish the config file:
 php artisan vendor:publish --tag="streamer-config"
 ```
 
-### Installing Shaka Packager
+### Installing Shaka Streamer
 
-Install Shaka Packager binary on your system. Visit the [Shaka Packager releases](https://github.com/shaka-project/shaka-packager/releases) page for installation instructions.
+Install Shaka Streamer binary on your system. Visit the [Shaka Streamer releases](https://github.com/shaka-project/shaka-streamer/releases) page for installation instructions.
 
 ### Verify Installation
 
-After installation, verify that Shaka Packager is properly configured:
+After installation, verify that Shaka Streamer is properly configured:
 
 ```bash
 php artisan shaka:verify
@@ -306,13 +306,13 @@ If you discover a security vulnerability, please report it via a private channel
 This package was inspired by and learned from:
 
 - [Laravel FFmpeg](https://github.com/protonemedia/laravel-ffmpeg) - Architecture patterns and Laravel integration approach.
-- [quasarstream/shaka-php](https://github.com/quasarstream/shaka-php) - Shaka Packager wrapper implementation and command building logic.
+- [quasarstream/shaka-php](https://github.com/quasarstream/shaka-php) - Shaka Streamer wrapper implementation and command building logic.
 
 Much of the existing logic and design patterns from these excellent packages helped shape this implementation. Many thanks to their authors and contributors!
 
-## Projects Built on Laravel Shaka Packager
+## Projects Built on Laravel Shaka Streamer
 
-- [Stry](https://github.com/francoism90/stry) - A modern streaming platform built on top of Laravel Shaka Packager.
+- [Stry](https://github.com/francoism90/stry) - A modern streaming platform built on top of Laravel Shaka Streamer.
 
 ## License
 

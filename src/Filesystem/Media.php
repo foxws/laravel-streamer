@@ -122,7 +122,7 @@ class Media
     }
 
     /**
-     * Get a safe path for Shaka Packager by creating a generic alias if configured.
+     * Get a safe path for Shaka Streamer by creating a generic alias if configured.
      * This prevents issues with special characters in filenames.
      */
     public function getSafeInputPath(): string

@@ -7,18 +7,18 @@ This guide demonstrates how to use the `withAESEncryption()` method with various
 ```php
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
-use Foxws\Streamer\Support\Packager;
+use Foxws\Streamer\Support\Streamer;
 
 // Open your media
 $media = Media::make('videos', 'input.mp4');
-$packager = Packager::create();
-$packager->open(MediaCollection::make([$media]));
+$streamer = Streamer::create();
+$streamer->open(MediaCollection::make([$media]));
 
 // Enable encryption (uses cbc1 by default)
-$keyData = $packager->withAESEncryption();
+$keyData = $streamer->withAESEncryption();
 
 // Add your streams
-$packager->addStream([
+$streamer->addStream([
     'in' => $media->getLocalPath(),
     'stream' => 'video',
     'output' => 'encrypted_video.mp4',

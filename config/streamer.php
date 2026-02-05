@@ -8,7 +8,6 @@ return [
      * Streamer (Shaka Streamer) configuration and settings.
      */
     'streamer' => [
-        'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
         'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
     ],
 
@@ -18,7 +17,7 @@ return [
     'force_generic_input' => env('STREAMER_FORCE_GENERIC_INPUT', true),
 
     /**
-     * Timeout for the packaging process in seconds.
+     * Timeout for the streaming process in seconds.
      */
     'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4), // 4 hours
 

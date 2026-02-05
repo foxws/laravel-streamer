@@ -11,7 +11,7 @@ it('can create streamer instance', function () {
     $streamer = new Streamer($driver);
 
     expect($streamer)->toBeInstanceOf(Streamer::class);
-    expect($streamer->getPackager())->toBe($driver);
+    expect($streamer->getStreamer())->toBe($driver);
 });
 
 it('can set and get driver', function () {
@@ -20,7 +20,7 @@ it('can set and get driver', function () {
 
     $streamer = new Streamer($driver1);
 
-    expect($streamer->getPackager())->toBe($driver1);
+    expect($streamer->getStreamer())->toBe($driver1);
 });
 
 it('can create fresh instance', function () {
@@ -31,7 +31,7 @@ it('can create fresh instance', function () {
 
     expect($streamer2)->toBeInstanceOf(Streamer::class);
     expect($streamer2)->not->toBe($streamer1);
-    expect($streamer2->getPackager())->toBe($driver);
+    expect($streamer2->getStreamer())->toBe($driver);
 });
 
 it('fresh instance has same driver', function () {
@@ -40,5 +40,5 @@ it('fresh instance has same driver', function () {
     $streamer1 = new Streamer($driver);
     $streamer2 = $streamer1->fresh();
 
-    expect($streamer2->getPackager())->toBe($streamer1->getPackager());
+    expect($streamer2->getStreamer())->toBe($streamer1->getStreamer());
 });

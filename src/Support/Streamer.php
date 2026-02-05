@@ -47,12 +47,12 @@ class Streamer
         return new self($this->streamer, $this->logger);
     }
 
-    public function getPackager(): ShakaStreamer
+    public function getStreamer(): ShakaStreamer
     {
         return $this->streamer;
     }
 
-    public function setPackager(ShakaStreamer $streamer): self
+    public function setStreamer(ShakaStreamer $streamer): self
     {
         $this->streamer = $streamer;
 
@@ -124,10 +124,10 @@ class Streamer
      */
     public function addVideoStream(string $input, string $output, array $options = []): self
     {
-        // Resolve input to full local path for Shaka Packager
+        // Resolve input to full local path for Shaka Streamer
         $inputPath = $this->resolveInputPath($input);
 
-        // Resolve output to full local path for Shaka Packager
+        // Resolve output to full local path for Shaka Streamer
         $outputPath = $this->resolveOutputPath($output);
 
         $this->builder()->addVideoStream($inputPath, $outputPath, $options);
@@ -140,10 +140,10 @@ class Streamer
      */
     public function addAudioStream(string $input, string $output, array $options = []): self
     {
-        // Resolve input to full local path for Shaka Packager
+        // Resolve input to full local path for Shaka Streamer
         $inputPath = $this->resolveInputPath($input);
 
-        // Resolve output to full local path for Shaka Packager
+        // Resolve output to full local path for Shaka Streamer
         $outputPath = $this->resolveOutputPath($output);
 
         $this->builder()->addAudioStream($inputPath, $outputPath, $options);
@@ -156,10 +156,10 @@ class Streamer
      */
     public function addTextStream(string $input, string $output, array $options = []): self
     {
-        // Resolve input to full local path for Shaka Packager
+        // Resolve input to full local path for Shaka Streamer
         $inputPath = $this->resolveInputPath($input);
 
-        // Resolve output to full local path for Shaka Packager
+        // Resolve output to full local path for Shaka Streamer
         $outputPath = $this->resolveOutputPath($output);
 
         $this->builder()->addTextStream($inputPath, $outputPath, $options);
@@ -196,7 +196,7 @@ class Streamer
     }
 
     /**
-     * Resolve output path to temporary directory for Shaka Packager processing
+     * Resolve output path to temporary directory for Shaka Streamer processing
      */
     protected function resolveOutputPath(string $output): string
     {
@@ -269,7 +269,7 @@ class Streamer
     /**
      * Enable AES-128 encryption with auto-generated keys.
      *
-     * Generates encryption key, writes to cache storage, and configures Shaka Packager.
+     * Generates encryption key, writes to cache storage, and configures Shaka Streamer.
      * When used with withKeyRotationDuration(), the filename becomes a base name
      * (e.g., 'key' becomes 'key_0', 'key_1', 'key_2', etc. in cache storage).
      *
@@ -289,10 +289,10 @@ class Streamer
         // Generate key and write to cache storage (fast)
         $keyData = EncryptionKeyGenerator::generateAndWrite($keyFilename);
 
-        // Store cache directory for later use in PackagerResult
+        // Store cache directory for later use in StreamerResult
         $this->cacheDirectory = dirname($keyData['file_path']);
 
-        // Format keys for Shaka Packager
+        // Format keys for Shaka Streamer
         $formattedKeys = EncryptionKeyGenerator::formatForShaka($keyData['key_id'], $keyData['key'], $label);
 
         // Set individual encryption options directly on the builder
@@ -400,9 +400,9 @@ class Streamer
     }
 
     /**
-     * Export packaging with the configured builder
+     * Export streaming with the configured builder
      */
-    public function export(): PackagerResult
+    public function export(): StreamerResult
     {
         if (! $this->builder) {
             throw new \RuntimeException('No streams configured. Use addVideoStream() or addAudioStream() first.');
@@ -411,7 +411,7 @@ class Streamer
         $config = $this->builder->buildArray();
 
         if ($this->logger) {
-            $this->logger->info('Starting packaging operation', [
+            $this->logger->info('Starting streaming operation', [
                 'streams' => $this->builder->getStreams()->count(),
                 'options' => $this->filterSensitiveOptions($this->builder->getOptions()->toArray()),
             ]);
@@ -420,21 +420,21 @@ class Streamer
         $result = $this->streamer->packageWithConfig($config);
 
         if ($this->logger) {
-            $this->logger->info('Packaging operation completed');
+            $this->logger->info('Streaming operation completed');
         }
 
         // Get the first media's disk as the source disk
         $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
 
-        return new PackagerResult($result, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
+        return new StreamerResult($result, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
     }
 
-    public function packageWithBuilder(CommandBuilder $builder): PackagerResult
+    public function streamWithBuilder(CommandBuilder $builder): StreamerResult
     {
         $config = $builder->buildArray();
 
         if ($this->logger) {
-            $this->logger->info('Starting packaging operation with builder', [
+            $this->logger->info('Starting streaming operation with builder', [
                 'streams' => $builder->getStreams()->count(),
                 'options' => $this->filterSensitiveOptions($builder->getOptions()->toArray()),
             ]);
@@ -443,9 +443,9 @@ class Streamer
         $result = $this->streamer->packageWithConfig($config);
 
         if ($this->logger) {
-            $this->logger->info('Packaging operation completed');
+            $this->logger->info('Streaming operation completed');
         }
 
-        return new PackagerResult($result);
+        return new StreamerResult($result);
     }
 }

@@ -85,7 +85,7 @@ class Stream implements Arrayable
     }
 
     /**
-     * Convert stream to Shaka Packager command format
+     * Convert stream to Shaka Streamer command format
      */
     public function toCommandString(): string
     {

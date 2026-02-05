@@ -7,7 +7,7 @@ namespace Foxws\Streamer\Support;
 use Foxws\Streamer\Filesystem\Disk;
 use Illuminate\Contracts\Filesystem\Filesystem;
 
-class PackagerResult
+class StreamerResult
 {
     protected array $uploadedEncryptionKeys = [];
 

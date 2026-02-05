@@ -98,7 +98,7 @@ it('can get streamer packager driver', function () {
     $streamer = Streamer::open('video.mp4')
         ->addVideoStream('video.mp4', 'video.m4v');
 
-    $driver = $streamer->getPackager();
+    $driver = $streamer->getStreamer();
 
     expect($driver)->not->toBeNull();
 });

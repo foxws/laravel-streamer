@@ -25,9 +25,3 @@ it('can get and set timeout', function () {
 
     expect($streamer->getTimeout())->toBe(7200);
 });
-
-it('can get python binary from config', function () {
-    $streamer = ShakaStreamer::create();
-
-    expect($streamer->getPythonBinary())->toBe('python3');
-});

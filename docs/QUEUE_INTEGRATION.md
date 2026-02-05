@@ -1,6 +1,6 @@
 # Queue Integration Guide
 
-This guide explains how to integrate Laravel Shaka Packager with Laravel's queue system for processing media in the background.
+This guide explains how to integrate Laravel Shaka Streamer with Laravel's queue system for processing media in the background.
 
 ## Basic Queue Job
 

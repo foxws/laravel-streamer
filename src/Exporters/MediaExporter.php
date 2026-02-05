@@ -7,7 +7,7 @@ namespace Foxws\Streamer\Exporters;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\MediaOpener;
-use Foxws\Streamer\Support\PackagerResult;
+use Foxws\Streamer\Support\StreamerResult;
 use Foxws\Streamer\Support\Streamer;
 use Illuminate\Support\Traits\ForwardsCalls;
 
@@ -98,7 +98,7 @@ class MediaExporter
         return $outputMedia;
     }
 
-    protected function runAfterSavingCallbacks(PackagerResult $result)
+    protected function runAfterSavingCallbacks(StreamerResult $result)
     {
         if (empty($this->afterSavingCallbacks)) {
             return;

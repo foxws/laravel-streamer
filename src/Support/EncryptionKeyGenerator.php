@@ -36,7 +36,7 @@ class EncryptionKeyGenerator
     }
 
     /**
-     * Format encryption config for Shaka Packager
+     * Format encryption config for Shaka Streamer
      */
     public static function formatForShaka(string $keyId, string $key, ?string $label = null): string
     {

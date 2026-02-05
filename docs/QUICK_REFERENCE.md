@@ -186,12 +186,12 @@ try {
 
 ```php
 return [
-    'packager' => [
-        'binaries' => env('PACKAGER_PATH', '/usr/local/bin/packager'),
+    'streamer' => [
+        'binaries' => env('STREAMER_PATH', '/usr/local/bin/streamer'),
     ],
     'timeout' => 60 * 60 * 4, // 4 hours
-    'log_channel' => env('PACKAGER_LOG_CHANNEL', false),
-    'temporary_files_root' => env('PACKAGER_TEMPORARY_FILES_ROOT', storage_path('app/packager/temp')),
+    'log_channel' => env('STREAMER_LOG_CHANNEL', false),
+    'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
 ];
 ```
 
@@ -215,22 +215,22 @@ $driver->setTimeout(7200);
 ## CommandBuilder Direct Usage
 
 ```php
-use Foxws\Streamer\Support\Packager\CommandBuilder;
-use Foxws\Streamer\Support\Packager\Packager;
+use Foxws\Streamer\Support\CommandBuilder;
+use Foxws\Streamer\Support\Streamer;
 
 $builder = CommandBuilder::make()
     ->addVideoStream('input.mp4', 'output.mp4')
     ->withMpdOutput('manifest.mpd');
 
-$packager = app(Packager::class);
-$result = $packager->packageWithBuilder($builder);
+$streamer = app(Streamer::class);
+$result = $streamer->streamWithBuilder($builder);
 ```
 
 ## Stream Objects
 
 ```php
-use Foxws\Streamer\Support\Packager\Stream;
-use Foxws\Streamer\Support\Filesystem\Media;
+use Foxws\Streamer\Support\Stream;
+use Foxws\Streamer\Filesystem\Media;
 
 $media = Media::make('videos', 'input.mp4');
 

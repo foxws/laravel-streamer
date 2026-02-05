@@ -20,19 +20,15 @@ class ShakaStreamer
 
     protected int $timeout = 3600;
 
-    protected string $pythonBinary = 'python3';
-
     protected string $streamerBinary = 'shaka-streamer';
 
     public function __construct(
         ?LoggerInterface $logger = null,
         int $timeout = 3600,
-        string $pythonBinary = 'python3',
         string $streamerBinary = 'shaka-streamer'
     ) {
         $this->logger = $logger;
         $this->timeout = $timeout;
-        $this->pythonBinary = $pythonBinary;
         $this->streamerBinary = $streamerBinary;
     }
 
@@ -41,10 +37,9 @@ class ShakaStreamer
         ?array $configuration = null
     ): self {
         $timeout = $configuration['timeout'] ?? 3600;
-        $pythonBinary = $configuration['streamer.python_binary'] ?? $configuration['python_binary'] ?? 'python3';
         $streamerBinary = $configuration['streamer.streamer_binary'] ?? $configuration['streamer_binary'] ?? 'shaka-streamer';
 
-        return new self($logger, $timeout, $pythonBinary, $streamerBinary);
+        return new self($logger, $timeout, $streamerBinary);
     }
 
     public function getStreamerBinary(): string
@@ -52,33 +47,9 @@ class ShakaStreamer
         return $this->streamerBinary;
     }
 
-    public function getVersion(): string
-    {
-        $result = Process::timeout(10)
-            ->run([
-                $this->pythonBinary,
-                '-m',
-                'streamer.main',
-                '--version',
-            ]);
-
-        if ($result->failed()) {
-            return 'Unknown';
-        }
-
-        return trim($result->output());
-    }
-
     public function setTimeout(int $seconds): self
     {
         $this->timeout = $seconds;
-
-        return $this;
-    }
-
-    public function setPythonBinary(string $binary): self
-    {
-        $this->pythonBinary = $binary;
 
         return $this;
     }
@@ -95,11 +66,6 @@ class ShakaStreamer
         return $this->timeout;
     }
 
-    public function getPythonBinary(): string
-    {
-        return $this->pythonBinary;
-    }
-
     /**
      * Package with Shaka Streamer config
      *
@@ -114,7 +80,7 @@ class ShakaStreamer
         $this->validateConfig($config);
 
         if ($this->logger) {
-            $this->logger->info('Starting Shaka Streamer packaging', [
+            $this->logger->info('Starting Shaka Streamer streaming', [
                 'inputs' => count($config['input_config']['inputs'] ?? []),
                 'outputs' => count($config['pipeline_config']['manifest_format'] ?? []),
             ]);
@@ -150,12 +116,7 @@ class ShakaStreamer
     protected function verifyInstallation(): void
     {
         $result = Process::timeout(10)
-            ->run([
-                $this->pythonBinary,
-                '-m',
-                'streamer.main',
-                '--version',
-            ]);
+            ->run($this->streamerBinary);
 
         if ($result->failed()) {
             throw new \RuntimeException(
@@ -166,7 +127,7 @@ class ShakaStreamer
 
         if ($this->logger) {
             $this->logger->debug('Shaka Streamer verified', [
-                'version_output' => trim($result->output()),
+                'output' => trim($result->output()),
             ]);
         }
     }
@@ -224,9 +185,7 @@ class ShakaStreamer
     protected function invokeStreamer(string $configFile): string
     {
         $command = [
-            $this->pythonBinary,
-            '-m',
-            'streamer.main',
+            $this->streamerBinary,
             '--config',
             $configFile,
         ];

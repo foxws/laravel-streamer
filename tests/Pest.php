@@ -11,18 +11,18 @@ uses(TestCase::class)->in(__DIR__);
  */
 function hasStreamer(): bool
 {
-    $pythonBinary = config('laravel-streamer.streamer.python_binary', 'python3');
     $streamerBinary = config('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
 
     try {
         // Check if Python is available
-        $pythonCheck = shell_exec("{$pythonBinary} --version 2>&1");
+        $pythonCheck = shell_exec("python3 --version 2>&1");
+
         if (! $pythonCheck) {
             return false;
         }
 
         // Check if Shaka Streamer is installed via pip
-        $streamerCheck = shell_exec("{$pythonBinary} -m pip show shaka-streamer 2>&1");
+        $streamerCheck = shell_exec("{$streamerBinary} --version 2>&1");
 
         return ! empty($streamerCheck);
     } catch (Exception $e) {

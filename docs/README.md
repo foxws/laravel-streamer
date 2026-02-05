@@ -134,7 +134,7 @@ Laravel Shaka follows a clean driver-based architecture similar to PHP-FFmpeg:
 - **Media & MediaCollection** - Represents input files
 - **Stream** - Represents output streams (video/audio)
 - **CommandBuilder** - Fluently builds streamer commands
-- **PackagerResult** - Structured result from operations
+- **StreamerResult** - Structured result from operations
 
 ### Workflow
 

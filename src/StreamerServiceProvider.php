@@ -25,7 +25,7 @@ class StreamerServiceProvider extends PackageServiceProvider
             ]);
     }
 
-    public function packageRegistered(): void
+    public function streamerRegistered(): void
     {
         $this->app->singleton('laravel-streamer-logger', function () {
             $logChannel = Config::get('laravel-streamer.log_channel');
@@ -39,7 +39,6 @@ class StreamerServiceProvider extends PackageServiceProvider
 
         $this->app->singleton('laravel-streamer-configuration', function () {
             $baseConfig = [
-                'streamer.python_binary' => Config::string('laravel-streamer.streamer.python_binary', 'python3'),
                 'streamer.streamer_binary' => Config::string('laravel-streamer.streamer.streamer_binary', 'shaka-streamer'),
                 'timeout' => Config::integer('laravel-streamer.timeout', 3600),
             ];

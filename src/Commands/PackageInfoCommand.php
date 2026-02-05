@@ -37,8 +37,6 @@ class PackageInfoCommand extends Command
 
         try {
             $packager = ShakaStreamer::create();
-
-            $packagerVersion = $packager->getVersion();
         } catch (\Exception $e) {
             // Keep as "Not available"
         }
@@ -52,13 +50,11 @@ class PackageInfoCommand extends Command
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: 'Default');
 
         $forceGeneric = Config::get('laravel-streamer.force_generic_input') ? 'Enabled' : 'Disabled';
-        $pythonBinary = Config::get('laravel-streamer.streamer.python_binary', 'python3');
         $streamerBinary = Config::get('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
 
         table(
             ['Configuration', 'Value'],
             [
-                ['Python Binary', $pythonBinary],
                 ['Streamer Binary', $streamerBinary],
                 ['Timeout', Config::get('laravel-streamer.timeout').' seconds'],
                 ['Temp Directory', Config::get('laravel-streamer.temporary_files_root')],
