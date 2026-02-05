@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Facades\Streamer;
-use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\MediaOpener;
 use Illuminate\Support\Facades\Storage;
 
