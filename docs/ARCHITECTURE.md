@@ -4,16 +4,17 @@ Laravel Shaka implements a clean, testable architecture based on the proven patt
 
 ## Architecture Layers
 
-### 1. Driver Layer (`ShakaPackager`)
+### 1. Driver Layer (`ShakaStreamer`)
 
-The driver layer handles direct interaction with the Shaka Packager binary:
+The driver layer handles direct interaction with the Shaka Streamer binary:
 
 ```php
-namespace Foxws\Streamer\Support\Packager;
+namespace Foxws\Streamer\Support;
 
-class ShakaPackager
+class ShakaStreamer
 {
-    protected string $binaryPath;
+    protected string $pythonBinary;
+    protected string $streamerBinary;
     protected ?LoggerInterface $logger;
     protected int $timeout;
 
@@ -44,16 +45,16 @@ class ShakaPackager
 - Consistent error handling
 - Centralized logging
 
-### 2. Business Logic Layer (`Packager`)
+### 2. Business Logic Layer (`Streamer`)
 
-The packager layer provides the high-level API:
+The streamer layer provides the high-level API:
 
 ```php
-namespace Foxws\Streamer\Support\Packager;
+namespace Foxws\Streamer\Support;
 
-class Packager
+class Streamer
 {
-    protected ShakaPackager $driver;
+    protected ShakaStreamer $driver;
     protected ?MediaCollection $mediaCollection;
     protected ?CommandBuilder $builder;
 
@@ -98,7 +99,7 @@ namespace Foxws\Streamer;
 class Shaka
 {
     protected ?Disk $disk;
-    protected ?Packager $packager;
+    protected ?Streamer $streamer;
     protected ?MediaCollection $collection;
 
     // Disk management
@@ -108,7 +109,7 @@ class Shaka
     // Media management
     public function open($paths): self;
 
-    // Forwards all Packager methods
+    // Forwards all Streamer methods
     public function __call($method, $arguments);
 }
 ```
@@ -117,7 +118,7 @@ class Shaka
 
 - Managing filesystem disks
 - Opening media files
-- Forwarding calls to Packager
+- Forwarding calls to Streamer
 - Providing convenient helpers
 
 **Benefits:**
@@ -141,7 +142,7 @@ class Shaka
                  │
                  v
 ┌─────────────────────────────────────────────┐
-│           Packager (Business Logic)         │
+│           Streamer (Business Logic)         │
 │  - Stream configuration                     │
 │  - Command building                         │
 │  - Fluent API                              │
@@ -152,21 +153,21 @@ class Shaka
                  │
                  v
 ┌─────────────────────────────────────────────┐
-│      ShakaPackager (Binary)           │
+│      ShakaStreamer (Driver)           │
 │  - Binary execution                         │
 │  - Process management                       │
 │  - Error handling                           │
 └────────────────┬────────────────────────────┘
                  │
                  v
-        [Shaka Packager Binary]
+        [Shaka Streamer Binary]
 ```
 
 ## Supporting Classes
 
 ### CommandBuilder
 
-Builds packager command strings fluently:
+Builds streamer command strings fluently:
 
 ```php
 $builder = CommandBuilder::make()
@@ -192,6 +193,8 @@ $commandString = $stream->toCommandString();
 ```
 
 ### PackagerResult
+
+Structured result wrapper from streaming operations:
 
 Structured result from packaging operations:
 
@@ -223,7 +226,7 @@ The package uses Laravel's service container for dependency injection:
 // ShakaServiceProvider.php
 
 // Register driver
-$this->app->singleton(ShakaPackager::class, function ($app) {
+$this->app->singleton(ShakaStreamer::class, function ($app) {
     $logger = $app->make('laravel-streamer-logger');
     $config = $app->make('laravel-streamer-configuration');
 

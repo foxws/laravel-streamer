@@ -1,6 +1,6 @@
-# Laravel Shaka Packager Documentation
+# Laravel Shaka Streamer Documentation
 
-Welcome to the Laravel Shaka Packager documentation. This package provides a Laravel integration for Google's Shaka Packager, enabling you to create adaptive streaming content (DASH, HLS) with a fluent, Laravel-style API.
+Welcome to the Laravel Shaka Streamer documentation. This package provides a Laravel integration for Google's Shaka Streamer, enabling you to create adaptive streaming content (DASH, HLS) with a fluent, Laravel-style API.
 
 ## Getting Started
 
@@ -33,7 +33,7 @@ All examples are available in the `examples/` directory:
 
 - [Fluent Builder Examples](../examples/FluentBuilderExamples.php)
 - [From Disk Examples](../examples/FromDiskExamples.php)
-- [Packager Examples](../examples/PackagerExamples.php)
+- [Streamer Examples](../examples/StreamerExamples.php)
 
 ## Installation & Setup
 
@@ -41,7 +41,7 @@ All examples are available in the `examples/` directory:
 
 - PHP 8.1 or higher
 - Laravel 10.x or 11.x or higher
-- Shaka Packager binary installed on your system
+- Shaka Streamer Python package installed
 
 ### Install the Package
 
@@ -125,15 +125,15 @@ $result = Streamer::open('input.mp4')
 
 Laravel Shaka follows a clean driver-based architecture similar to PHP-FFmpeg:
 
-- **Driver Layer** (`ShakaPackager`) - Handles binary interaction
-- **Business Logic Layer** (`Packager`) - Provides high-level API
+- **Driver Layer** (`ShakaStreamer`) - Handles binary interaction
+- **Business Logic Layer** (`Streamer`) - Provides high-level API
 - **Facade Layer** (`Shaka`) - Laravel-style fluent interface
 
 ### Key Components
 
 - **Media & MediaCollection** - Represents input files
 - **Stream** - Represents output streams (video/audio)
-- **CommandBuilder** - Fluently builds packager commands
+- **CommandBuilder** - Fluently builds streamer commands
 - **PackagerResult** - Structured result from operations
 
 ### Workflow

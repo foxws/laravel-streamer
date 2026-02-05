@@ -1,6 +1,6 @@
 # Configuration
 
-Laravel Shaka can be configured via the `config/shaka.php` file.
+Laravel Shaka Streamer can be configured via the `config/streamer.php` file.
 
 ## Publishing Configuration
 
@@ -12,47 +12,50 @@ php artisan vendor:publish --tag="shaka-config"
 
 ## Configuration Options
 
-### Packager Binary
+### Streamer Configuration
 
-Configure the path to the Shaka Packager binary:
+Configure the Shaka Streamer Python package and binary:
 
 ```php
-'packager' => [
-    'binaries' => env('PACKAGER_PATH', '/usr/local/bin/packager'),
+'streamer' => [
+    'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
+    'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
 ],
+```
+
+**Environment Variables:**
+
+```env
+STREAMER_PYTHON_BINARY=/usr/bin/python3.11
+STREAMER_BINARY=shaka-streamer
+```
+
+### Force Generic Input
+
+Use generic input paths instead of absolute paths:
+
+```php
+'force_generic_input' => env('STREAMER_FORCE_GENERIC_INPUT', true),
 ```
 
 **Environment Variable:**
 
 ```env
-PACKAGER_PATH=/usr/local/bin/packager
-```
-
-**Multiple Binary Paths:**
-The system will search for the first available binary:
-
-```php
-'packager' => [
-    'binaries' => [
-        '/usr/local/bin/packager',
-        '/usr/bin/packager',
-        '/opt/shaka-packager/packager',
-    ],
-],
+STREAMER_FORCE_GENERIC_INPUT=true
 ```
 
 ### Timeout
 
-Set the maximum execution time for packaging operations:
+Set the maximum execution time for streaming operations:
 
 ```php
-'timeout' => 60 * 60 * 4, // 4 hours in seconds
+'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4), // 4 hours in seconds
 ```
 
 **Environment Variable:**
 
 ```env
-PACKAGER_TIMEOUT=14400
+STREAMER_TIMEOUT=14400
 ```
 
 **Considerations:**
@@ -64,23 +67,23 @@ PACKAGER_TIMEOUT=14400
 
 ### Logging
 
-Enable logging to track packaging operations:
+Enable logging to track streaming operations:
 
 ```php
-'log_channel' => env('PACKAGER_LOG_CHANNEL', false),
+'log_channel' => env('STREAMER_LOG_CHANNEL', null),
 ```
 
 **Environment Variables:**
 
 ```env
 # Disable logging (default)
-PACKAGER_LOG_CHANNEL=false
+STREAMER_LOG_CHANNEL=null
 
 # Use default log channel
-PACKAGER_LOG_CHANNEL=stack
+STREAMER_LOG_CHANNEL=stack
 
 # Use custom channel
-PACKAGER_LOG_CHANNEL=packager
+STREAMER_LOG_CHANNEL=streamer
 ```
 
 **Custom Log Channel:**
@@ -88,9 +91,9 @@ Define a custom channel in `config/logging.php`:
 
 ```php
 'channels' => [
-    'packager' => [
+    'streamer' => [
         'driver' => 'daily',
-        'path' => storage_path('logs/packager.log'),
+        'path' => storage_path('logs/streamer.log'),
         'level' => 'debug',
         'days' => 14,
     ],
@@ -102,35 +105,37 @@ Define a custom channel in `config/logging.php`:
 Configure where temporary files are stored:
 
 ```php
-'temporary_files_root' => env('PACKAGER_TEMPORARY_FILES_ROOT', storage_path('app/packager/temp')),
+'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
 ```
 
 **Environment Variable:**
 
 ```env
-PACKAGER_TEMPORARY_FILES_ROOT=/tmp/packager
+STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
 ```
 
 **Considerations:**
 
 - Remote files (S3, etc.) are copied here before processing
 - Ensure sufficient disk space
-- Clean up regularly with `cleanupTemporaryFiles()`
-- Use `/dev/shm` for faster processing (RAM disk)
+- Clean up regularly
+- Use standard disk (not RAM) to avoid consuming memory
 
-### Encrypted Files
+### Cache Files
 
-Configure location for encrypted temporary files:
+Configure location for cache files (encryption keys, manifests, etc.):
 
 ```php
-'temporary_files_encrypted' => env('PACKAGER_TEMPORARY_ENCRYPTED', '/dev/shm'),
+'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
 ```
 
 **Environment Variable:**
 
 ```env
-PACKAGER_TEMPORARY_ENCRYPTED=/dev/shm
+STREAMER_CACHE_FILES_ROOT=/dev/shm
 ```
+
+**Note:** Using `/dev/shm` (RAM disk) provides better performance for small files but requires sufficient RAM.
 
 ## Complete Configuration Example
 
@@ -138,69 +143,74 @@ PACKAGER_TEMPORARY_ENCRYPTED=/dev/shm
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
-    | Shaka Packager Binary
+    | Streamer Configuration
     |--------------------------------------------------------------------------
     |
-    | Path to the Shaka Packager binary. Can be a string or array of paths.
-    | The system will use the first available binary.
+    | Configure Python binary and Shaka Streamer executable paths.
     |
     */
 
-    'packager' => [
-        'binaries' => env('PACKAGER_PATH', '/usr/local/bin/packager'),
+    'streamer' => [
+        'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
+        'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Force Generic Input
+    |--------------------------------------------------------------------------
+    |
+    | Use generic input paths instead of absolute paths.
+    |
+    */
+
+    'force_generic_input' => env('STREAMER_FORCE_GENERIC_INPUT', true),
 
     /*
     |--------------------------------------------------------------------------
     | Timeout
     |--------------------------------------------------------------------------
     |
-    | Maximum execution time in seconds for packaging operations.
-    | Adjust based on your content size and quality requirements.
+    | Maximum execution time in seconds for streaming operations.
     |
     */
 
-    'timeout' => env('PACKAGER_TIMEOUT', 60 * 60 * 4), // 4 hours
+    'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4),
 
     /*
     |--------------------------------------------------------------------------
     | Logging
     |--------------------------------------------------------------------------
     |
-    | Log channel for packaging operations. Set to false to disable logging.
-    | Use your default log channel or define a custom one.
+    | Log channel for streaming operations. Set to false to disable logging.
     |
     */
 
-    'log_channel' => env('PACKAGER_LOG_CHANNEL', false),
+    'log_channel' => env('STREAMER_LOG_CHANNEL', null),
 
     /*
     |--------------------------------------------------------------------------
     | Temporary Files
     |--------------------------------------------------------------------------
     |
-    | Root directory for temporary files during packaging operations.
-    | Remote files are downloaded here before processing.
+    | Root directory for temporary files during streaming operations.
     |
     */
 
-    'temporary_files_root' => env('PACKAGER_TEMPORARY_FILES_ROOT', storage_path('app/packager/temp')),
+    'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
 
     /*
     |--------------------------------------------------------------------------
-    | Encrypted Temporary Files
+    | Cache Files Root
     |--------------------------------------------------------------------------
     |
-    | Directory for encrypted temporary files. Using /dev/shm (RAM disk)
-    | provides better performance for encryption operations.
+    | Directory for cache files (encryption keys, manifests, etc.).
     |
     */
 
-    'temporary_files_encrypted' => env('PACKAGER_TEMPORARY_ENCRYPTED', '/dev/shm'),
-
+    'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
 ];
 ```
 
@@ -209,12 +219,14 @@ return [
 Example `.env` configuration:
 
 ```env
-# Shaka Packager Configuration
-PACKAGER_PATH=/usr/local/bin/packager
-PACKAGER_TIMEOUT=14400
-PACKAGER_LOG_CHANNEL=packager
-PACKAGER_TEMPORARY_FILES_ROOT=/tmp/packager
-PACKAGER_TEMPORARY_ENCRYPTED=/dev/shm
+# Shaka Streamer Configuration
+STREAMER_PYTHON_BINARY=python3
+STREAMER_BINARY=shaka-streamer
+STREAMER_TIMEOUT=14400
+STREAMER_LOG_CHANNEL=streamer
+STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
+STREAMER_CACHE_FILES_ROOT=/dev/shm
+STREAMER_FORCE_GENERIC_INPUT=true
 ```
 
 ## Verification
@@ -227,89 +239,7 @@ php artisan shaka:verify
 
 This command checks:
 
-- Binary path is valid and executable
-- Can retrieve version information
-- Timeout is configured
+- Python binary is available
+- Shaka Streamer executable is callable
+- Configuration is properly loaded
 - Logger is properly set up
-
-## Runtime Configuration
-
-You can also configure the packager at runtime:
-
-```php
-use Foxws\Streamer\Support\Packager\Packager;
-use Foxws\Streamer\Support\Packager\ShakaPackager;
-
-// Create with custom configuration
-$driver = new ShakaPackager(
-    binaryPath: '/custom/path/packager',
-    logger: Log::channel('custom'),
-    timeout: 7200
-);
-
-$packager = new Packager($driver, Log::channel('custom'));
-```
-
-Or using the static create method:
-
-```php
-$packager = Packager::create(
-    logger: Log::channel('packager'),
-    configuration: [
-        'packager' => ['binaries' => '/custom/path/packager'],
-        'timeout' => 7200,
-    ]
-);
-```
-
-## Driver Configuration
-
-Modify driver settings after instantiation:
-
-```php
-$driver = app(ShakaPackager::class);
-
-// Change timeout
-$driver->setTimeout(7200);
-
-// Change logger
-$driver->setLogger(Log::channel('debug'));
-```
-
-## Troubleshooting
-
-### Binary Not Found
-
-If you see "Executable not found" errors:
-
-1. Verify the binary exists: `which packager`
-2. Check permissions: `ls -l /usr/local/bin/packager`
-3. Ensure it's executable: `chmod +x /usr/local/bin/packager`
-4. Update config with correct path
-
-### Timeout Errors
-
-If operations timeout:
-
-1. Increase timeout in config
-2. Check server PHP `max_execution_time`
-3. Consider queueing long operations
-4. Optimize video settings (resolution, bitrate)
-
-### Permission Errors
-
-If you see permission errors:
-
-1. Check temporary directory permissions
-2. Ensure web server user can write
-3. Verify binary is executable
-4. Check SELinux/AppArmor policies
-
-### Logging Issues
-
-If logging doesn't work:
-
-1. Verify log channel exists in `config/logging.php`
-2. Check log directory permissions
-3. Ensure channel is properly configured
-4. Test with a simple log entry

@@ -1,353 +1,220 @@
 # Troubleshooting Guide
 
-Common issues and their solutions when using Laravel Shaka Packager.
+Common issues and their solutions when using Laravel Shaka Streamer.
 
-## Installation Issues
+## Python & Shaka Streamer Issues
 
-### Binary Not Found
-
-**Error:**
-
-```
-ExecutableNotFoundException: Shaka Packager binary not found at: /usr/local/bin/packager
-```
-
-**Solutions:**
-
-1. Install Shaka Packager:
-
-    ```bash
-    # Linux
-    wget https://github.com/shaka-project/shaka-packager/releases/download/v3.4.2/packager-linux-x64
-    sudo mv packager-linux-x64 /usr/local/bin/packager
-    sudo chmod +x /usr/local/bin/packager
-
-    # macOS
-    brew install shaka-packager
-    ```
-
-2. Update config path:
-
-    ```bash
-    # .env
-    PACKAGER_PATH=/path/to/packager
-    ```
-
-3. Verify installation:
-
-    ```bash
-    php artisan shaka:verify
-    ```
-
-### Binary Not Executable
+### Python Binary Not Found
 
 **Error:**
-
 ```
-Binary is not executable
+Error: Python 3 not found or not in PATH
 ```
 
 **Solution:**
 
-```bash
-chmod +x /usr/local/bin/packager
-```
+1. Install Python 3:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install python3
+   
+   # macOS
+   brew install python3
+   ```
 
-## Configuration Issues
+2. Verify installation:
+   ```bash
+   python3 --version
+   ```
 
-### Temporary Directory Not Writable
+3. Configure in `.env`:
+   ```env
+   STREAMER_PYTHON_BINARY=/usr/bin/python3.11
+   ```
+
+### Shaka Streamer Not Installed
 
 **Error:**
-
 ```
-Temporary directory is not writable
+Error: shaka-streamer module not found
 ```
 
-**Solutions:**
+**Solution:**
+
+1. Install via pip:
+   ```bash
+   python3 -m pip install shaka-streamer
+   ```
+
+2. Verify installation:
+   ```bash
+   python3 -m pip show shaka-streamer
+   ```
+
+3. Configure in `.env`:
+   ```env
+   STREAMER_PYTHON_BINARY=python3
+   STREAMER_BINARY=shaka-streamer
+   ```
+
+## Temporary Directory Issues
+
+### Permission Denied
+
+**Error:**
+```
+Permission denied: /var/www/html/storage/app/streamer/temp
+```
+
+**Solution:**
 
 1. Create directory:
+   ```bash
+   mkdir -p storage/app/streamer/temp
+   chmod 755 storage/app/streamer/temp
+   ```
 
-    ```bash
-    mkdir -p storage/app/packager/temp
-    chmod 755 storage/app/packager/temp
-    ```
+2. Set proper ownership:
+   ```bash
+   sudo chown -R www-data:www-data storage/app/streamer/temp
+   ```
 
-2. Update config:
+3. Or configure alternate path in `config/streamer.php`:
+   ```php
+   'temporary_files_root' => storage_path('app/streamer/temp'),
+   ```
 
-    ```php
-    // config/laravel-streamer.php
-    'temporary_files_root' => storage_path('app/packager/temp'),
-    ```
-
-### Timeout Errors
-
-**Error:**
-
-```
-RuntimeException: Process timeout exceeded
-```
-
-**Solutions:**
-
-1. Increase timeout in config:
-
-    ```php
-    // config/laravel-streamer.php
-    'timeout' => 60 * 60 * 8, // 8 hours
-    ```
-
-2. Or set dynamically:
-
-    ```php
-    $packager = app(ShakaPackager::class);
-    $packager->setTimeout(28800); // 8 hours
-    ```
-
-## Packaging Issues
-
-### Unknown Field in Stream Descriptor
+### No Space Left on Device
 
 **Error:**
-
 ```
-Unknown field in stream descriptor: filename_with,comma.mp4
-```
-
-**Solutions:**
-
-1. Enable generic input (recommended):
-
-    ```bash
-    # .env
-    PACKAGER_FORCE_GENERIC_INPUT=true
-    ```
-
-2. Or sanitize filename manually:
-
-    ```php
-    use Foxws\Streamer\Support\MediaHelper;
-
-    $sanitized = MediaHelper::sanitizeFilename($filename);
-    ```
-
-### Empty MediaCollection
-
-**Error:**
-
-```
-InvalidArgumentException: MediaCollection cannot be empty
+No space left on device
 ```
 
 **Solution:**
 
-```php
-// Ensure you call open() before adding streams
-Streamer::open('input.mp4')  // ← Must call open first
-    ->addVideoStream('input.mp4', 'output.mp4')
-    ->export()
-    ->save();
-```
+1. Check disk space:
+   ```bash
+   df -h storage/app/streamer/temp
+   ```
 
-### No Streams Configured
+2. Clean up old temporary files:
+   ```bash
+   find storage/app/streamer/temp -mtime +7 -delete
+   ```
+
+3. Configure to use alternative disk:
+   ```env
+   STREAMER_TEMPORARY_FILES_ROOT=/mnt/alternate-disk/streamer-temp
+   ```
+
+## Timeout Issues
+
+### Operation Timed Out
 
 **Error:**
-
 ```
-RuntimeException: No streams configured. Use addVideoStream() or addAudioStream() first.
+The process timed out
 ```
 
 **Solution:**
 
-```php
-// Add at least one stream before exporting
-Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'video.mp4')  // ← Add streams
-    ->export()
-    ->save();
-```
+1. Increase timeout in `.env`:
+   ```env
+   STREAMER_TIMEOUT=28800  # 8 hours
+   ```
 
-## Encryption Issues
+2. Check server PHP configuration:
+   ```bash
+   php -r "echo ini_get('max_execution_time');"
+   ```
 
-### SAMPLE-AES Not Working in Browser
+3. Adjust if necessary:
+   ```php
+   set_time_limit(0); // Unlimited for CLI
+   ```
 
-**Problem:** Encrypted HLS doesn't play in web browsers
+## Logging Issues
 
-**Solution:** Use `cbc1` protection scheme for browser compatibility:
-
-```php
-Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'video.ts')  // Use .ts not .mp4
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withEncryption([
-        'keys' => 'label=:key_id=abc:key=def',
-        'protection_scheme' => 'cbc1',  // Browser-compatible
-        'clear_lead' => 0,
-    ])
-    ->export()
-    ->save();
-```
-
-### Encryption Key Not Found
+### Logs Not Being Written
 
 **Error:**
-
 ```
-Cannot load key from URI
-```
-
-**Solutions:**
-
-1. Ensure key file is accessible:
-
-    ```php
-    // Make sure the key URL is publicly accessible
-    ->setKeyUrlResolver(fn ($key) => Storage::disk('public')->url($key))
-    ```
-
-2. Check CORS settings for cross-origin requests
-
-## Storage Issues
-
-### S3 Permission Denied
-
-**Error:**
-
-```
-S3Exception: Access Denied
+Log channel not working
 ```
 
-**Solutions:**
+**Solution:**
 
-1. Check IAM permissions:
+1. Verify logging is enabled:
+   ```env
+   STREAMER_LOG_CHANNEL=streamer
+   ```
 
-    ```json
-    {
-        "Effect": "Allow",
-        "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-        "Resource": "arn:aws:s3:::your-bucket/*"
-    }
-    ```
+2. Ensure channel exists in `config/logging.php`:
+   ```php
+   'channels' => [
+       'streamer' => [
+           'driver' => 'daily',
+           'path' => storage_path('logs/streamer.log'),
+           'level' => 'debug',
+           'days' => 14,
+       ],
+   ],
+   ```
 
-2. Verify credentials in `.env`:
+3. Check directory permissions:
+   ```bash
+   chmod 755 storage/logs
+   ```
 
-    ```bash
-    AWS_ACCESS_KEY_ID=your-key
-    AWS_SECRET_ACCESS_KEY=your-secret
-    AWS_DEFAULT_REGION=us-east-1
-    AWS_BUCKET=your-bucket
-    ```
+## General Troubleshooting
 
-### Cannot Copy Files from Temporary Directory
+### Configuration Check
 
-**Error:**
-
-```
-RuntimeException: Cannot copy files: temporary directory not set
-```
-
-**Solution:** This occurs when using `packageWithBuilder()` directly. Use the full fluent API instead:
-
-```php
-// ✗ Wrong
-$builder = CommandBuilder::make()->addVideoStream(...);
-$packager->packageWithBuilder($builder)->toDisk('s3');
-
-// ✓ Correct
-Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'output.mp4')
-    ->export()
-    ->toDisk('s3')
-    ->save();
-```
-
-## Performance Issues
-
-### Processing Too Slow
-
-**Solutions:**
-
-1. Use local disk for temporary files:
-
-    ```php
-    'temporary_files_root' => '/dev/shm/packager', // RAM disk
-    ```
-
-2. Reduce quality/bitrate settings
-3. Use fewer ABR variants
-4. Process in background queue:
-
-    ```php
-    ProcessMediaJob::dispatch($inputPath);
-    ```
-
-### Memory Issues
-
-**Solutions:**
-
-1. Increase PHP memory limit:
-
-    ```ini
-    memory_limit = 512M
-    ```
-
-2. Process smaller chunks
-3. Use queue workers with memory limit:
-
-    ```bash
-    php artisan queue:work --memory=512
-    ```
-
-## Debugging
-
-### Enable Logging
+Verify configuration is correct:
 
 ```bash
-# .env
-PACKAGER_LOG_CHANNEL=stack
+php artisan shaka:verify
 ```
 
-```php
-// Check logs
-tail -f storage/logs/laravel.log
+### Enable Debug Logging
+
+For more detailed information:
+
+```env
+STREAMER_LOG_CHANNEL=streamer
+APP_DEBUG=true
 ```
 
-### Get Raw Command
+### Clear Cache
 
-```php
-$command = Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'output.mp4')
-    ->export()
-    ->getCommand();
-
-dd($command);
-```
-
-### Test Packager Directly
+Reset configuration cache:
 
 ```bash
-/usr/local/bin/packager --version
-/usr/local/bin/packager in=input.mp4,stream=video,output=output.mp4
+php artisan config:clear
+php artisan cache:clear
+```
+
+### Test Command Execution
+
+Test if streamer can execute:
+
+```php
+use Foxws\Streamer\Support\ShakaStreamer;
+
+$driver = ShakaStreamer::create();
+$version = $driver->getVersion();
+echo "Streamer Version: {$version}";
 ```
 
 ## Getting Help
 
-If you're still experiencing issues:
+If issues persist:
 
-1. Run verification: `php artisan shaka:verify`
-2. Check logs in `storage/logs/laravel.log`
-3. Test packager binary directly
-4. Create an issue with:
-    - Error message
-    - PHP version
-    - Laravel version
-    - Packager version
-    - Relevant code snippet
-
-## Common Pitfalls
-
-1. **Forgetting to call `open()`** before adding streams
-2. **Using wrong file extension** for encrypted content (.mp4 vs .ts)
-3. **Not setting timeout** for large files
-4. **Special characters in filenames** without sanitization
-5. **Incorrect disk configuration** in filesystems.php
-6. **Mixing input/output paths** from different contexts
+1. Check application logs: `storage/logs/streamer.log`
+2. Review debug output: `php artisan tinker`
+3. File an issue on GitHub with:
+   - Complete error message
+   - Configuration (without sensitive data)
+   - PHP and OS versions
+   - Steps to reproduce

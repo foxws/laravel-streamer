@@ -1,4 +1,4 @@
-# Shaka Packager - Quick Reference Guide
+# Shaka Streamer - Quick Reference Guide
 
 ## Fluent API with fromDisk Support
 
@@ -198,16 +198,16 @@ return [
 ## Artisan Commands
 
 ```bash
-# Verify packager installation
+# Verify streamer installation
 php artisan shaka:verify
 ```
 
 ## Direct Driver Usage
 
 ```php
-use Foxws\Streamer\Support\Packager\ShakaPackager;
+use Foxws\Streamer\Support\ShakaStreamer;
 
-$driver = ShakaPackager::create();
+$driver = ShakaStreamer::create();
 $version = $driver->getVersion();
 $driver->setTimeout(7200);
 ```
@@ -246,7 +246,7 @@ $commandString = $videoStream->toCommandString();
 
 ## Examples Location
 
-- Basic examples: `examples/PackagerExamples.php`
+- Basic examples: `examples/StreamerExamples.php`
 - Fluent API examples: `examples/FluentBuilderExamples.php`
 - fromDisk examples: `examples/FromDiskExamples.php`
 
@@ -254,7 +254,7 @@ $commandString = $videoStream->toCommandString();
 
 ```php
 // Unit tests
-vendor/bin/pest tests/Unit/ShakaPackagerTest.php
-vendor/bin/pest tests/Unit/PackagerTest.php
+vendor/bin/pest tests/Unit/ShakaStreamerDriverTest.php
+vendor/bin/pest tests/Unit/StreamerTest.php
 vendor/bin/pest tests/Unit/FromDiskTest.php
 ```
