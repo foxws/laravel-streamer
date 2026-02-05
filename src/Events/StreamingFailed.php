@@ -8,7 +8,7 @@ use Exception;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PackagingFailed
+class StreamingFailed
 {
     use Dispatchable, SerializesModels;
 
