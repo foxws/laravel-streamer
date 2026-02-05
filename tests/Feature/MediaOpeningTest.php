@@ -80,10 +80,10 @@ it('can export from media opener', function () {
 });
 
 it('validates that media collection is not empty before opening', function () {
-    $packager = app(\Foxws\Streamer\Support\Packager::class);
+    $streamer = app(\Foxws\Streamer\Support\Streamer::class);
     $emptyCollection = MediaCollection::make([]);
 
-    $packager->open($emptyCollection);
+    $streamer->open($emptyCollection);
 })->throws(InvalidArgumentException::class, 'MediaCollection cannot be empty');
 
 it('can clone media opener instance', function () {

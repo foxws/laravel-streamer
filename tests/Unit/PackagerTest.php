@@ -2,47 +2,43 @@
 
 declare(strict_types=1);
 
-use Foxws\Streamer\Support\Packager;
-use Foxws\Streamer\Support\ShakaPackager;
+use Foxws\Streamer\Support\Streamer;
+use Foxws\Streamer\Support\ShakaStreamer;
 
-it('can create packager instance', function () {
-    $driver = mock(ShakaPackager::class);
+it('can create streamer instance', function () {
+    $driver = mock(ShakaStreamer::class);
 
-    $packager = new Packager($driver);
+    $streamer = new Streamer($driver);
 
-    expect($packager)->toBeInstanceOf(Packager::class);
-    expect($packager->getPackager())->toBe($driver);
+    expect($streamer)->toBeInstanceOf(Streamer::class);
+    expect($streamer->getPackager())->toBe($driver);
 });
 
 it('can set and get driver', function () {
-    $driver1 = mock(ShakaPackager::class);
-    $driver2 = mock(ShakaPackager::class);
+    $driver1 = mock(ShakaStreamer::class);
+    $driver2 = mock(ShakaStreamer::class);
 
-    $packager = new Packager($driver1);
+    $streamer = new Streamer($driver1);
 
-    expect($packager->getPackager())->toBe($driver1);
-
-    $packager->setPackager($driver2);
-
-    expect($packager->getPackager())->toBe($driver2);
+    expect($streamer->getPackager())->toBe($driver1);
 });
 
 it('can create fresh instance', function () {
-    $driver = mock(ShakaPackager::class);
+    $driver = mock(ShakaStreamer::class);
 
-    $packager1 = new Packager($driver);
-    $packager2 = $packager1->fresh();
+    $streamer1 = new Streamer($driver);
+    $streamer2 = $streamer1->fresh();
 
-    expect($packager2)->toBeInstanceOf(Packager::class);
-    expect($packager2)->not->toBe($packager1);
-    expect($packager2->getPackager())->toBe($driver);
+    expect($streamer2)->toBeInstanceOf(Streamer::class);
+    expect($streamer2)->not->toBe($streamer1);
+    expect($streamer2->getPackager())->toBe($driver);
 });
 
 it('fresh instance has same driver', function () {
-    $driver = mock(ShakaPackager::class);
+    $driver = mock(ShakaStreamer::class);
 
-    $packager1 = new Packager($driver);
-    $packager2 = $packager1->fresh();
+    $streamer1 = new Streamer($driver);
+    $streamer2 = $streamer1->fresh();
 
-    expect($packager2->getPackager())->toBe($packager1->getPackager());
+    expect($streamer2->getPackager())->toBe($streamer1->getPackager());
 });

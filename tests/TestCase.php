@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Tests;
 
-use Foxws\Streamer\ShakaServiceProvider;
+use Foxws\Streamer\StreamerServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -22,7 +22,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            ShakaServiceProvider::class,
+            StreamerServiceProvider::class,
         ];
     }
 

@@ -3,20 +3,20 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Support\CommandBuilder;
-use Foxws\Streamer\Support\Packager;
-use Foxws\Streamer\Support\ShakaPackager;
+use Foxws\Streamer\Support\Streamer;
+use Foxws\Streamer\Support\ShakaStreamer;
 use Psr\Log\LoggerInterface;
 
 it('filters sensitive encryption keys from logs', function () {
     $logger = mock(LoggerInterface::class);
-    $driver = mock(ShakaPackager::class);
+    $driver = mock(ShakaStreamer::class);
 
     // Mock the driver to return a successful result
-    $driver->shouldReceive('command')
+    $driver->shouldReceive('packageWithConfig')
         ->once()
         ->andReturn('success');
 
-    $packager = new Packager($driver, $logger);
+    $streamer = new Streamer($driver, $logger);
 
     // Create a builder with encryption options including sensitive keys
     $builder = CommandBuilder::make()
@@ -45,5 +45,5 @@ it('filters sensitive encryption keys from logs', function () {
         ->once()
         ->with('Packaging operation completed');
 
-    $packager->packageWithBuilder($builder);
+    $streamer->packageWithBuilder($builder);
 });

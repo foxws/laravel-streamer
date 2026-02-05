@@ -11,7 +11,7 @@ beforeEach(function () {
 });
 
 it('service provider is registered', function () {
-    expect(app()->getProviders(\Foxws\Streamer\ShakaServiceProvider::class))->not->toBeEmpty();
+    expect(app()->getProviders(\Foxws\Streamer\StreamerServiceProvider::class))->not->toBeEmpty();
 });
 
 it('registers media opener in service container', function () {
