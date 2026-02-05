@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Support\CommandBuilder;
-use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\ShakaStreamer;
+use Foxws\Streamer\Support\Streamer;
 use Psr\Log\LoggerInterface;
 
 it('filters sensitive encryption keys from logs', function () {

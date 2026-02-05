@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\ShakaStreamer;
+use Foxws\Streamer\Support\Streamer;
 
 it('can create streamer instance', function () {
     $driver = mock(ShakaStreamer::class);
