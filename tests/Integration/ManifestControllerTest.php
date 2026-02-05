@@ -13,7 +13,7 @@ beforeEach(function () {
     Route::get('/stream/{media}', function ($media) {
         $video = Storage::disk('local')->path('video.mp4');
 
-        if (!file_exists($video)) {
+        if (! file_exists($video)) {
             abort(404);
         }
 
@@ -21,7 +21,7 @@ beforeEach(function () {
             ->withManifestFormats(['dash', 'hls'])
             ->withSegmentSize(10)
             ->replaceManifestKeys([
-                'BaseURL' => config('app.url') . '/streams/',
+                'BaseURL' => config('app.url').'/streams/',
                 'domain' => config('app.domain', 'example.com'),
             ])
             ->export()

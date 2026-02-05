@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Facades\Streamer;
-use Foxws\Streamer\Support\CommandBuilder;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
