@@ -1,0 +1,6 @@
+*
+!.gitignore
+!sample_h264.mp4
+!sample_hevc.mp4
+!sample_av1.mp4
+!generate-fixtures.sh
