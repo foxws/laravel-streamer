@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Examples;
 
-use Foxws\Streamer\Facades\Shaka;
 use Foxws\Streamer\Support\Packager;
 
 /**

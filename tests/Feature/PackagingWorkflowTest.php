@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Foxws\Streamer\Facades\Shaka;
 use Foxws\Streamer\MediaOpener;
 use Illuminate\Support\Facades\Storage;
 

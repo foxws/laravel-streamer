@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Examples;
 
-use Foxws\Streamer\Facades\Shaka;
-
 /**
  * Examples demonstrating fromDisk usage with the fluent API
  */

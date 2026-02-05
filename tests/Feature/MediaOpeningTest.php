@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Foxws\Streamer\Facades\Shaka;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\MediaOpener;
