@@ -140,7 +140,7 @@ class ShakaStreamer
     protected function verifyInstallation(): void
     {
         $result = Process::timeout(10)
-            ->run([$this->streamerBinary, '--help']);
+            ->run(['which', $this->streamerBinary]);
 
         if ($result->failed()) {
             throw new \RuntimeException(
@@ -151,7 +151,7 @@ class ShakaStreamer
 
         if ($this->logger) {
             $this->logger->debug('Shaka Streamer verified', [
-                'output' => trim($result->output()),
+                'path' => trim($result->output()),
             ]);
         }
     }
