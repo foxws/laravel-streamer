@@ -25,7 +25,7 @@ class StreamerServiceProvider extends PackageServiceProvider
             ]);
     }
 
-    public function streamerRegistered(): void
+    public function packageRegistered(): void
     {
         $this->app->singleton('laravel-streamer-logger', function () {
             $logChannel = Config::get('laravel-streamer.log_channel');
