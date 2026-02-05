@@ -43,7 +43,7 @@ class StreamerServiceProvider extends PackageServiceProvider
                 'timeout' => Config::integer('laravel-streamer.timeout', 3600),
             ];
 
-            if ($configuredTemporaryRoot = Config::string('laravel-streamer.temporary_files_root')) {
+            if ($configuredTemporaryRoot = Config::string('laravel-streamer.temporary_files_root', '')) {
                 $baseConfig['temporary_directory'] = $configuredTemporaryRoot;
             }
 
