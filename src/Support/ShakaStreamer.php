@@ -112,11 +112,31 @@ class ShakaStreamer
         // Verify Shaka Streamer is installed
         $this->verifyInstallation();
 
+        // Ensure output directory exists if specified
+        if ($outputDirectory && ! is_dir($outputDirectory)) {
+            if (@mkdir($outputDirectory, 0755, true) === false) {
+                throw new \RuntimeException("Failed to create output directory: {$outputDirectory}");
+            }
+            if ($this->logger) {
+                $this->logger->debug('Created output directory', ['directory' => $outputDirectory]);
+            }
+        }
+
         // Create temporary config files
         [$inputConfigFile, $pipelineConfigFile] = $this->createConfigFiles($config);
 
         try {
             $output = $this->invokeStreamer($inputConfigFile, $pipelineConfigFile, $outputDirectory);
+
+            // Check what was created in the output directory
+            if ($outputDirectory && is_dir($outputDirectory) && $this->logger) {
+                $files = array_filter(scandir($outputDirectory), fn ($f) => $f !== '.' && $f !== '..');
+                $this->logger->debug('Output directory contents after Shaka execution', [
+                    'output_directory' => $outputDirectory,
+                    'files' => array_values($files),
+                    'file_count' => count($files),
+                ]);
+            }
 
             if ($this->logger) {
                 $this->logger->info('Shaka Streamer completed successfully');
@@ -213,6 +233,8 @@ class ShakaStreamer
             $this->logger->debug('Created temporary config files', [
                 'input_config' => $inputConfigFile,
                 'pipeline_config' => $pipelineConfigFile,
+                'input_config_content' => $inputJson,
+                'pipeline_config_content' => $pipelineJson,
             ]);
         }
 
@@ -257,6 +279,21 @@ class ShakaStreamer
 
         $result = Process::timeout($this->timeout)
             ->run($command);
+
+        // Log full output and errors regardless of success/failure
+        if ($this->logger) {
+            $this->logger->debug('Shaka Streamer output', [
+                'stdout' => $result->output(),
+                'stderr' => $result->errorOutput(),
+                'exit_code' => $result->exitCode(),
+                'success' => $result->successful(),
+            ]);
+        }
+
+        // Check for fatal errors in output even if exit code is 0
+        if (str_contains($result->output(), 'Fatal error:')) {
+            $this->handleProcessFailure($result);
+        }
 
         if ($result->failed()) {
             $this->handleProcessFailure($result);

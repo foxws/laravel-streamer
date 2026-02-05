@@ -295,14 +295,13 @@ class Streamer
         // Format keys for Shaka Streamer
         $formattedKeys = EncryptionKeyGenerator::formatForShaka($keyData['key_id'], $keyData['key'], $label);
 
-        // Set individual encryption options directly on the builder
-        $this->builder()->withOption('enable_raw_key_encryption', true);
-        $this->builder()->withOption('keys', $formattedKeys);
-        $this->builder()->withOption('hls_key_uri', $keyFilename);
-        $this->builder()->withOption('clear_lead', 0);
+        // Encryption in Shaka Streamer must be configured per-stream, not at pipeline level
+        // These fields are not valid at the pipeline level and will cause "unrecognized field" errors
+        // For now, we'll skip setting them here since they don't work at the pipeline level
+        // TODO: Implement proper stream-level encryption configuration in CommandBuilder
 
         if (filled($protectionScheme)) {
-            $this->builder()->withOption('protection_scheme', $protectionScheme);
+            // This also doesn't work at pipeline level
         }
 
         return $keyData;

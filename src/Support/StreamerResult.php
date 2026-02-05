@@ -6,10 +6,15 @@ namespace Foxws\Streamer\Support;
 
 use Foxws\Streamer\Filesystem\Disk;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Log;
 
 class StreamerResult
 {
     protected array $uploadedEncryptionKeys = [];
+
+    protected array $copiedFiles = [];
+
+    protected array $failedFiles = [];
 
     public function __construct(
         protected string $output,
@@ -40,6 +45,16 @@ class StreamerResult
         // Collect files from temp directory (segments/manifests) and cache directory (encryption keys)
         $files = $this->getAllFilesInTemporaryDirectory($this->temporaryDirectory);
 
+        // Log what files were found in temp directory
+        Log::debug('Files found in temporary directory', [
+            'temp_directory' => $this->temporaryDirectory,
+            'file_count' => count($files),
+            'files' => array_map(fn ($f) => [
+                'path' => $f,
+                'size' => @filesize($f),
+            ], $files),
+        ]);
+
         if ($this->cacheDirectory && is_dir($this->cacheDirectory)) {
             $cacheFiles = $this->getAllFilesInTemporaryDirectory($this->cacheDirectory);
             $files = array_merge($files, $cacheFiles);
@@ -67,38 +82,57 @@ class StreamerResult
             // Small text files (.m3u8 manifests) and key files - use put() for reliability
             $isSmallFile = $isKeyFile || $extension === 'm3u8';
 
-            if ($isSmallFile) {
-                $content = file_get_contents($file);
-                $targetDisk->put($targetPath, $content);
+            try {
+                $fileSize = filesize($file);
 
-                // Track uploaded encryption key metadata
-                if ($isKeyFile) {
-                    $this->uploadedEncryptionKeys[] = [
-                        'filename' => $filename,
-                        'path' => $targetPath,
-                        'content' => bin2hex($content),
-                    ];
-                }
-            } else {
-                // Stream large binary files (video/audio segments)
-                $stream = fopen($file, 'rb');
-                try {
-                    $targetDisk->writeStream($targetPath, $stream);
-                } finally {
-                    if (is_resource($stream)) {
-                        fclose($stream);
+                if ($isSmallFile) {
+                    $content = file_get_contents($file);
+                    $targetDisk->put($targetPath, $content);
+
+                    // Track uploaded encryption key metadata
+                    if ($isKeyFile) {
+                        $this->uploadedEncryptionKeys[] = [
+                            'filename' => $filename,
+                            'path' => $targetPath,
+                            'content' => bin2hex($content),
+                        ];
+                    }
+                } else {
+                    // Stream large binary files (video/audio segments)
+                    $stream = fopen($file, 'rb');
+                    try {
+                        $targetDisk->writeStream($targetPath, $stream);
+                    } finally {
+                        if (is_resource($stream)) {
+                            fclose($stream);
+                        }
                     }
                 }
+
+                if ($visibility) {
+                    $targetDisk->setVisibility($targetPath, $visibility);
+                }
+
+                // Track successfully copied file
+                $this->copiedFiles[$targetPath] = [
+                    'source' => $file,
+                    'size' => $fileSize,
+                    'type' => $isKeyFile ? 'key' : ($extension === 'm3u8' ? 'manifest' : 'segment'),
+                ];
+
+                // Clean up temporary file after copying
+                if ($cleanup) {
+                    unlink($file);
+                }
+            } catch (\Exception $e) {
+                $this->failedFiles[] = [
+                    'source' => $file,
+                    'target' => $targetPath,
+                    'error' => $e->getMessage(),
+                    'size' => $fileSize ?? 0,
+                ];
             }
 
-            if ($visibility) {
-                $targetDisk->setVisibility($targetPath, $visibility);
-            }
-
-            // Clean up temporary file after copying
-            if ($cleanup) {
-                unlink($file);
-            }
         }
 
         // Clean up temporary directories if empty (recursively)
@@ -119,11 +153,24 @@ class StreamerResult
     protected function getAllFilesInTemporaryDirectory(string $directory): array
     {
         if (! is_dir($directory)) {
+            Log::warning('Temporary directory does not exist', ['directory' => $directory]);
+
             return [];
         }
 
         $files = [];
         $items = scandir($directory);
+
+        if ($items === false) {
+            Log::error('Failed to scan directory', ['directory' => $directory]);
+
+            return [];
+        }
+
+        Log::debug('Scanning directory', [
+            'directory' => $directory,
+            'items' => array_filter($items, fn ($item) => $item !== '.' && $item !== '..'),
+        ]);
 
         foreach ($items as $item) {
             if ($item === '.' || $item === '..') {
@@ -136,6 +183,7 @@ class StreamerResult
                 $files[] = $path;
             } elseif (is_dir($path)) {
                 // Recursively scan subdirectories
+                Log::debug('Recursing into subdirectory', ['subdirectory' => $path]);
                 $files = array_merge($files, $this->getAllFilesInTemporaryDirectory($path));
             }
         }
@@ -253,5 +301,53 @@ class StreamerResult
     public function getUploadedEncryptionKeys(): array
     {
         return $this->uploadedEncryptionKeys;
+    }
+
+    /**
+     * Get all successfully copied files from the last toDisk() operation.
+     *
+     * @return array<string, array{source: string, size: int, type: string}> Array of copied files indexed by target path
+     */
+    public function getCopiedFiles(): array
+    {
+        return $this->copiedFiles;
+    }
+
+    /**
+     * Get all files that failed to copy during the last toDisk() operation.
+     *
+     * @return array<int, array{source: string, target: string, error: string, size: int}> Array of failed copy operations
+     */
+    public function getFailedFiles(): array
+    {
+        return $this->failedFiles;
+    }
+
+    /**
+     * Check if any files failed during the last copy operation.
+     */
+    public function hasCopyFailures(): bool
+    {
+        return ! empty($this->failedFiles);
+    }
+
+    /**
+     * Get a summary of the copy operation.
+     *
+     * @return array{total: int, copied: int, failed: int, totalSize: int}
+     */
+    public function getCopySummary(): array
+    {
+        $totalSize = 0;
+        foreach ($this->copiedFiles as $file) {
+            $totalSize += $file['size'] ?? 0;
+        }
+
+        return [
+            'total' => count($this->copiedFiles) + count($this->failedFiles),
+            'copied' => count($this->copiedFiles),
+            'failed' => count($this->failedFiles),
+            'totalSize' => $totalSize,
+        ];
     }
 }
