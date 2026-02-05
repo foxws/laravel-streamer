@@ -7,21 +7,34 @@ use Foxws\Streamer\Tests\TestCase;
 uses(TestCase::class)->in(__DIR__);
 
 /**
- * Check if Shaka Packager binary is available for testing
+ * Check if Shaka Streamer is available for testing
  */
-function hasPackager(): bool
+function hasStreamer(): bool
 {
-    $binary = config('laravel-streamer.packager.binaries', '/usr/local/bin/packager');
+    $pythonBinary = config('laravel-streamer.streamer.python_binary', 'python3');
+    $streamerBinary = config('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
 
-    return file_exists($binary) && is_executable($binary);
+    try {
+        // Check if Python is available
+        $pythonCheck = shell_exec("{$pythonBinary} --version 2>&1");
+        if (!$pythonCheck) {
+            return false;
+        }
+
+        // Check if Shaka Streamer is installed via pip
+        $streamerCheck = shell_exec("{$pythonBinary} -m pip show shaka-streamer 2>&1");
+        return !empty($streamerCheck);
+    } catch (Exception $e) {
+        return false;
+    }
 }
 
 /**
- * Skip test if Shaka Packager is not installed
+ * Skip test if Shaka Streamer is not available
  */
-function skipIfNoPackager(): void
+function skipIfNoStreamer(): void
 {
-    if (! hasPackager()) {
-        test()->markTestSkipped('Shaka Packager binary not available');
+    if (!hasStreamer()) {
+        test()->markTestSkipped('Shaka Streamer not available');
     }
 }
