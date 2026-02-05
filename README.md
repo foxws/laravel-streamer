@@ -58,7 +58,7 @@ composer require foxws/laravel-streamer
 Publish the config file:
 
 ```bash
-php artisan vendor:publish --tag="shaka-config"
+php artisan vendor:publish --tag="streamer-config"
 ```
 
 ### Installing Shaka Packager
