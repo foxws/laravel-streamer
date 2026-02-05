@@ -26,7 +26,7 @@ it('sanitizes leading dashes in input path', function () {
 
 it('normalizes smart quotes in input path', function () {
     $builder = CommandBuilder::make()
-        ->addVideoStream('-foo-bar-foo-bar-i'm-foo-_1.m4v', 'out.m4v');
+        ->addVideoStream('-foo-bar-foo-bar-i\'m-foo-_1.m4v', 'out.m4v');
 
     $args = $builder->buildArray();
 
@@ -60,7 +60,7 @@ it('replaces commas with hyphens in input path', function () {
 
 it('sanitizes output filenames similarly', function () {
     $builder = CommandBuilder::make()
-        ->addVideoStream('input.mp4', '-bad,name,i'm.m4v');
+        ->addVideoStream('input.mp4', '-bad,name,i\'m.m4v');
 
     $args = $builder->buildArray();
 
