@@ -72,7 +72,7 @@ class ShakaStreamer
     /**
      * Execute packaging with Shaka Streamer config format
      *
-     * @param array $config Configuration array with 'input_config' and 'pipeline_config'
+     * @param  array  $config  Configuration array with 'input_config' and 'pipeline_config'
      * @return string Output from Shaka Streamer
      */
     public function packageWithConfig(array $config): string
