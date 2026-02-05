@@ -129,3 +129,4 @@ it('can configure encryption with options', function () {
         ->withOption('encryption', ['key' => 'secret']);
 
     expect($streamer)->not->toBeNull();
+});
