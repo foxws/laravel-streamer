@@ -91,11 +91,12 @@ class ShakaStreamer
      * Package with Shaka Streamer config
      *
      * @param  array  $config  Configuration array with 'input_config' and 'pipeline_config'
+     * @param  string|null  $outputDirectory  Optional output directory (passed via -o flag)
      * @return string Output from Shaka Streamer
      *
      * @throws \RuntimeException
      */
-    public function packageWithConfig(array $config): string
+    public function packageWithConfig(array $config, ?string $outputDirectory = null): string
     {
         // Validate configuration
         $this->validateConfig($config);
@@ -104,6 +105,7 @@ class ShakaStreamer
             $this->logger->info('Starting Shaka Streamer streaming', [
                 'inputs' => count($config['input_config']['inputs'] ?? []),
                 'outputs' => count($config['pipeline_config']['manifest_format'] ?? []),
+                'output_directory' => $outputDirectory,
             ]);
         }
 
@@ -114,7 +116,7 @@ class ShakaStreamer
         [$inputConfigFile, $pipelineConfigFile] = $this->createConfigFiles($config);
 
         try {
-            $output = $this->invokeStreamer($inputConfigFile, $pipelineConfigFile);
+            $output = $this->invokeStreamer($inputConfigFile, $pipelineConfigFile, $outputDirectory);
 
             if ($this->logger) {
                 $this->logger->info('Shaka Streamer completed successfully');
@@ -222,11 +224,12 @@ class ShakaStreamer
      *
      * @param  string  $inputConfigFile  Path to input config file
      * @param  string  $pipelineConfigFile  Path to pipeline config file
+     * @param  string|null  $outputDirectory  Optional output directory
      * @return string Process output
      *
      * @throws \RuntimeException
      */
-    protected function invokeStreamer(string $inputConfigFile, string $pipelineConfigFile): string
+    protected function invokeStreamer(string $inputConfigFile, string $pipelineConfigFile, ?string $outputDirectory = null): string
     {
         $command = [
             $this->streamerBinary,
@@ -234,8 +237,16 @@ class ShakaStreamer
             $inputConfigFile,
             '-p',
             $pipelineConfigFile,
-            ...$this->additionalArguments,
         ];
+
+        // Add output directory if specified
+        if ($outputDirectory) {
+            $command[] = '-o';
+            $command[] = $outputDirectory;
+        }
+
+        // Add any additional arguments
+        array_push($command, ...$this->additionalArguments);
 
         if ($this->logger) {
             $this->logger->debug('Invoking Shaka Streamer', [

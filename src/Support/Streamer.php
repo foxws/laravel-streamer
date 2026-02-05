@@ -419,7 +419,10 @@ class Streamer
             ]);
         }
 
-        $result = $this->streamer->packageWithConfig($config);
+        // Get temporary directory for output
+        $outputDirectory = $this->getTemporaryDirectory();
+
+        $result = $this->streamer->packageWithConfig($config, $outputDirectory);
 
         if ($this->logger) {
             $this->logger->info('Streaming operation completed');
