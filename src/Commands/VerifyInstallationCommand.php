@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Config;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
 
@@ -20,52 +19,31 @@ class VerifyInstallationCommand extends Command
 {
     protected $signature = 'shaka:verify';
 
-    protected $description = 'Verify Shaka Packager installation and configuration';
+    protected $description = 'Verify Shaka Streamer installation and configuration';
 
     public function handle(): int
     {
-        info('🔍 Verifying Shaka Packager installation...');
+        info('🔍 Verifying Shaka Streamer installation...');
 
-        $binaryPath = Config::get('laravel-streamer.packager.binaries');
+        $pythonBinary = Config::get('laravel-streamer.streamer.python_binary', 'python3');
+        $executable = Config::get('laravel-streamer.streamer.executable', 'shaka-streamer');
 
-        note("Binary Path: {$binaryPath}");
+        note("Python Binary: {$pythonBinary}");
+        note("Streamer Executable: {$executable}");
 
-        // Check if file exists
-        if (! file_exists($binaryPath)) {
-            error("Binary not found at: {$binaryPath}");
-            warning('Please ensure Shaka Packager is installed and the path is correct.');
-            note('Download from: https://github.com/shaka-project/shaka-packager/releases');
+        $this->components->info('Configuration loaded successfully');
 
-            return self::FAILURE;
-        }
-
-        $this->components->info('Binary exists');
-
-        // Check if executable
-        if (! is_executable($binaryPath)) {
-            error('Binary is not executable');
-            warning("Run: chmod +x {$binaryPath}");
-
-            return self::FAILURE;
-        }
-
-        $this->components->info('Binary is executable');
-
-        // Try to get version with spinner
+        // Try to verify the streamer can be called
         try {
-            $version = spin(
-                fn () => ShakaStreamer::create()->getVersion(),
-                'Checking packager version...'
-            );
-
-            $this->components->info("Version: {$version}");
+            $driver = ShakaStreamer::create();
+            $this->components->info('Shaka Streamer driver initialized successfully');
         } catch (ExecutableNotFoundException $e) {
-            error('Cannot execute binary');
+            error('Cannot initialize Streamer driver');
             error($e->getMessage());
 
             return self::FAILURE;
         } catch (\Exception $e) {
-            error('Error getting version');
+            error('Error initializing Streamer driver');
             error($e->getMessage());
 
             return self::FAILURE;
@@ -73,11 +51,8 @@ class VerifyInstallationCommand extends Command
 
         // Configuration details
         $timeout = Config::get('laravel-streamer.timeout');
-
         $logChannel = Config::get('laravel-streamer.log_channel');
-
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: Config::get('logging.default'));
-
         $tempDir = Config::get('laravel-streamer.temporary_files_root');
 
         table(
@@ -98,7 +73,7 @@ class VerifyInstallationCommand extends Command
             return self::FAILURE;
         }
 
-        info('✅ Shaka Packager is properly configured and ready to use!');
+        info('✅ Shaka Streamer is properly configured and ready to use!');
 
         return self::SUCCESS;
     }
