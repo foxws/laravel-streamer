@@ -52,7 +52,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install shaka-streamer
-          shaka-streamer --version
+          python3 -m pip show shaka-streamer
 
       - name: Setup Shaka Packager
         if: runner.os == 'Linux'
