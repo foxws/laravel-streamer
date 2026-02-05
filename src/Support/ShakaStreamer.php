@@ -52,6 +52,23 @@ class ShakaStreamer
         return $this->executable;
     }
 
+    public function getVersion(): string
+    {
+        $result = Process::timeout(10)
+            ->run([
+                $this->pythonBinary,
+                '-m',
+                'streamer.main',
+                '--version',
+            ]);
+
+        if ($result->failed()) {
+            return 'Unknown';
+        }
+
+        return trim($result->output());
+    }
+
     public function setTimeout(int $seconds): self
     {
         $this->timeout = $seconds;
