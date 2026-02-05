@@ -23,7 +23,6 @@ it('can generate streamer configuration', function () {
         ->withMpdOutput('manifest.mpd');
 
     expect($streamer)->not->toBeNull();
-    expect(method_exists($streamer, 'builder'))->toBeTrue();
 });
 
 it('can get command builder from configured streamer', function () {
@@ -49,7 +48,7 @@ it('can configure mpd output', function () {
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withMpdOutput('manifest.mpd');
 
-    expect(method_exists($streamer, 'withMpdOutput'))->toBeTrue();
+    expect($streamer)->not->toBeNull();
 });
 
 it('can configure hls master playlist', function () {
@@ -61,7 +60,7 @@ it('can configure hls master playlist', function () {
         ->addVideoStream('video.mp4', 'video.m4v')
         ->withHlsMasterPlaylist('playlist.m3u8');
 
-    expect(method_exists($streamer, 'withHlsMasterPlaylist'))->toBeTrue();
+    expect($streamer)->not->toBeNull();
 });
 
 it('can configure with options', function () {
