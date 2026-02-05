@@ -22,14 +22,18 @@ class ShakaStreamer
 
     protected string $pythonBinary = 'python3';
 
+    protected string $executable = 'shaka-streamer';
+
     public function __construct(
         ?LoggerInterface $logger = null,
         int $timeout = 3600,
-        string $pythonBinary = 'python3'
+        string $pythonBinary = 'python3',
+        string $executable = 'shaka-streamer'
     ) {
         $this->logger = $logger;
         $this->timeout = $timeout;
         $this->pythonBinary = $pythonBinary;
+        $this->executable = $executable;
     }
 
     public static function create(
@@ -37,9 +41,15 @@ class ShakaStreamer
         ?array $configuration = null
     ): self {
         $timeout = $configuration['timeout'] ?? 3600;
-        $pythonBinary = $configuration['python_binary'] ?? 'python3';
+        $pythonBinary = $configuration['streamer.python_binary'] ?? $configuration['python_binary'] ?? 'python3';
+        $executable = $configuration['streamer.executable'] ?? $configuration['executable'] ?? 'shaka-streamer';
 
-        return new self($logger, $timeout, $pythonBinary);
+        return new self($logger, $timeout, $pythonBinary, $executable);
+    }
+
+    public function getExecutable(): string
+    {
+        return $this->executable;
     }
 
     public function setTimeout(int $seconds): self
