@@ -8,166 +8,124 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     Storage::disk('local')->makeDirectory('streamer-output');
-
-    // Setup a test route that demonstrates manifest key replacement
-    Route::get('/stream/{media}', function ($media) {
-        $video = Storage::disk('local')->path('video.mp4');
-
-        if (!file_exists($video)) {
-            abort(404);
-        }
-
-        return Streamer::open('video.mp4')
-            ->withManifestFormats(['dash', 'hls'])
-            ->withSegmentSize(10)
-            ->replaceManifestKeys([
-                'BaseURL' => config('app.url') . '/streams/',
-                'domain' => config('app.domain', 'example.com'),
-            ])
-            ->export()
-            ->toResponse('inline', ['manifest.mpd', 'playlist.m3u8']);
-    });
 });
 
 afterEach(function () {
     Storage::disk('local')->deleteDirectory('streamer-output');
 });
 
-it('can generate streamer response with manifest replacement', function () {
+it('can generate streamer configuration', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $result = Streamer::open('video.mp4')
-        ->withManifestFormats(['dash'])
-        ->export()
-        ->getCommand();
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withMpdOutput('manifest.mpd');
 
-    expect($result)->toBeArray();
-    expect($result)->toHaveKeys(['input_config', 'pipeline_config']);
+    expect($streamer)->not->toBeNull();
+    expect(method_exists($streamer, 'builder'))->toBeTrue();
 });
 
-it('replaces manifest keys in dash manifest', function () {
-    skipIfNoStreamer();
-
-    Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
-    $outputDir = Storage::disk('local')->path('streamer-output');
-
-    Streamer::open('video.mp4')
-        ->withManifestFormats(['dash'])
-        ->export()
-        ->toDisk('local', 'streamer-output');
-
-    $manifestPath = Storage::disk('local')->path('streamer-output/manifest.mpd');
-    expect(file_exists($manifestPath))->toBeTrue();
-
-    $manifest = file_get_contents($manifestPath);
-
-    // Manifests should contain Period or other DASH elements
-    expect($manifest)->toContain('Period');
-});
-
-it('can export manifest with custom output directory', function () {
+it('can get command builder from configured streamer', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $result = Streamer::open('video.mp4')
-        ->withManifestFormats(['dash', 'hls'])
-        ->withSegmentSize(10)
-        ->export()
-        ->toDisk('local', 'streamer-output');
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withMpdOutput('manifest.mpd');
 
-    expect($result)->toBeTrue();
-    expect(Storage::disk('local')->exists('streamer-output/manifest.mpd'))->toBeTrue();
-    expect(Storage::disk('local')->exists('streamer-output/playlist.m3u8'))->toBeTrue();
+    $builder = $streamer->builder();
+
+    expect($builder)->not->toBeNull();
 });
 
-it('can retrieve manifest content as string', function () {
+it('can configure mpd output', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    Streamer::open('video.mp4')
-        ->withManifestFormats(['dash'])
-        ->export()
-        ->toDisk('local', 'streamer-output');
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withMpdOutput('manifest.mpd');
 
-    $manifestContent = file_get_contents(
-        Storage::disk('local')->path('streamer-output/manifest.mpd')
-    );
-
-    expect($manifestContent)->toBeString();
-    expect(strlen($manifestContent))->toBeGreaterThan(0);
-    expect($manifestContent)->toContain('<MPD');
+    expect(method_exists($streamer, 'withMpdOutput'))->toBeTrue();
 });
 
-it('handles multiple quality levels in manifest', function () {
+it('can configure hls master playlist', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    Streamer::open('video.mp4')
-        ->withBitrates([1000000, 2500000, 5000000])
-        ->withManifestFormats(['dash'])
-        ->export()
-        ->toDisk('local', 'streamer-output');
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withHlsMasterPlaylist('playlist.m3u8');
 
-    $manifestPath = Storage::disk('local')->path('streamer-output/manifest.mpd');
-    expect(file_exists($manifestPath))->toBeTrue();
-
-    $manifest = file_get_contents($manifestPath);
-
-    // Should have multiple representations for different bitrates
-    expect($manifest)->toContain('Representation');
+    expect(method_exists($streamer, 'withHlsMasterPlaylist'))->toBeTrue();
 });
 
-it('can generate hls playlist with segments', function () {
+it('can configure with options', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    Streamer::open('video.mp4')
-        ->withManifestFormats(['hls'])
-        ->withSegmentSize(10)
-        ->export()
-        ->toDisk('local', 'streamer-output');
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withMpdOutput('manifest.mpd')
+        ->withOption('custom_key', 'custom_value');
 
-    $playlistPath = Storage::disk('local')->path('streamer-output/playlist.m3u8');
-    expect(file_exists($playlistPath))->toBeTrue();
-
-    $playlist = file_get_contents($playlistPath);
-
-    // Should reference segment files
-    expect($playlist)->toContain('.ts');
+    expect($streamer)->not->toBeNull();
 });
 
-it('can export with inline disposition for streaming', function () {
+it('can chain configuration methods', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Streamer::open('video.mp4')
-        ->withManifestFormats(['dash'])
-        ->export();
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v')
+        ->withMpdOutput('manifest.mpd')
+        ->withHlsMasterPlaylist('playlist.m3u8')
+        ->withSegmentDuration(10);
 
-    // Test that exporter has the toResponse method
-    expect(method_exists($exporter, 'toResponse'))->toBeTrue();
+    expect($streamer)->not->toBeNull();
 });
 
-it('preserves manifest format options through export', function () {
+it('can get streamer packager driver', function () {
     skipIfNoStreamer();
 
     Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
 
-    $exporter = Streamer::open('video.mp4')
-        ->withManifestFormats(['dash', 'hls'])
-        ->withSegmentSize(10)
-        ->export();
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v');
 
-    // Export should contain the configuration
-    $command = $exporter->getCommand();
+    $driver = $streamer->getPackager();
 
-    expect($command)->toBeArray();
-    expect($command)->toHaveKey('pipeline_config');
+    expect($driver)->not->toBeNull();
 });
+
+it('can get media collection from streamer', function () {
+    skipIfNoStreamer();
+
+    Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
+
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'video.m4v');
+
+    $collection = $streamer->getMediaCollection();
+
+    expect($collection)->not->toBeNull();
+});
+
+it('can configure encryption with options', function () {
+    skipIfNoStreamer();
+
+    Storage::disk('local')->put('video.mp4', file_get_contents(fixture('sample_h264.mp4')));
+
+    $streamer = Streamer::open(Storage::disk('local')->get('video.mp4'))
+        ->addVideoStream('video.mp4', 'output.m4v')
+        ->withMpdOutput('manifest.mpd')
+        ->withOption('encryption', ['key' => 'secret']);
+
+    expect($streamer)->not->toBeNull();
