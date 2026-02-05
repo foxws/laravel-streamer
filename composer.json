@@ -74,7 +74,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Foxws\\Streamer\\ShakaServiceProvider"
+                "Foxws\\Streamer\\StreamerServiceProvider"
             ],
             "aliases": {
                 "Shaka": "Foxws\\Streamer\\Facades\\Shaka"
