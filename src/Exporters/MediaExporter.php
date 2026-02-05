@@ -7,8 +7,8 @@ namespace Foxws\Streamer\Exporters;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\MediaOpener;
-use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\PackagerResult;
+use Foxws\Streamer\Support\Streamer;
 use Illuminate\Support\Traits\ForwardsCalls;
 
 class MediaExporter
