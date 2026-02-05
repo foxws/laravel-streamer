@@ -67,7 +67,8 @@ it('can get command for debugging', function () {
         ->export()
         ->getCommand();
 
-    expect($command)->toBeString();
+    expect($command)->toBeArray()
+        ->and($command)->not->toBeEmpty();
 });
 
 it('can add after saving callbacks', function () {
