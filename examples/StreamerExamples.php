@@ -7,8 +7,8 @@ namespace Foxws\Streamer\Examples;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Support\CommandBuilder;
-use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\Stream;
+use Foxws\Streamer\Support\Streamer;
 
 /**
  * Examples of how to use the Streamer with different approaches
