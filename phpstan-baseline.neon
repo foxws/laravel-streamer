@@ -1,0 +1,9 @@
+# PHPStan baseline file
+# Run `vendor/bin/phpstan analyse --generate-baseline` to regenerate
+parameters:
+    ignoreErrors:
+        # env() calls are allowed in config files
+        -
+            message: "#Called 'env' outside of the config directory#"
+            paths:
+                - config/laravel-shaka.php

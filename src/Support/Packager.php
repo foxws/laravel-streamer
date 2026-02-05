@@ -1,0 +1,439 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Foxws\Streamer\Support;
+
+use Foxws\Streamer\Filesystem\MediaCollection;
+use Foxws\Streamer\Filesystem\TemporaryDirectories;
+use Illuminate\Support\Traits\ForwardsCalls;
+use Psr\Log\LoggerInterface;
+
+class Packager
+{
+    use ForwardsCalls;
+
+    protected ShakaPackager $packager;
+
+    protected ?MediaCollection $mediaCollection = null;
+
+    protected ?LoggerInterface $logger;
+
+    protected ?CommandBuilder $builder = null;
+
+    protected ?string $temporaryDirectory = null;
+
+    protected ?string $cacheDirectory = null;
+
+    public function __construct(
+        ShakaPackager $packager,
+        ?LoggerInterface $logger = null
+    ) {
+        $this->packager = $packager;
+        $this->logger = $logger;
+    }
+
+    public static function create(
+        ?LoggerInterface $logger = null,
+        ?array $configuration = null
+    ): self {
+        $packager = ShakaPackager::create($logger, $configuration);
+
+        return new self($packager, $logger);
+    }
+
+    public function fresh(): self
+    {
+        return new self($this->packager, $this->logger);
+    }
+
+    public function getPackager(): ShakaPackager
+    {
+        return $this->packager;
+    }
+
+    public function setPackager(ShakaPackager $packager): self
+    {
+        $this->packager = $packager;
+
+        return $this;
+    }
+
+    public function getMediaCollection(): MediaCollection
+    {
+        return $this->mediaCollection;
+    }
+
+    public function open(MediaCollection $mediaCollection): self
+    {
+        $this->mediaCollection = $mediaCollection;
+
+        // Validate the media collection
+        if ($mediaCollection->count() === 0) {
+            throw new \InvalidArgumentException('MediaCollection cannot be empty');
+        }
+
+        // Initialize a fresh CommandBuilder for this media collection
+        $this->builder = CommandBuilder::make();
+
+        if ($this->logger) {
+            $this->logger->debug('Opened media collection', [
+                'count' => $mediaCollection->count(),
+                'paths' => $mediaCollection->getLocalPaths(),
+            ]);
+        }
+
+        return $this;
+    }
+
+    public function getBuilder(): ?CommandBuilder
+    {
+        return $this->builder;
+    }
+
+    public function builder(): CommandBuilder
+    {
+        if (! $this->builder) {
+            $this->builder = CommandBuilder::make();
+        }
+
+        return $this->builder;
+    }
+
+    /**
+     * Create streams from the media collection
+     *
+     * @return \Illuminate\Support\Collection<int, Stream>
+     */
+    public function streams(): \Illuminate\Support\Collection
+    {
+        $streams = new \Illuminate\Support\Collection;
+
+        foreach ($this->mediaCollection->collection() as $media) {
+            // You can create multiple streams per media (video, audio, etc.)
+            $streams->push(Stream::video($media));
+            $streams->push(Stream::audio($media));
+            $streams->push(Stream::text($media));
+        }
+
+        return $streams;
+    }
+
+    /**
+     * Add a video stream to the builder
+     */
+    public function addVideoStream(string $input, string $output, array $options = []): self
+    {
+        // Resolve input to full local path for Shaka Packager
+        $inputPath = $this->resolveInputPath($input);
+
+        // Resolve output to full local path for Shaka Packager
+        $outputPath = $this->resolveOutputPath($output);
+
+        $this->builder()->addVideoStream($inputPath, $outputPath, $options);
+
+        return $this;
+    }
+
+    /**
+     * Add an audio stream to the builder
+     */
+    public function addAudioStream(string $input, string $output, array $options = []): self
+    {
+        // Resolve input to full local path for Shaka Packager
+        $inputPath = $this->resolveInputPath($input);
+
+        // Resolve output to full local path for Shaka Packager
+        $outputPath = $this->resolveOutputPath($output);
+
+        $this->builder()->addAudioStream($inputPath, $outputPath, $options);
+
+        return $this;
+    }
+
+    /**
+     * Add an text stream to the builder
+     */
+    public function addTextStream(string $input, string $output, array $options = []): self
+    {
+        // Resolve input to full local path for Shaka Packager
+        $inputPath = $this->resolveInputPath($input);
+
+        // Resolve output to full local path for Shaka Packager
+        $outputPath = $this->resolveOutputPath($output);
+
+        $this->builder()->addTextStream($inputPath, $outputPath, $options);
+
+        return $this;
+    }
+
+    /**
+     * Add a stream to the builder
+     */
+    public function addStream(array $stream): self
+    {
+        $this->builder()->addStream($stream);
+
+        return $this;
+    }
+
+    /**
+     * Resolve input path to full local path from MediaCollection
+     */
+    protected function resolveInputPath(string $input): string
+    {
+        // Try to find media in collection
+        if ($this->mediaCollection) {
+            $media = $this->mediaCollection->findByPath($input);
+
+            if ($media) {
+                return $media->getSafeInputPath();
+            }
+        }
+
+        // If not found, assume it's already a full path
+        return $input;
+    }
+
+    /**
+     * Resolve output path to temporary directory for Shaka Packager processing
+     */
+    protected function resolveOutputPath(string $output): string
+    {
+        // Get or create temporary directory
+        $tempDir = $this->getTemporaryDirectory();
+
+        // Combine with output filename (without source directory)
+        return $tempDir.DIRECTORY_SEPARATOR.$output;
+    }
+
+    /**
+     * Get or create temporary directory for this export
+     */
+    protected function getTemporaryDirectory(): string
+    {
+        if ($this->temporaryDirectory) {
+            return $this->temporaryDirectory;
+        }
+
+        // Use the registered TemporaryDirectories service
+        $this->temporaryDirectory = app(TemporaryDirectories::class)->create();
+
+        return $this->temporaryDirectory;
+    }
+
+    /**
+     * Set MPD output
+     */
+    public function withMpdOutput(string $path): self
+    {
+        $fullPath = $this->resolveOutputPath($path);
+
+        $this->builder()->withMpdOutput($fullPath);
+
+        return $this;
+    }
+
+    /**
+     * Set HLS master playlist output
+     */
+    public function withHlsMasterPlaylist(string $path): self
+    {
+        $fullPath = $this->resolveOutputPath($path);
+
+        $this->builder()->withHlsMasterPlaylist($fullPath);
+
+        return $this;
+    }
+
+    /**
+     * Set segment duration
+     */
+    public function withSegmentDuration(int $seconds): self
+    {
+        $this->builder()->withSegmentDuration($seconds);
+
+        return $this;
+    }
+
+    /**
+     * Enable encryption
+     */
+    public function withEncryption(array $encryptionConfig): self
+    {
+        $this->builder()->withEncryption($encryptionConfig);
+
+        return $this;
+    }
+
+    /**
+     * Enable AES-128 encryption with auto-generated keys.
+     *
+     * Generates encryption key, writes to cache storage, and configures Shaka Packager.
+     * When used with withKeyRotationDuration(), the filename becomes a base name
+     * (e.g., 'key' becomes 'key_0', 'key_1', 'key_2', etc. in cache storage).
+     *
+     * Protection schemes:
+     * - 'cenc' (AES-CTR): Recommended for Widevine/PlayReady, supports key rotation
+     * - 'cbcs' (AES-CBC): For FairPlay/Safari
+     * - 'cbc1': Legacy HLS, limited browser support
+     * - null: SAMPLE-AES, widest compatibility but NO key rotation support
+     *
+     * @param  string  $keyFilename  Base name for key file (default: 'key')
+     * @param  string|null  $protectionScheme  Protection scheme ('cenc', 'cbcs', 'cbc1', or null)
+     * @param  string|null  $label  Optional label for multi-key scenarios
+     * @return array{key: string, key_id: string, file_path: string} Encryption key data
+     */
+    public function withAESEncryption(string $keyFilename = 'key', ?string $protectionScheme = null, ?string $label = null): array
+    {
+        // Generate key and write to cache storage (fast)
+        $keyData = EncryptionKeyGenerator::generateAndWrite($keyFilename);
+
+        // Store cache directory for later use in PackagerResult
+        $this->cacheDirectory = dirname($keyData['file_path']);
+
+        // Format keys for Shaka Packager
+        $formattedKeys = EncryptionKeyGenerator::formatForShaka($keyData['key_id'], $keyData['key'], $label);
+
+        // Set individual encryption options directly on the builder
+        $this->builder()->withOption('enable_raw_key_encryption', true);
+        $this->builder()->withOption('keys', $formattedKeys);
+        $this->builder()->withOption('hls_key_uri', $keyFilename);
+        $this->builder()->withOption('clear_lead', 0);
+
+        if (filled($protectionScheme)) {
+            $this->builder()->withOption('protection_scheme', $protectionScheme);
+        }
+
+        return $keyData;
+    }
+
+    /**
+     * Enable key rotation for encryption.
+     *
+     * Rotates encryption keys at specified intervals. Call after withAESEncryption().
+     * Common values: 300 (5 min), 600 (10 min), 1800 (30 min), 3600 (1 hour).
+     *
+     * IMPORTANT: Key rotation requires protection scheme 'cenc' or 'cbcs'.
+     * SAMPLE-AES (null) does not support key rotation.
+     *
+     * @param  int  $seconds  Duration in seconds before rotating to a new key
+     */
+    public function withKeyRotationDuration(int $seconds): self
+    {
+        $this->builder()->withOption('crypto_period_duration', $seconds);
+
+        return $this;
+    }
+
+    /**
+     * Add a custom option to the builder
+     */
+    public function withOption(string $key, mixed $value): self
+    {
+        $this->builder()->withOption($key, $value);
+
+        return $this;
+    }
+
+    /**
+     * Add multiple custom options to the builder
+     */
+    public function withOptions(array $options): self
+    {
+        foreach ($options as $key => $value) {
+            $this->builder()->withOption($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns the final command that would be executed, useful for debugging purposes.
+     */
+    public function getCommand(): string
+    {
+        if (! $this->builder) {
+            throw new \RuntimeException('No streams configured. Use addVideoStream() or addAudioStream() first.');
+        }
+
+        return $this->builder->build();
+    }
+
+    /**
+     * Filter sensitive data from options before logging
+     */
+    protected function filterSensitiveOptions(array $options): array
+    {
+        // List of sensitive keys that should be redacted
+        static $sensitiveKeys = [
+            'keys' => true,
+            'key' => true,
+            'key_id' => true,
+            'pssh' => true,
+            'protection_systems' => true,
+            'raw_key' => true,
+            'iv' => true,
+        ];
+
+        $filtered = $options;
+
+        foreach ($sensitiveKeys as $key => $_) {
+            if (isset($filtered[$key])) {
+                $filtered[$key] = '[REDACTED]';
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Export packaging with the configured builder
+     */
+    public function export(): PackagerResult
+    {
+        if (! $this->builder) {
+            throw new \RuntimeException('No streams configured. Use addVideoStream() or addAudioStream() first.');
+        }
+
+        $command = $this->builder->buildArray();
+
+        if ($this->logger) {
+            $this->logger->info('Starting packaging operation', [
+                'streams' => $this->builder->getStreams()->count(),
+                'options' => $this->filterSensitiveOptions($this->builder->getOptions()),
+            ]);
+        }
+
+        $result = $this->packager->command($command);
+
+        if ($this->logger) {
+            $this->logger->info('Packaging operation completed');
+        }
+
+        // Get the first media's disk as the source disk
+        $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
+
+        return new PackagerResult($result, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
+    }
+
+    public function packageWithBuilder(CommandBuilder $builder): PackagerResult
+    {
+        $command = $builder->buildArray();
+
+        if ($this->logger) {
+            $this->logger->info('Starting packaging operation with builder', [
+                'streams' => $builder->getStreams()->count(),
+                'options' => $this->filterSensitiveOptions($builder->getOptions()),
+            ]);
+        }
+
+        $result = $this->packager->command($command);
+
+        if ($this->logger) {
+            $this->logger->info('Packaging operation completed');
+        }
+
+        return new PackagerResult($result);
+    }
+}

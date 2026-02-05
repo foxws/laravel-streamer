@@ -1,30 +1,41 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "foxws/laravel-shaka",
+    "description": "A Laravel package to interact with Shaka Packager for media packaging.",
     "keywords": [
-        ":vendor_name",
         "laravel",
-        ":package_slug"
+        "shaka",
+        "packager",
+        "media",
+        "video",
+        "audio",
+        "streaming",
+        "dash",
+        "hls"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/foxws/laravel-shaka",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "francoism90",
+            "email": "francoism90@users.noreply.github.com",
             "role": "Developer"
         }
     ],
     "require": {
-        "php": "^8.4",
-        "spatie/laravel-package-tools": "^1.16",
-        "illuminate/contracts": "^11.0||^12.0"
+        "php": "^8.3",
+        "illuminate/contracts": "^11.0 || ^12.0",
+        "illuminate/filesystem": "^11.0 || ^12.0",
+        "illuminate/process": "^11.0 || ^12.0",
+        "illuminate/support": "^11.0 || ^12.0",
+        "psr/log": "^3.0",
+        "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
         "larastan/larastan": "^3.0",
-        "orchestra/testbench": "^10.0.0||^9.0.0",
+        "orchestra/testbench": "^9.0 || ^10.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
@@ -35,13 +46,12 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Foxws\\Streamer\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Foxws\\Streamer\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +73,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Foxws\\Streamer\\ShakaServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "Shaka": "Foxws\\Streamer\\Facades\\Shaka"
             }
         }
     },

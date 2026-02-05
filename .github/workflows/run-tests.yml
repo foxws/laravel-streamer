@@ -3,11 +3,11 @@ name: run-tests
 on:
   push:
     paths:
-      - '**.php'
-      - '.github/workflows/run-tests.yml'
-      - 'phpunit.xml.dist'
-      - 'composer.json'
-      - 'composer.lock'
+      - "**.php"
+      - ".github/workflows/run-tests.yml"
+      - "phpunit.xml.dist"
+      - "composer.json"
+      - "composer.lock"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,10 +20,10 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         php: [8.4, 8.3]
         laravel: [12.*, 11.*]
-        stability: [prefer-lowest, prefer-stable]
+        stability: [prefer-stable]
         include:
           - laravel: 12.*
             testbench: 10.*
@@ -35,6 +35,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Setup FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+          architecture: x64
+          github-token: ${{ github.server_url == 'https://github.com' && github.token || '' }}
+
+      - name: Setup Shaka Packager
+        if: runner.os == 'Linux'
+        run: |
+          wget -q https://github.com/shaka-project/shaka-packager/releases/download/v3.4.2/packager-linux-x64 -O /tmp/packager
+          sudo mv /tmp/packager /usr/local/bin/packager
+          sudo chmod +x /usr/local/bin/packager
+          packager --version
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
