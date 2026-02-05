@@ -15,7 +15,7 @@ function hasStreamer(): bool
 
     try {
         // Check if Python is available
-        $pythonCheck = shell_exec("python3 --version 2>&1");
+        $pythonCheck = shell_exec('python3 --version 2>&1');
 
         if (! $pythonCheck) {
             return false;
