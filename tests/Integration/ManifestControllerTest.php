@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Facades\Streamer;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
