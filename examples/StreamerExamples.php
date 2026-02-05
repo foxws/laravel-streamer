@@ -7,18 +7,18 @@ namespace Foxws\Streamer\Examples;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Support\CommandBuilder;
-use Foxws\Streamer\Support\Packager;
+use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\Stream;
 
 /**
- * Examples of how to use the Packager with different approaches
+ * Examples of how to use the Streamer with different approaches
  */
-class PackagerExamples
+class StreamerExamples
 {
     /**
      * Example 1: Simple packaging with array-based streams
      */
-    public function basicPackaging(Packager $packager): void
+    public function basicPackaging(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -47,7 +47,7 @@ class PackagerExamples
     /**
      * Example 2: Using Stream objects for type safety
      */
-    public function streamObjectPackaging(Packager $packager): void
+    public function streamObjectPackaging(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -79,7 +79,7 @@ class PackagerExamples
     /**
      * Example 3: Using CommandBuilder for complex operations
      */
-    public function commandBuilderPackaging(Packager $packager): void
+    public function commandBuilderPackaging(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -110,7 +110,7 @@ class PackagerExamples
     /**
      * Example 4: HLS packaging with encryption
      */
-    public function hlsWithEncryption(Packager $packager): void
+    public function hlsWithEncryption(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -137,7 +137,7 @@ class PackagerExamples
     /**
      * Example 5: Multiple input files (concatenation or multi-angle)
      */
-    public function multipleInputFiles(Packager $packager): void
+    public function multipleInputFiles(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input1.mp4'),
@@ -164,7 +164,7 @@ class PackagerExamples
     /**
      * Example 6: Adaptive bitrate streaming with multiple resolutions
      */
-    public function adaptiveBitrateStreaming(Packager $packager): void
+    public function adaptiveBitrateStreaming(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -208,7 +208,7 @@ class PackagerExamples
     /**
      * Example 7: Using the streams() helper method
      */
-    public function usingStreamsHelper(Packager $packager): void
+    public function usingStreamsHelper(Streamer $packager): void
     {
         $mediaCollection = MediaCollection::make([
             Media::make('videos', 'input.mp4'),
@@ -236,7 +236,7 @@ class PackagerExamples
     /**
      * Example 8: Error handling
      */
-    public function withErrorHandling(Packager $packager): void
+    public function withErrorHandling(Streamer $packager): void
     {
         try {
             $mediaCollection = MediaCollection::make([
