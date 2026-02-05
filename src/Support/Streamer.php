@@ -333,7 +333,9 @@ class Streamer
      */
     public function useSystemBinaries(bool $use = true): self
     {
-        $this->builder()->withOption('use_system_binaries', $use);
+        if ($use) {
+            $this->streamer->addArgument('--use-system-binaries');
+        }
 
         return $this;
     }

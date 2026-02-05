@@ -22,6 +22,8 @@ class ShakaStreamer
 
     protected string $streamerBinary = 'shaka-streamer';
 
+    protected array $additionalArguments = [];
+
     public function __construct(
         ?LoggerInterface $logger = null,
         int $timeout = 3600,
@@ -64,6 +66,25 @@ class ShakaStreamer
     public function getTimeout(): int
     {
         return $this->timeout;
+    }
+
+    public function setAdditionalArguments(array $arguments): self
+    {
+        $this->additionalArguments = $arguments;
+
+        return $this;
+    }
+
+    public function addArgument(string $argument): self
+    {
+        $this->additionalArguments[] = $argument;
+
+        return $this;
+    }
+
+    public function getAdditionalArguments(): array
+    {
+        return $this->additionalArguments;
     }
 
     /**
@@ -213,6 +234,7 @@ class ShakaStreamer
             $inputConfigFile,
             '-p',
             $pipelineConfigFile,
+            ...$this->additionalArguments,
         ];
 
         if ($this->logger) {
