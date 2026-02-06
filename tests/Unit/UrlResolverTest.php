@@ -228,29 +228,38 @@ it('caches resolved urls in dash manifest', function () {
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
   <Period>
     <AdaptationSet>
-      <SegmentTemplate initialization="init.m4s" media="init.m4s"/>
+      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
+      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
     </AdaptationSet>
   </Period>
 </MPD>
 XML
     );
 
-    $callCount = 0;
-    $resolver = function ($file) use (&$callCount) {
-        $callCount++;
+    $initCallCount = 0;
+    $mediaCallCount = 0;
 
-        return "https://cdn.example.com/{$file}";
+    $initResolver = function ($file) use (&$initCallCount) {
+        $initCallCount++;
+        return "https://cdn.example.com/init/{$file}";
+    };
+
+    $mediaResolver = function ($file) use (&$mediaCallCount) {
+        $mediaCallCount++;
+        return "https://cdn.example.com/media/{$file}";
     };
 
     $manifest = new DynamicDASHManifest('local');
     $manifest->open('manifest.mpd')
-        ->setMediaUrlResolver($resolver)
-        ->setInitUrlResolver($resolver);
+        ->setMediaUrlResolver($mediaResolver)
+        ->setInitUrlResolver($initResolver);
 
     $manifest->get();
 
     // init.m4s appears twice but should only be resolved once due to caching
-    expect($callCount)->toBe(1);
+    expect($initCallCount)->toBe(1)
+        ->and($mediaCallCount)->toBe(1);
+});
 });
 
 it('can parse hls playlist lines', function () {
