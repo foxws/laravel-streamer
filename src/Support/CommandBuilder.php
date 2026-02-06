@@ -183,8 +183,12 @@ class CommandBuilder
      *
      * @param  array<int, string>  $resolutions  e.g. ['1080p', '720p', '480p']
      */
-    public function withResolutions(array $resolutions): self
+    public function withResolutions(array $resolutions = []): self
     {
+        if (empty($resolutions)) {
+            return $this;
+        }
+
         $this->pipelineOptions->put('resolutions', $resolutions);
 
         return $this;
