@@ -19,7 +19,7 @@ return [
     /**
      * Timeout for the streaming process in seconds.
      */
-    'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4), // 4 hours
+    'timeout' => env('STREAMER_TIMEOUT', 3600), // 1 hour
 
     /**
      * Log channel for streamer output. Set to false to disable logging.
