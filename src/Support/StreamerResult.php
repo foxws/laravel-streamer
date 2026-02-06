@@ -6,7 +6,6 @@ namespace Foxws\Streamer\Support;
 
 use Foxws\Streamer\Filesystem\Disk;
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Log;
 
 class StreamerResult
 {
