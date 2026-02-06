@@ -292,17 +292,27 @@ class Streamer
         // Store cache directory for later use in StreamerResult
         $this->cacheDirectory = dirname($keyData['file_path']);
 
-        // Format keys for Shaka Streamer
-        $formattedKeys = EncryptionKeyGenerator::formatForShaka($keyData['key_id'], $keyData['key'], $label);
-
-        // Encryption in Shaka Streamer must be configured per-stream, not at pipeline level
-        // These fields are not valid at the pipeline level and will cause "unrecognized field" errors
-        // For now, we'll skip setting them here since they don't work at the pipeline level
-        // TODO: Implement proper stream-level encryption configuration in CommandBuilder
+        // Build Shaka Streamer EncryptionConfig object
+        // Ref: https://shaka-project.github.io/shaka-streamer/configuration_fields.html#pipeline-configs
+        $encryptionConfig = [
+            'enable' => true,
+            'encryption_mode' => 'raw',
+            'keys' => [
+                [
+                    'label' => $label ?? '',
+                    'key_id' => $keyData['key_id'],
+                    'key' => $keyData['key'],
+                ],
+            ],
+            'clear_lead' => 0,
+            'hls_key_uri' => $keyFilename,
+        ];
 
         if (filled($protectionScheme)) {
-            // This also doesn't work at pipeline level
+            $encryptionConfig['protection_scheme'] = $protectionScheme;
         }
+
+        $this->builder()->withEncryption($encryptionConfig);
 
         return $keyData;
     }
@@ -310,8 +320,8 @@ class Streamer
     /**
      * Enable key rotation for encryption.
      *
-     * Rotates encryption keys at specified intervals. Call after withAESEncryption().
-     * Common values: 300 (5 min), 600 (10 min), 1800 (30 min), 3600 (1 hour).
+     * Sets the crypto_period_duration inside the encryption config.
+     * Call after withAESEncryption().
      *
      * IMPORTANT: Key rotation requires protection scheme 'cenc' or 'cbcs'.
      * SAMPLE-AES (null) does not support key rotation.
@@ -320,7 +330,11 @@ class Streamer
      */
     public function withKeyRotationDuration(int $seconds): self
     {
-        $this->builder()->withOption('crypto_period_duration', $seconds);
+        // Merge crypto_period_duration into the existing encryption config
+        $existingEncryption = $this->builder()->getOptions()->get('encryption', []);
+        $existingEncryption['crypto_period_duration'] = $seconds;
+
+        $this->builder()->withEncryption($existingEncryption);
 
         return $this;
     }

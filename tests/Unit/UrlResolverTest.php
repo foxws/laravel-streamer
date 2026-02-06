@@ -124,7 +124,13 @@ it('processes dash mpd with BaseURL elements', function () {
   <Period>
     <AdaptationSet>
       <BaseURL>video/segment.m4s</BaseURL>
-      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
+      <Representation id="0">
+        <SegmentTemplate timescale="1" initialization="init.m4s" media="chunk-$Number$.m4s" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="10"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
     </AdaptationSet>
   </Period>
 </MPD>
@@ -138,19 +144,25 @@ XML
 
     $result = $manifest->get();
 
+    // BaseURL is resolved via media resolver
     expect($result)->toContain('https://cdn.example.com/media/video/segment.m4s')
-        ->and($result)->toContain('initialization="https://cdn.example.com/init/init.m4s"')
-        ->and($result)->toContain('media="https://cdn.example.com/media/chunk-$Number$.m4s"');
+        // SegmentTemplate with $Number$ is expanded to SegmentList
+        ->and($result)->not->toContain('SegmentTemplate')
+        ->and($result)->toContain('SegmentList')
+        // Init segment is resolved via init resolver
+        ->and($result)->toContain('sourceURL="https://cdn.example.com/init/init.m4s"')
+        // Segment URL is expanded and resolved ($Number$ replaced with 1)
+        ->and($result)->toContain('media="https://cdn.example.com/media/chunk-1.m4s"');
 });
 
-it('processes dash mpd with SegmentTemplate attributes', function () {
+it('processes dash mpd with SegmentTemplate concrete URLs', function () {
     Storage::fake('local');
     Storage::disk('local')->put('manifest.mpd', <<<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
   <Period>
     <AdaptationSet>
-      <SegmentTemplate initialization="init-$RepresentationID$.m4s" media="chunk-$RepresentationID$-$Number$.m4s"/>
+      <SegmentTemplate initialization="init.m4s" media="chunk.m4s"/>
     </AdaptationSet>
   </Period>
 </MPD>
@@ -164,8 +176,9 @@ XML
 
     $result = $manifest->get();
 
-    expect($result)->toContain('initialization="https://cdn.example.com/init-$RepresentationID$.m4s"')
-        ->and($result)->toContain('media="https://cdn.example.com/chunk-$RepresentationID$-$Number$.m4s"');
+    // Concrete URLs without template variables are signed directly
+    expect($result)->toContain('initialization="https://cdn.example.com/init.m4s"')
+        ->and($result)->toContain('media="https://cdn.example.com/chunk.m4s"');
 });
 
 it('processes dash mpd with sourceURL attributes', function () {
@@ -218,7 +231,10 @@ XML;
 
     $result = $manifest->get();
 
-    expect($result)->toBe($originalMpd);
+    // Without resolvers, the URLs should remain unchanged
+    expect($result)->toContain('<BaseURL>segment.m4s</BaseURL>')
+        ->and($result)->toContain('initialization="init.m4s"')
+        ->and($result)->toContain('media="chunk.m4s"');
 });
 
 it('caches resolved urls in dash manifest', function () {
@@ -228,8 +244,20 @@ it('caches resolved urls in dash manifest', function () {
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
   <Period>
     <AdaptationSet>
-      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
-      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
+      <Representation id="0">
+        <SegmentTemplate timescale="1" initialization="init.m4s" media="chunk-$Number$.m4s" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="10"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
+      <Representation id="1">
+        <SegmentTemplate timescale="1" initialization="init.m4s" media="chunk-$Number$.m4s" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="10"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
     </AdaptationSet>
   </Period>
 </MPD>
@@ -259,6 +287,7 @@ XML
     $manifest->get();
 
     // init.m4s appears twice but should only be resolved once due to caching
+    // chunk-1.m4s appears twice but should only be resolved once due to caching
     expect($initCallCount)->toBe(1)
         ->and($mediaCallCount)->toBe(1);
 });
@@ -270,4 +299,91 @@ it('can parse hls playlist lines', function () {
 
     expect($parsed)->toBeInstanceOf(\Illuminate\Support\Collection::class);
     expect($parsed->count())->toBe(3);
+});
+
+it('expands shaka packager SegmentTemplate with $Number$ into SegmentList', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Generated with https://github.com/shaka-project/shaka-packager version v3.4.2-c819dea-release-->
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd" profiles="urn:mpeg:dash:profile:isoff-live:2011" minBufferTime="PT2S" type="static" mediaPresentationDuration="PT10.066667S">
+  <Period id="0">
+    <AdaptationSet id="0" contentType="video" maxWidth="1920" maxHeight="1080" maxFrameRate="15360/256" segmentAlignment="true" par="16:9">
+      <Representation id="0" bandwidth="102489" codecs="avc1.4d400c" mimeType="video/mp4" sar="1:1" width="256" height="144" frameRate="15360/512">
+        <SegmentTemplate timescale="15360" initialization="video_144p_108k_h264_init.mp4" media="video_144p_108k_h264_$Number$.mp4" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="154624"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
+      <Representation id="1" bandwidth="226456" codecs="avc1.4d4015" mimeType="video/mp4" sar="1:1" width="426" height="240" frameRate="15360/512">
+        <SegmentTemplate timescale="15360" initialization="video_240p_242k_h264_init.mp4" media="video_240p_242k_h264_$Number$.mp4" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="154624"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver(fn ($file) => "https://s3.example.com/signed/{$file}?token=abc")
+        ->setInitUrlResolver(fn ($file) => "https://s3.example.com/signed/{$file}?token=def");
+
+    $result = $manifest->get();
+
+    // SegmentTemplate should be replaced with SegmentList
+    expect($result)->not->toContain('SegmentTemplate')
+        ->and($result)->toContain('SegmentList')
+        // Init segments should be signed
+        ->and($result)->toContain('sourceURL="https://s3.example.com/signed/video_144p_108k_h264_init.mp4?token=def"')
+        ->and($result)->toContain('sourceURL="https://s3.example.com/signed/video_240p_242k_h264_init.mp4?token=def"')
+        // Media segments should have $Number$ expanded to 1 and signed
+        ->and($result)->toContain('media="https://s3.example.com/signed/video_144p_108k_h264_1.mp4?token=abc"')
+        ->and($result)->toContain('media="https://s3.example.com/signed/video_240p_242k_h264_1.mp4?token=abc"')
+        // Template variables should not appear in output
+        ->and($result)->not->toContain('$Number$');
+});
+
+it('expands SegmentTemplate with multiple segments from SegmentTimeline', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <Representation id="0">
+        <SegmentTemplate timescale="15360" initialization="init.mp4" media="seg_$Number$.mp4" startNumber="1">
+          <SegmentTimeline>
+            <S t="0" d="30720"/>
+            <S d="30720" r="2"/>
+            <S d="15360"/>
+          </SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver(fn ($file) => "https://cdn.example.com/{$file}")
+        ->setInitUrlResolver(fn ($file) => "https://cdn.example.com/{$file}");
+
+    $result = $manifest->get();
+
+    // 1 + (1 + r=2) + 1 = 5 segments total
+    expect($result)->toContain('media="https://cdn.example.com/seg_1.mp4"')
+        ->and($result)->toContain('media="https://cdn.example.com/seg_2.mp4"')
+        ->and($result)->toContain('media="https://cdn.example.com/seg_3.mp4"')
+        ->and($result)->toContain('media="https://cdn.example.com/seg_4.mp4"')
+        ->and($result)->toContain('media="https://cdn.example.com/seg_5.mp4"')
+        ->and($result)->not->toContain('$Number$')
+        ->and($result)->not->toContain('SegmentTemplate');
 });
