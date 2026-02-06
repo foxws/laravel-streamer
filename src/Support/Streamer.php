@@ -363,6 +363,30 @@ class Streamer
     }
 
     /**
+     * Set the manifest formats to create
+     *
+     * @param  array<int, string>  $formats  e.g. ['dash', 'hls']
+     */
+    public function withManifestFormat(array $formats): self
+    {
+        $this->builder()->withManifestFormat($formats);
+
+        return $this;
+    }
+
+    /**
+     * Set the resolutions to encode
+     *
+     * @param  array<int, string>  $resolutions  e.g. ['1080p', '720p', '480p']
+     */
+    public function withResolutions(array $resolutions): self
+    {
+        $this->builder()->withResolutions($resolutions);
+
+        return $this;
+    }
+
+    /**
      * Enable or disable segment per file output
      */
     public function withSegmentPerFile(bool $enabled = true): self
@@ -392,6 +416,16 @@ class Streamer
     public function withVideoCodecs(array $codecs): self
     {
         $this->builder()->withVideoCodecs($codecs);
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable low latency DASH mode
+     */
+    public function withLowLatencyDashMode(bool $enabled = true): self
+    {
+        $this->builder()->withLowLatencyDashMode($enabled);
 
         return $this;
     }

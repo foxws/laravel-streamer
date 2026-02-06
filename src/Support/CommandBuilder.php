@@ -26,6 +26,9 @@ class CommandBuilder
 
     protected string $streamingMode = 'vod';
 
+    /** @var array<int, string>|null */
+    protected ?array $manifestFormats = null;
+
     public function __construct()
     {
         $this->streams = new Collection;
@@ -144,6 +147,30 @@ class CommandBuilder
     }
 
     /**
+     * Set the manifest formats to create
+     *
+     * @param  array<int, string>  $formats  e.g. ['dash', 'hls']
+     */
+    public function withManifestFormat(array $formats): self
+    {
+        $this->manifestFormats = $formats;
+
+        return $this;
+    }
+
+    /**
+     * Set the resolutions to encode
+     *
+     * @param  array<int, string>  $resolutions  e.g. ['1080p', '720p', '480p']
+     */
+    public function withResolutions(array $resolutions): self
+    {
+        $this->pipelineOptions->put('resolutions', $resolutions);
+
+        return $this;
+    }
+
+    /**
      * Enable or disable segment per file output
      */
     public function withSegmentPerFile(bool $enabled = true): self
@@ -173,6 +200,16 @@ class CommandBuilder
     public function withVideoCodecs(array $codecs): self
     {
         $this->pipelineOptions->put('video_codecs', $codecs);
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable low latency DASH mode
+     */
+    public function withLowLatencyDashMode(bool $enabled = true): self
+    {
+        $this->pipelineOptions->put('low_latency_dash_mode', $enabled);
 
         return $this;
     }
@@ -306,6 +343,10 @@ class CommandBuilder
      */
     protected function buildManifestFormats(): array
     {
+        if ($this->manifestFormats !== null) {
+            return $this->manifestFormats;
+        }
+
         $formats = [];
 
         if ($this->mpdOutput) {

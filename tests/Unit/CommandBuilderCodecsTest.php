@@ -82,3 +82,78 @@ it('can set streaming mode to live', function () {
 
     expect($config['pipeline_config']['streaming_mode'])->toBe('live');
 });
+
+it('can set resolutions on the builder', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withResolutions(['1080p', '720p', '480p']);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config'])->toHaveKey('resolutions')
+        ->and($config['pipeline_config']['resolutions'])->toBe(['1080p', '720p', '480p']);
+});
+
+it('can set a single resolution on the builder', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withResolutions(['4k']);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config']['resolutions'])->toBe(['4k']);
+});
+
+it('can set manifest format to dash only', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withManifestFormat(['dash']);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config']['manifest_format'])->toBe(['dash']);
+});
+
+it('can set manifest format to both dash and hls', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withManifestFormat(['dash', 'hls']);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config']['manifest_format'])->toBe(['dash', 'hls']);
+});
+
+it('overrides auto-detected manifest format when explicitly set', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withMpdOutput('/tmp/manifest.mpd')
+        ->withHlsMasterPlaylist('/tmp/master.m3u8')
+        ->withManifestFormat(['dash']);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config']['manifest_format'])->toBe(['dash']);
+});
+
+it('can enable low latency dash mode', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withLowLatencyDashMode();
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config'])->toHaveKey('low_latency_dash_mode')
+        ->and($config['pipeline_config']['low_latency_dash_mode'])->toBeTrue();
+});
+
+it('can disable low latency dash mode', function () {
+    $builder = CommandBuilder::make()
+        ->addVideoStream('/tmp/input.mp4', '/tmp/video.m4s')
+        ->withLowLatencyDashMode(false);
+
+    $config = $builder->build();
+
+    expect($config['pipeline_config'])->toHaveKey('low_latency_dash_mode')
+        ->and($config['pipeline_config']['low_latency_dash_mode'])->toBeFalse();
+});
