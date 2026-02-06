@@ -12,8 +12,7 @@ use Foxws\Streamer\Facades\Streamer;
 
 Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
-    ->addVideoStream('videos/input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
-    ->addVideoStream('videos/input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
+    ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->addAudioStream('videos/input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
     ->withSegmentDuration(6)
@@ -79,21 +78,6 @@ Streamer::open('input.mp4')
     ->save();
 ```
 
-### Adaptive Bitrate Streaming
-
-```php
-Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
-    ->addVideoStream('input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
-    ->addVideoStream('input.mp4', 'video_480p.mp4', ['bandwidth' => '1500000'])
-    ->addAudioStream('input.mp4', 'audio.mp4')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withMpdOutput('manifest.mpd')
-    ->withSegmentDuration(6)
-    ->export()
-    ->save();
-```
-
 ### Cross-Disk Workflows
 
 Read from one disk, write to another:
@@ -136,30 +120,6 @@ Streamer::open('input.mp4')
 ```
 
 See the [AES Encryption Guide](docs/AES_ENCRYPTION.md) for protection schemes, codec-specific examples, and key management.
-
-### Custom Streams
-
-Use `addStream()` for full control over the Shaka Packager stream descriptor:
-
-```php
-Streamer::open('input.mp4')
-    ->addStream([
-        'in' => 'input.mp4',
-        'stream' => 'video',
-        'output' => 'video_4k.mp4',
-        'bandwidth' => '10000000',
-        'resolution' => '3840x2160',
-    ])
-    ->addStream([
-        'in' => 'input.mp4',
-        'stream' => 'audio',
-        'output' => 'audio_en.mp4',
-        'language' => 'en',
-    ])
-    ->withMpdOutput('manifest.mpd')
-    ->export()
-    ->save();
-```
 
 ### Dynamic URL Resolvers
 
