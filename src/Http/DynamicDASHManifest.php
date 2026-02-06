@@ -9,7 +9,6 @@ use Foxws\Streamer\Filesystem\Media;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Response;
-use SimpleXMLElement;
 
 class DynamicDASHManifest implements Responsable
 {
@@ -132,156 +131,135 @@ class DynamicDASHManifest implements Responsable
         }
 
         $content = $this->disk->get($this->media->getPath());
+        $manifest = $this->processManifest($content);
 
-        return $this->processManifest($content);
+        // Ensure XML declaration is present for proper parsing by media players
+        if (!str_starts_with(trim($manifest), '<?xml')) {
+            $manifest = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $manifest;
+        }
+
+        return $manifest;
     }
 
     /**
      * Processes the DASH manifest MPD file.
-     *
-     * Handles both concrete URLs and SegmentTemplate patterns with DASH
-     * template variables ($Number$, $Time$, etc). When template variables
-     * are present, the SegmentTemplate is expanded into a SegmentList
-     * with individually signed URLs.
      */
     protected function processManifest(string $content): string
     {
-        $xml = new SimpleXMLElement($content);
-        $xml->registerXPathNamespace('mpd', 'urn:mpeg:dash:schema:mpd:2011');
+        // Convert SegmentTemplate with $Number$ to SegmentList
+        $content = $this->expandSegmentTemplates($content);
 
         // Replace BaseURL elements with resolved URLs
         if ($this->mediaUrlResolver) {
-            foreach ($xml->xpath('//mpd:BaseURL') as $baseUrl) {
-                $baseUrl[0] = $this->resolveMediaUrl((string) $baseUrl);
-            }
+            $content = preg_replace_callback(
+                '/<BaseURL>([^<]+)<\/BaseURL>/',
+                fn ($matches) => '<BaseURL>'.htmlspecialchars($this->resolveMediaUrl($matches[1]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'</BaseURL>',
+                $content
+            );
         }
 
-        // Replace sourceURL attributes on existing elements (before template expansion
-        // to avoid double-resolving URLs added by expandSegmentTemplate)
+        // Replace initialization attribute URLs (sourceURL for SegmentList)
         if ($this->initUrlResolver) {
-            foreach ($xml->xpath('//*[@sourceURL]') as $element) {
-                $attrs = $element->attributes();
-                $attrs['sourceURL'] = $this->resolveInitUrl((string) $attrs['sourceURL']);
-            }
+            $content = preg_replace_callback(
+                '/(initialization|sourceURL)="([^"]+)"/',
+                fn ($matches) => $matches[1].'="'.htmlspecialchars($this->resolveInitUrl($matches[2]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'"',
+                $content
+            );
         }
 
-        // Replace media attributes on existing SegmentURL elements (before template expansion
-        // to avoid double-resolving URLs added by expandSegmentTemplate)
+        // Replace media attribute URLs
         if ($this->mediaUrlResolver) {
-            foreach ($xml->xpath('//mpd:SegmentURL[@media]') as $segmentUrl) {
-                $attrs = $segmentUrl->attributes();
-                $attrs['media'] = $this->resolveMediaUrl((string) $attrs['media']);
-            }
+            $content = preg_replace_callback(
+                '/media="([^"]+)"/',
+                fn ($matches) => 'media="'.htmlspecialchars($this->resolveMediaUrl($matches[1]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'"',
+                $content
+            );
         }
 
-        // Process SegmentTemplate elements
-        foreach ($xml->xpath('//mpd:SegmentTemplate') as $template) {
-            $attrs = $template->attributes();
+        return $content;
+    }
 
-            $mediaPattern = isset($attrs['media']) ? (string) $attrs['media'] : null;
-            $initFile = isset($attrs['initialization']) ? (string) $attrs['initialization'] : null;
-            $hasTemplateVars = $mediaPattern && preg_match('/\$[A-Za-z]+\$/', $mediaPattern);
+    /**
+     * Expand SegmentTemplate with $Number$ placeholders to SegmentList.
+     */
+    protected function expandSegmentTemplates(string $content): string
+    {
+        return preg_replace_callback(
+            '/<SegmentTemplate\s+([^>]*)>(.*?)<\/SegmentTemplate>/s',
+            function ($matches) {
+                $attributes = $matches[1];
+                $innerContent = $matches[2];
 
-            if ($hasTemplateVars && $this->mediaUrlResolver) {
-                $this->expandSegmentTemplate($template);
-            } else {
-                // Concrete URLs — sign directly
-                if ($this->mediaUrlResolver && $mediaPattern) {
-                    $attrs['media'] = $this->resolveMediaUrl($mediaPattern);
+                // Extract template attributes
+                preg_match('/timescale="(\d+)"/', $attributes, $timescaleMatch);
+                preg_match('/initialization="([^"]+)"/', $attributes, $initMatch);
+                preg_match('/media="([^"]+)"/', $attributes, $mediaMatch);
+                preg_match('/startNumber="(\d+)"/', $attributes, $startMatch);
+
+                $timescale = $timescaleMatch[1] ?? '1';
+                $initUrl = $initMatch[1] ?? '';
+                $mediaTemplate = $mediaMatch[1] ?? '';
+                $startNumber = (int) ($startMatch[1] ?? 1);
+
+                // Check if media template contains $Number$
+                if (!str_contains($mediaTemplate, '$Number$')) {
+                    return $matches[0]; // Return unchanged
                 }
 
-                if ($this->initUrlResolver && $initFile) {
-                    $attrs['initialization'] = $this->resolveInitUrl($initFile);
+                // Parse SegmentTimeline to get segment durations
+                preg_match('/<SegmentTimeline>(.*?)<\/SegmentTimeline>/s', $innerContent, $timelineMatch);
+                if (!$timelineMatch) {
+                    return $matches[0]; // No timeline, return unchanged
                 }
-            }
-        }
 
-        return $xml->asXML();
-    }
+                // Parse segment timing from <S> elements
+                preg_match_all('/<S\s+([^>]*?)\/>?/', $timelineMatch[1], $sMatches);
 
-    /**
-     * Expands a SegmentTemplate with template variables into a SegmentList
-     * with individually signed segment URLs.
-     *
-     * Parses the SegmentTimeline to determine segment count, then generates
-     * concrete signed URLs for each segment number.
-     */
-    protected function expandSegmentTemplate(SimpleXMLElement $template): void
-    {
-        $attrs = $template->attributes();
-        $mediaPattern = (string) $attrs['media'];
-        $initFile = isset($attrs['initialization']) ? (string) $attrs['initialization'] : null;
-        $startNumber = isset($attrs['startNumber']) ? (int) (string) $attrs['startNumber'] : 1;
-        $timescale = isset($attrs['timescale']) ? (int) (string) $attrs['timescale'] : 1;
+                $segmentDurations = [];
+                foreach ($sMatches[1] as $sAttrs) {
+                    // Extract d (duration) and r (repeat count)
+                    preg_match('/d="(\d+)"/', $sAttrs, $dMatch);
+                    preg_match('/r="(-?\d+)"/', $sAttrs, $rMatch);
 
-        // Calculate segment count from SegmentTimeline
-        $segmentCount = $this->calculateSegmentCount($template);
+                    $duration = $dMatch[1] ?? null;
+                    $repeat = isset($rMatch[1]) ? (int) $rMatch[1] : 0;
 
-        // Get the parent Representation element
-        $representation = $template->xpath('..')[0];
+                    if ($duration !== null) {
+                        // Add duration once, then repeat if needed
+                        $repeatCount = $repeat >= 0 ? $repeat : 0;
+                        for ($i = 0; $i <= $repeatCount; $i++) {
+                            $segmentDurations[] = $duration;
+                        }
+                    }
+                }
 
-        // Build the SegmentList element
-        $segmentList = $representation->addChild('SegmentList');
-        $segmentList->addAttribute('timescale', (string) $timescale);
+                $segmentCount = count($segmentDurations);
 
-        // Add signed initialization
-        if ($initFile) {
-            $init = $segmentList->addChild('Initialization');
+                // Build SegmentList
+                $segmentList = '<SegmentList timescale="' . $timescale . '">';
 
-            if ($this->initUrlResolver) {
-                $init->addAttribute('sourceURL', $this->resolveInitUrl($initFile));
-            } else {
-                $init->addAttribute('sourceURL', $initFile);
-            }
-        }
+                // Add Initialization element
+                if ($initUrl) {
+                    $segmentList .= '<Initialization sourceURL="' . $initUrl . '"/>';
+                }
 
-        // Add signed segment URLs
-        for ($i = $startNumber; $i < $startNumber + $segmentCount; $i++) {
-            // Replace $Number$ first, then any remaining template variables
-            $filename = str_replace('$Number$', (string) $i, $mediaPattern);
-            $filename = preg_replace('/\$[A-Za-z]+\$/', (string) $i, $filename);
+                // Add SegmentTimeline (required for timing information)
+                $segmentList .= $timelineMatch[0];
 
-            $segmentUrl = $segmentList->addChild('SegmentURL');
-            $segmentUrl->addAttribute('media', $this->resolveMediaUrl($filename));
-        }
+                // Add SegmentURL elements with duration attributes
+                for ($i = 0; $i < $segmentCount; $i++) {
+                    $segmentNumber = $startNumber + $i;
+                    $segmentUrl = str_replace('$Number$', (string) $segmentNumber, $mediaTemplate);
+                    $duration = $segmentDurations[$i];
+                    $segmentList .= '<SegmentURL media="' . $segmentUrl . '" duration="' . $duration . '"/>';
+                }
 
-        // Remove the original SegmentTemplate
-        $this->removeXmlChild($template);
-    }
+                $segmentList .= '</SegmentList>';
 
-    /**
-     * Calculates the total number of segments from a SegmentTimeline.
-     *
-     * Parses <S> elements with t (start), d (duration), and r (repeat) attributes
-     * to determine the total segment count.
-     */
-    protected function calculateSegmentCount(SimpleXMLElement $template): int
-    {
-        $template->registerXPathNamespace('mpd', 'urn:mpeg:dash:schema:mpd:2011');
-        $segments = $template->xpath('mpd:SegmentTimeline/mpd:S');
-
-        if (empty($segments)) {
-            return 1;
-        }
-
-        $count = 0;
-
-        foreach ($segments as $s) {
-            $attrs = $s->attributes();
-            $repeat = isset($attrs['r']) ? (int) (string) $attrs['r'] : 0;
-            $count += 1 + $repeat;
-        }
-
-        return $count;
-    }
-
-    /**
-     * Removes a child element from its parent in SimpleXML.
-     */
-    protected function removeXmlChild(SimpleXMLElement $child): void
-    {
-        $dom = dom_import_simplexml($child);
-        $dom->parentNode->removeChild($dom);
+                return $segmentList;
+            },
+            $content
+        );
     }
 
     /**
@@ -289,8 +267,11 @@ class DynamicDASHManifest implements Responsable
      */
     public function toResponse($request)
     {
-        return Response::make($this->get(), 200, [
-            'Content-Type' => 'application/dash+xml',
-        ]);
+        $response = Response::make($this->get(), 200);
+
+        $response->header('Content-Type', 'application/dash+xml; charset=UTF-8');
+        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+        return $response;
     }
 }
