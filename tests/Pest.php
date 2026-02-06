@@ -11,7 +11,7 @@ uses(TestCase::class)->in(__DIR__);
  */
 function hasStreamer(): bool
 {
-    $streamerBinary = config('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
+    $streamerBinary = config('streamer.streamer.streamer_binary', 'shaka-streamer');
 
     try {
         // Check if Python is available

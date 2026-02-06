@@ -6,8 +6,7 @@ use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Support\Facades\Config;
 
 beforeEach(function () {
-    Config::set('laravel-streamer.streamer.python_binary', 'python3');
-    Config::set('laravel-streamer.streamer.timeout', 3600);
+    Config::set('streamer.streamer.timeout', 600);
 });
 
 it('can create streamer with valid configuration', function () {
@@ -19,7 +18,7 @@ it('can create streamer with valid configuration', function () {
 it('can get and set timeout', function () {
     $streamer = ShakaStreamer::create();
 
-    expect($streamer->getTimeout())->toBe(3600);
+    expect($streamer->getTimeout())->toBe(600);
 
     $streamer->setTimeout(7200);
 

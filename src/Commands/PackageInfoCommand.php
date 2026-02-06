@@ -37,7 +37,7 @@ class PackageInfoCommand extends Command
         note("Package Version: {$packageVersion}");
 
         // Verify streamer installation
-        $streamerBinary = Config::get('laravel-streamer.streamer.streamer_binary', 'shaka-streamer');
+        $streamerBinary = Config::get('streamer.streamer.streamer_binary', 'shaka-streamer');
         note("Streamer Binary: {$streamerBinary}");
 
         $driverInitialized = false;
@@ -54,11 +54,11 @@ class PackageInfoCommand extends Command
         }
 
         // Configuration details
-        $timeout = Config::get('laravel-streamer.timeout');
-        $logChannel = Config::get('laravel-streamer.log_channel');
+        $timeout = Config::get('streamer.timeout');
+        $logChannel = Config::get('streamer.log_channel');
         $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: Config::get('logging.default', 'Default'));
-        $tempDir = Config::get('laravel-streamer.temporary_files_root', storage_path('app/streamer/temp'));
-        $forceGeneric = Config::get('laravel-streamer.force_generic_input') ? 'Enabled' : 'Disabled';
+        $tempDir = Config::get('streamer.temporary_files_root', storage_path('app/streamer/temp'));
+        $forceGeneric = Config::get('streamer.force_generic_input') ? 'Enabled' : 'Disabled';
 
         table(
             ['Configuration', 'Value', 'Status'],

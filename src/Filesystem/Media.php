@@ -128,7 +128,7 @@ class Media
     public function getSafeInputPath(): string
     {
         // If force_generic_input is disabled, just return the regular local path
-        if (! Config::boolean('laravel-streamer.force_generic_input', false)) {
+        if (! Config::boolean('streamer.force_generic_input', false)) {
             return $this->getLocalPath();
         }
 

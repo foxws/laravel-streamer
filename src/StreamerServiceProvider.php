@@ -27,7 +27,7 @@ class StreamerServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton('laravel-streamer-logger', function () {
-            $logChannel = Config::get('laravel-streamer.log_channel');
+            $logChannel = Config::get('streamer.log_channel');
 
             if ($logChannel === false) {
                 return null;
@@ -38,11 +38,11 @@ class StreamerServiceProvider extends PackageServiceProvider
 
         $this->app->singleton('laravel-streamer-configuration', function () {
             $baseConfig = [
-                'streamer.streamer_binary' => Config::string('laravel-streamer.streamer.streamer_binary', 'shaka-streamer'),
-                'timeout' => Config::integer('laravel-streamer.timeout', 3600),
+                'streamer.streamer_binary' => Config::string('streamer.streamer.streamer_binary', 'shaka-streamer'),
+                'timeout' => Config::integer('streamer.timeout', 3600),
             ];
 
-            if ($configuredTemporaryRoot = Config::string('laravel-streamer.temporary_files_root', '')) {
+            if ($configuredTemporaryRoot = Config::string('streamer.temporary_files_root', '')) {
                 $baseConfig['temporary_directory'] = $configuredTemporaryRoot;
             }
 
@@ -51,8 +51,8 @@ class StreamerServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(TemporaryDirectories::class, function () {
             return new TemporaryDirectories(
-                Config::string('laravel-streamer.temporary_files_root', sys_get_temp_dir()),
-                Config::string('laravel-streamer.cache_files_root', '') ?: null,
+                Config::string('streamer.temporary_files_root', sys_get_temp_dir()),
+                Config::string('streamer.cache_files_root', '') ?: null,
             );
         });
 
