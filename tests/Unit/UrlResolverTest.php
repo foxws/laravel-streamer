@@ -238,6 +238,7 @@ XML
     $callCount = 0;
     $resolver = function ($file) use (&$callCount) {
         $callCount++;
+
         return "https://cdn.example.com/{$file}";
     };
 
