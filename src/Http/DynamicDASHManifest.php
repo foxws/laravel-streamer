@@ -134,8 +134,8 @@ class DynamicDASHManifest implements Responsable
         $manifest = $this->processManifest($content);
 
         // Ensure XML declaration is present for proper parsing by media players
-        if (!str_starts_with(trim($manifest), '<?xml')) {
-            $manifest = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $manifest;
+        if (! str_starts_with(trim($manifest), '<?xml')) {
+            $manifest = '<?xml version="1.0" encoding="UTF-8"?>'."\n".$manifest;
         }
 
         return $manifest;
@@ -202,13 +202,13 @@ class DynamicDASHManifest implements Responsable
                 $startNumber = (int) ($startMatch[1] ?? 1);
 
                 // Check if media template contains $Number$
-                if (!str_contains($mediaTemplate, '$Number$')) {
+                if (! str_contains($mediaTemplate, '$Number$')) {
                     return $matches[0]; // Return unchanged
                 }
 
                 // Parse SegmentTimeline to get segment durations
                 preg_match('/<SegmentTimeline>(.*?)<\/SegmentTimeline>/s', $innerContent, $timelineMatch);
-                if (!$timelineMatch) {
+                if (! $timelineMatch) {
                     return $matches[0]; // No timeline, return unchanged
                 }
 
@@ -236,11 +236,11 @@ class DynamicDASHManifest implements Responsable
                 $segmentCount = count($segmentDurations);
 
                 // Build SegmentList
-                $segmentList = '<SegmentList timescale="' . $timescale . '">';
+                $segmentList = '<SegmentList timescale="'.$timescale.'">';
 
                 // Add Initialization element
                 if ($initUrl) {
-                    $segmentList .= '<Initialization sourceURL="' . $initUrl . '"/>';
+                    $segmentList .= '<Initialization sourceURL="'.$initUrl.'"/>';
                 }
 
                 // Add SegmentTimeline (required for timing information)
@@ -251,7 +251,7 @@ class DynamicDASHManifest implements Responsable
                     $segmentNumber = $startNumber + $i;
                     $segmentUrl = str_replace('$Number$', (string) $segmentNumber, $mediaTemplate);
                     $duration = $segmentDurations[$i];
-                    $segmentList .= '<SegmentURL media="' . $segmentUrl . '" duration="' . $duration . '"/>';
+                    $segmentList .= '<SegmentURL media="'.$segmentUrl.'" duration="'.$duration.'"/>';
                 }
 
                 $segmentList .= '</SegmentList>';
