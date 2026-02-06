@@ -149,7 +149,6 @@ class DynamicDASHManifest implements Responsable
             );
         }
 
-
         // Replace media attribute URLs (SegmentTemplate)
         if ($this->mediaUrlResolver) {
             $content = preg_replace_callback(
