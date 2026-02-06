@@ -260,7 +260,6 @@ XML
     expect($initCallCount)->toBe(1)
         ->and($mediaCallCount)->toBe(1);
 });
-});
 
 it('can parse hls playlist lines', function () {
     $lines = "#EXTM3U\n#EXT-X-VERSION:3\nvideo.ts";
