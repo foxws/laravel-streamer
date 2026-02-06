@@ -241,11 +241,13 @@ XML
 
     $initResolver = function ($file) use (&$initCallCount) {
         $initCallCount++;
+
         return "https://cdn.example.com/init/{$file}";
     };
 
     $mediaResolver = function ($file) use (&$mediaCallCount) {
         $mediaCallCount++;
+
         return "https://cdn.example.com/media/{$file}";
     };
 
