@@ -297,6 +297,7 @@ class Streamer
         $encryptionConfig = [
             'enable' => true,
             'encryption_mode' => 'raw',
+            'clear_lead' => 0,
             'keys' => [
                 [
                     'label' => $label ?? '',
@@ -304,8 +305,6 @@ class Streamer
                     'key' => $keyData['key'],
                 ],
             ],
-            'clear_lead' => 0,
-            'hls_key_uri' => $keyFilename,
         ];
 
         if (filled($protectionScheme)) {
