@@ -20,7 +20,6 @@ class StreamerServiceProvider extends PackageServiceProvider
             ->name('laravel-streamer')
             ->hasConfigFile('streamer')
             ->hasCommands([
-                Commands\VerifyInstallationCommand::class,
                 Commands\PackageInfoCommand::class,
             ]);
     }
