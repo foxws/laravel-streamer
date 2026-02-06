@@ -144,6 +144,40 @@ class CommandBuilder
     }
 
     /**
+     * Enable or disable segment per file output
+     */
+    public function withSegmentPerFile(bool $enabled = true): self
+    {
+        $this->pipelineOptions->put('segment_per_file', $enabled);
+
+        return $this;
+    }
+
+    /**
+     * Set the audio codecs to use for packaging
+     *
+     * @param  array<int, string>  $codecs  e.g. ['aac', 'opus']
+     */
+    public function withAudioCodecs(array $codecs): self
+    {
+        $this->pipelineOptions->put('audio_codecs', $codecs);
+
+        return $this;
+    }
+
+    /**
+     * Set the video codecs to use for packaging
+     *
+     * @param  array<int, string>  $codecs  e.g. ['h264', 'hw:vp9']
+     */
+    public function withVideoCodecs(array $codecs): self
+    {
+        $this->pipelineOptions->put('video_codecs', $codecs);
+
+        return $this;
+    }
+
+    /**
      * Add a custom pipeline option
      */
     public function withOption(string $key, mixed $value): self

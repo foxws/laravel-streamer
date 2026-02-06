@@ -353,6 +353,50 @@ class Streamer
     }
 
     /**
+     * Set the streaming mode (vod or live)
+     */
+    public function withStreamingMode(string $mode): self
+    {
+        $this->builder()->withStreamingMode($mode);
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable segment per file output
+     */
+    public function withSegmentPerFile(bool $enabled = true): self
+    {
+        $this->builder()->withSegmentPerFile($enabled);
+
+        return $this;
+    }
+
+    /**
+     * Set the audio codecs to use for packaging
+     *
+     * @param  array<int, string>  $codecs  e.g. ['aac', 'opus']
+     */
+    public function withAudioCodecs(array $codecs): self
+    {
+        $this->builder()->withAudioCodecs($codecs);
+
+        return $this;
+    }
+
+    /**
+     * Set the video codecs to use for packaging
+     *
+     * @param  array<int, string>  $codecs  e.g. ['h264', 'hw:vp9']
+     */
+    public function withVideoCodecs(array $codecs): self
+    {
+        $this->builder()->withVideoCodecs($codecs);
+
+        return $this;
+    }
+
+    /**
      * Add a custom option to the builder
      */
     public function withOption(string $key, mixed $value): self
