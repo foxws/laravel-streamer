@@ -145,6 +145,14 @@ class Disk
     }
 
     /**
+     * Build a new filesystem instance with the given configuration.
+     */
+    public function buildFilesystem(array $config): Filesystem
+    {
+        return Storage::build($config);
+    }
+
+    /**
      * Forwards all calls to Laravel's FilesystemAdapter which will pass
      * dynamic methods call onto Flysystem.
      */
