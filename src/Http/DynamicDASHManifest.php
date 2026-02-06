@@ -149,7 +149,7 @@ class DynamicDASHManifest implements Responsable
             );
         }
 
-        // Replace initialization attribute URLs
+        // Replace initialization attribute URLs (SegmentTemplate)
         if ($this->initUrlResolver) {
             $content = preg_replace_callback(
                 '/initialization="([^"]+)"/',
@@ -158,7 +158,16 @@ class DynamicDASHManifest implements Responsable
             );
         }
 
-        // Replace media attribute URLs
+        // Replace sourceURL attribute URLs (SegmentBase/SegmentList Initialization)
+        if ($this->initUrlResolver) {
+            $content = preg_replace_callback(
+                '/sourceURL="([^"]+)"/',
+                fn ($matches) => 'sourceURL="'.$this->resolveInitUrl($matches[1]).'"',
+                $content
+            );
+        }
+
+        // Replace media attribute URLs (SegmentTemplate)
         if ($this->mediaUrlResolver) {
             $content = preg_replace_callback(
                 '/media="([^"]+)"/',

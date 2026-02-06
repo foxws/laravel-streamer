@@ -116,6 +116,142 @@ it('clears cache when setting new resolver on dash manifest', function () {
     expect($manifest->getMediaUrlResolver())->not->toBeNull();
 });
 
+it('processes dash mpd with BaseURL elements', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <BaseURL>video/segment.m4s</BaseURL>
+      <SegmentTemplate initialization="init.m4s" media="chunk-$Number$.m4s"/>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver(fn ($file) => "https://cdn.example.com/media/{$file}")
+        ->setInitUrlResolver(fn ($file) => "https://cdn.example.com/init/{$file}");
+
+    $result = $manifest->get();
+
+    expect($result)->toContain('https://cdn.example.com/media/video/segment.m4s')
+        ->and($result)->toContain('initialization="https://cdn.example.com/init/init.m4s"')
+        ->and($result)->toContain('media="https://cdn.example.com/media/chunk-$Number$.m4s"');
+});
+
+it('processes dash mpd with SegmentTemplate attributes', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <SegmentTemplate initialization="init-$RepresentationID$.m4s" media="chunk-$RepresentationID$-$Number$.m4s"/>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver(fn ($file) => "https://cdn.example.com/{$file}")
+        ->setInitUrlResolver(fn ($file) => "https://cdn.example.com/{$file}");
+
+    $result = $manifest->get();
+
+    expect($result)->toContain('initialization="https://cdn.example.com/init-$RepresentationID$.m4s"')
+        ->and($result)->toContain('media="https://cdn.example.com/chunk-$RepresentationID$-$Number$.m4s"');
+});
+
+it('processes dash mpd with sourceURL attributes', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <SegmentList>
+        <Initialization sourceURL="init.m4s"/>
+        <SegmentURL media="segment-1.m4s"/>
+        <SegmentURL media="segment-2.m4s"/>
+      </SegmentList>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver(fn ($file) => "https://cdn.example.com/{$file}")
+        ->setInitUrlResolver(fn ($file) => "https://cdn.example.com/{$file}");
+
+    $result = $manifest->get();
+
+    expect($result)->toContain('sourceURL="https://cdn.example.com/init.m4s"')
+        ->and($result)->toContain('media="https://cdn.example.com/segment-1.m4s"')
+        ->and($result)->toContain('media="https://cdn.example.com/segment-2.m4s"');
+});
+
+it('processes dash mpd without resolvers', function () {
+    Storage::fake('local');
+    $originalMpd = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <BaseURL>segment.m4s</BaseURL>
+      <SegmentTemplate initialization="init.m4s" media="chunk.m4s"/>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML;
+    Storage::disk('local')->put('manifest.mpd', $originalMpd);
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd');
+
+    $result = $manifest->get();
+
+    expect($result)->toBe($originalMpd);
+});
+
+it('caches resolved urls in dash manifest', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('manifest.mpd', <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period>
+    <AdaptationSet>
+      <SegmentTemplate initialization="init.m4s" media="init.m4s"/>
+    </AdaptationSet>
+  </Period>
+</MPD>
+XML
+    );
+
+    $callCount = 0;
+    $resolver = function ($file) use (&$callCount) {
+        $callCount++;
+        return "https://cdn.example.com/{$file}";
+    };
+
+    $manifest = new DynamicDASHManifest('local');
+    $manifest->open('manifest.mpd')
+        ->setMediaUrlResolver($resolver)
+        ->setInitUrlResolver($resolver);
+
+    $manifest->get();
+
+    // init.m4s appears twice but should only be resolved once due to caching
+    expect($callCount)->toBe(1);
+});
+
 it('can parse hls playlist lines', function () {
     $lines = "#EXTM3U\n#EXT-X-VERSION:3\nvideo.ts";
 
