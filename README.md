@@ -5,12 +5,12 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
 
-A Laravel integration for [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer), enabling you to create adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
+A Laravel integration for [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer), enabling you to package adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
 
 ```php
-use Foxws\Streamer\Facades\Shaka;
+use Foxws\Streamer\Facades\Streamer;
 
-$result = Streamer::fromDisk('s3')
+Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
     ->addVideoStream('videos/input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
@@ -24,65 +24,41 @@ $result = Streamer::fromDisk('s3')
 
 ## Features
 
-- 🎬 **Fluent API** - Laravel-style chainable methods
-- 📁 **Multiple Disks** - Works with local, S3, and custom filesystems
-- 🎯 **Adaptive Bitrate** - Create multi-quality streams easily
-- 🔒 **Encryption & DRM** - Built-in support for content protection
-- 📺 **HLS & DASH** - Support for both streaming protocols
-- 🧪 **Testable** - Clean architecture with mockable components
-- 📝 **Type-Safe** - Full PHP 8.1+ type declarations
+- 🎬 **Fluent API** — Laravel-style chainable methods for packaging media
+- 📁 **Filesystem Integration** — Read from and write to any Laravel disk (local, S3, etc.)
+- 🎯 **Adaptive Bitrate** — Create multi-quality HLS & DASH streams
+- 🔒 **AES Encryption** — Built-in content protection with optional key rotation
+- 📺 **Dynamic Manifests** — Rewrite HLS playlists and DASH MPDs with signed URLs at serve-time
+- 📡 **Events** — Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed`
+- 📝 **PHP 8.3+** — Strict types, readonly properties, and modern PHP throughout
 
 ## Documentation
 
-📚 **[Full Documentation](docs/README.md)**
-
-- [Quick Reference](docs/QUICK_REFERENCE.md) - Complete API reference
-- [AES Encryption](docs/AES_ENCRYPTION.md) - Encryption with key rotation
-- [Architecture Overview](docs/ARCHITECTURE.md) - Understanding the design
-- [Configuration](docs/CONFIGURATION.md) - Configuring the package
+- [Quick Reference](docs/QUICK_REFERENCE.md) — Complete API at a glance
+- [Configuration](docs/CONFIGURATION.md) — Environment variables and config options
+- [AES Encryption](docs/AES_ENCRYPTION.md) — Encryption with key rotation
+- [URL Resolvers](docs/URL_RESOLVERS.md) — Signed URLs for HLS & DASH
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — Common issues and solutions
 
 ## Requirements
 
-- PHP 8.3 or higher
-- Laravel 11.x or higher
-- Shaka Streamer binary installed on your system or Docker container
+- PHP 8.3+
+- Laravel 11 or 12
+- [Shaka Streamer](https://github.com/shaka-project/shaka-streamer) binary (`pip install shaka-streamer`)
 
 ## Installation
-
-Install the package via composer:
 
 ```bash
 composer require foxws/laravel-streamer
 ```
 
-Publish the config file:
+Publish the configuration file:
 
 ```bash
 php artisan vendor:publish --tag="streamer-config"
 ```
 
-### Installing Shaka Streamer
-
-Install Shaka Streamer binary on your system. Visit the [Shaka Streamer releases](https://github.com/shaka-project/shaka-streamer/releases) page for installation instructions.
-
-### Verify Installation
-
-After installation, verify that Shaka Streamer is properly configured:
-
-```bash
-php artisan streamer:verify
-```
-
-This will check:
-
-- Binary exists and is executable
-- Can retrieve version information
-- Configuration is properly set up
-- Temporary directory is accessible
-
-### Package Information
-
-View package and binary information:
+Verify the binary is accessible:
 
 ```bash
 php artisan streamer:info
@@ -90,12 +66,12 @@ php artisan streamer:info
 
 ## Quick Start
 
-### Basic Usage
+### Basic Packaging
 
 ```php
-use Foxws\Streamer\Facades\Shaka;
+use Foxws\Streamer\Facades\Streamer;
 
-$result = Streamer::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
@@ -106,182 +82,255 @@ $result = Streamer::open('input.mp4')
 ### Adaptive Bitrate Streaming
 
 ```php
-$result = Streamer::open('input.mp4')
+Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video_1080p.mp4', ['bandwidth' => '5000000'])
     ->addVideoStream('input.mp4', 'video_720p.mp4', ['bandwidth' => '3000000'])
     ->addVideoStream('input.mp4', 'video_480p.mp4', ['bandwidth' => '1500000'])
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
+    ->withMpdOutput('manifest.mpd')
     ->withSegmentDuration(6)
     ->export()
     ->save();
 ```
 
-### Working with Different Disks
+### Cross-Disk Workflows
+
+Read from one disk, write to another:
 
 ```php
-$result = Streamer::fromDisk('s3')
+Streamer::fromDisk('s3')
     ->open('videos/input.mp4')
     ->addVideoStream('videos/input.mp4', 'video.mp4')
     ->addAudioStream('videos/input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
     ->export()
-    ->toDisk('export') // Save output to a different disk (e.g., local, s3, etc.)
-    ->toPath('exports/') // (Optional) Save to a subdirectory on the target disk
+    ->toDisk('export')
+    ->toPath('streams/')
+    ->withVisibility('public')
     ->save();
 ```
 
-### HLS with Encryption
+### Encryption
 
 ```php
-// Basic encryption with auto-generated AES-128 key
-Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'video.mp4')
-    ->addAudioStream('input.mp4', 'audio.mp4')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withAESEncryption()  // Auto-generates key with 'cbc1' scheme
-    ->export()
-    ->save();
-
-// With key rotation (generates key_0.key, key_1.key, etc.)
+// AES-128 encryption with auto-generated key
 Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
     ->withHlsMasterPlaylist('master.m3u8')
     ->withAESEncryption()
-    ->withKeyRotationDuration(60)  // Rotate every 60 seconds
+    ->export()
+    ->save();
+
+// With key rotation (rotates every 60 seconds)
+Streamer::open('input.mp4')
+    ->addVideoStream('input.mp4', 'video.mp4')
+    ->addAudioStream('input.mp4', 'audio.mp4')
+    ->withHlsMasterPlaylist('master.m3u8')
+    ->withAESEncryption('key', 'cenc')
+    ->withKeyRotationDuration(60)
     ->export()
     ->toDisk('s3')
     ->save();
 ```
 
-See [AES Encryption Guide](docs/AES_ENCRYPTION.md) for complete documentation.
+See the [AES Encryption Guide](docs/AES_ENCRYPTION.md) for protection schemes, codec-specific examples, and key management.
 
-### Dynamic URL Resolvers (HLS & DASH)
+### Custom Streams
 
-Serve encrypted streaming content with S3 signed URLs:
+Use `addStream()` for full control over the Shaka Packager stream descriptor:
 
-**HLS Example:**
+```php
+Streamer::open('input.mp4')
+    ->addStream([
+        'in' => 'input.mp4',
+        'stream' => 'video',
+        'output' => 'video_4k.mp4',
+        'bandwidth' => '10000000',
+        'resolution' => '3840x2160',
+    ])
+    ->addStream([
+        'in' => 'input.mp4',
+        'stream' => 'audio',
+        'output' => 'audio_en.mp4',
+        'language' => 'en',
+    ])
+    ->withMpdOutput('manifest.mpd')
+    ->export()
+    ->save();
+```
+
+### Dynamic URL Resolvers
+
+Serve HLS and DASH content with signed URLs — useful for S3, CDNs, or multi-tenant apps.
+
+**HLS:**
 
 ```php
 use Foxws\Streamer\Http\DynamicHLSPlaylist;
 use Illuminate\Support\Facades\Storage;
 
-public function playlist(Video $video)
-{
-    return (new DynamicHLSPlaylist('s3'))
-        ->open("videos/{$video->id}/master.m3u8")
-        ->setKeyUrlResolver(fn ($key) => Storage::disk('s3')->temporaryUrl(
-            "videos/{$video->id}/{$key}",
-            now()->addHour()
-        ))
-        ->setMediaUrlResolver(fn ($file) => Storage::disk('s3')->temporaryUrl(
-            "videos/{$video->id}/{$file}",
-            now()->addHours(2)
-        ))
-        ->toResponse(request());
-}
+return (new DynamicHLSPlaylist('s3'))
+    ->open("videos/{$video->id}/master.m3u8")
+    ->setKeyUrlResolver(fn (string $key) => Storage::disk('s3')->temporaryUrl(
+        "videos/{$video->id}/{$key}",
+        now()->addHour(),
+    ))
+    ->setMediaUrlResolver(fn (string $file) => Storage::disk('s3')->temporaryUrl(
+        "videos/{$video->id}/{$file}",
+        now()->addHours(2),
+    ))
+    ->setPlaylistUrlResolver(fn (string $playlist) => route('video.playlist', [
+        'video' => $video,
+        'playlist' => $playlist,
+    ]))
+    ->toResponse(request());
 ```
 
-**DASH Example:**
+**DASH:**
 
 ```php
 use Foxws\Streamer\Http\DynamicDASHManifest;
 use Illuminate\Support\Facades\Storage;
 
-public function manifest(Video $video)
-{
-    return (new DynamicDASHManifest('s3'))
-        ->open("videos/{$video->id}/manifest.mpd")
-        ->setKeyUrlResolver(fn ($key) => Storage::disk('s3')->temporaryUrl(
-            "videos/{$video->id}/{$key}",
-            now()->addHour()
-        ))
-        ->setMediaUrlResolver(fn ($file) => Storage::disk('s3')->temporaryUrl(
-            "videos/{$video->id}/{$file}",
-            now()->addHours(2)
-        ))
-        ->setInitUrlResolver(fn ($file) => Storage::disk('s3')->temporaryUrl(
-            "videos/{$video->id}/{$file}",
-            now()->addHours(2)
-        ))
-        ->toResponse(request());
-}
+return (new DynamicDASHManifest('s3'))
+    ->open("videos/{$video->id}/manifest.mpd")
+    ->setMediaUrlResolver(fn (string $file) => Storage::disk('s3')->temporaryUrl(
+        "videos/{$video->id}/{$file}",
+        now()->addHours(2),
+    ))
+    ->setInitUrlResolver(fn (string $file) => Storage::disk('s3')->temporaryUrl(
+        "videos/{$video->id}/{$file}",
+        now()->addHours(2),
+    ))
+    ->toResponse(request());
 ```
 
-**Use cases for URL resolvers:**
+See [URL Resolvers](docs/URL_RESOLVERS.md) for more details.
 
-- 🔐 Generate signed URLs for secure content delivery
-- 🌐 Integrate with CDN services
-- 🏢 Support multi-tenant applications
-- 🔄 Implement dynamic key rotation
-- 📊 Track media access patterns
+### Events
 
-See [URL Resolver Examples](examples/UrlResolverExamples.php) and [Documentation](docs/URL_RESOLVERS.md) for more details.
+Listen to streaming lifecycle events:
 
-## Available Methods
+| Event | Payload |
+| --- | --- |
+| `StreamingStarted` | `MediaCollection $mediaCollection`, `array $options` |
+| `StreamingCompleted` | `StreamerResult $result`, `float $executionTime` |
+| `StreamingFailed` | `Exception $exception`, `float $executionTime` |
 
-### Disk Management
+### Post-Export Inspection
 
-- `fromDisk(string $disk)` - Set the disk to use
-- `openFromDisk(string $disk, $paths)` - Set disk and open files in one call
-- `getDisk()` - Get the current disk instance
+After saving, you can inspect the result:
 
-### Media Management
+```php
+$exporter = Streamer::open('input.mp4')
+    ->addVideoStream('input.mp4', 'video.mp4')
+    ->addAudioStream('input.mp4', 'audio.mp4')
+    ->withHlsMasterPlaylist('master.m3u8')
+    ->export();
 
-- `open($paths)` - Open one or more media files
-- `get()` - Get the MediaCollection
-- `streams()` - Get auto-generated Stream objects
+$exporter->afterSaving(function ($exporter, $result) {
+    $summary = $exporter->getCopySummary();
+    // ['total' => 12, 'copied' => 12, 'failed' => 0, 'totalSize' => 8421376]
 
-### Stream Configuration
+    $keys = $result->getUploadedEncryptionKeys();
+});
 
-- `addVideoStream(string $input, string $output, array $options = [])` - Add video stream
-- `addAudioStream(string $input, string $output, array $options = [])` - Add audio stream
-- `addTextStream(string $input, string $output, array $options = [])` - Add text/caption/subtitle stream
-- `addStream(array $stream)` - Add custom stream
+$exporter->toDisk('s3')->save();
+```
 
-### Output Configuration
+## API Reference
 
-- `withHlsMasterPlaylist(string $path)` - Set HLS master playlist output
-- `withMpdOutput(string $path)` - Set DASH manifest output
-- `withSegmentDuration(int $seconds)` - Set segment duration
-- `withAESEncryption(string $keyFilename = 'key', ?string $protectionScheme = 'cbc1', ?string $label = null)` - Enable AES-128 encryption
-- `withKeyRotationDuration(int $seconds)` - Enable key rotation for encryption
-- `toDisk(string $disk)` - Set the target disk for output
-- `toPath(string $path)` - Set the target output path (subdirectory)
-- `withVisibility(string $visibility)` - Set file visibility (e.g., 'public', 'private')
+### `Streamer` Facade → `MediaOpener`
 
-### Execution & Utilities
+| Method | Description |
+| --- | --- |
+| `fromDisk($disk)` | Set the source filesystem disk |
+| `open($paths)` | Open one or more media files |
+| `openFromDisk($disk, $paths)` | Set disk and open files in one call |
+| `get()` | Get the `MediaCollection` |
+| `export()` | Start the export chain (returns `MediaExporter`) |
+| `dynamicHLSPlaylist(?string $disk)` | Create a `DynamicHLSPlaylist` instance |
+| `dynamicDASHManifest(?string $disk)` | Create a `DynamicDASHManifest` instance |
+| `cleanupTemporaryFiles()` | Delete all temporary directories |
 
-- `export()` - Execute the packaging operation (returns result object)
-- `save(?string $path = null)` - Save outputs to disk (optionally to a specific path)
-- `getCommand()` - Get the final command string (for debugging)
-- `dd()` - Dump the final command and end the script
-- `afterSaving(callable $callback)` - Register a callback to run after saving
+### Stream Configuration (via `MediaOpener` → `Streamer`)
 
-### Dynamic URL Resolvers
+| Method | Description |
+| --- | --- |
+| `addVideoStream($input, $output, $options)` | Add a video stream |
+| `addAudioStream($input, $output, $options)` | Add an audio stream |
+| `addTextStream($input, $output, $options)` | Add a text/subtitle stream |
+| `addStream(array $stream)` | Add a raw Shaka stream descriptor (`in`, `stream`, `output`, …) |
+| `withHlsMasterPlaylist($path)` | Set HLS output |
+| `withMpdOutput($path)` | Set DASH/MPD output |
+| `withSegmentDuration(int $seconds)` | Set segment duration |
+| `withManifestFormat(array $formats)` | Set manifest formats (e.g. `['dash', 'hls']`) |
+| `withResolutions(array $resolutions)` | Set encoding resolutions |
+| `withVideoCodecs(array $codecs)` | Set video codecs (e.g. `['h264', 'hw:vp9']`) |
+| `withAudioCodecs(array $codecs)` | Set audio codecs (e.g. `['aac', 'opus']`) |
+| `withSegmentPerFile(bool $enabled)` | Enable segment-per-file output |
+| `withLowLatencyDashMode(bool $enabled)` | Enable low-latency DASH |
+| `withStreamingMode(string $mode)` | Set mode (`'vod'` or `'live'`) |
+| `withEncryption(array $config)` | Set raw encryption config |
+| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key |
+| `withKeyRotationDuration(int $seconds)` | Enable key rotation (requires `'cenc'` or `'cbcs'`) |
+| `withOption($key, $value)` | Set a custom pipeline option |
+| `withOptions(array $options)` | Set multiple custom pipeline options |
+| `getCommand()` | Get the built config array (for debugging) |
 
-**DynamicHLSPlaylist:**
+### `MediaExporter` (returned by `export()`)
 
-- `new DynamicHLSPlaylist(?string $disk)` - Create HLS playlist processor
-- `open(string $path)` - Open a playlist file
-- `setKeyUrlResolver(callable $resolver)` - Set resolver for encryption key URLs
-- `setMediaUrlResolver(callable $resolver)` - Set resolver for media segment URLs
-- `setPlaylistUrlResolver(callable $resolver)` - Set resolver for sub-playlist URLs
-- `get()` - Get processed playlist content
-- `all()` - Get all processed playlists (master + segments)
-- `toResponse($request)` - Return as HTTP response
+| Method | Description |
+| --- | --- |
+| `toDisk($disk)` | Set target disk for output |
+| `toPath(string $path)` | Set target subdirectory |
+| `withVisibility(string $visibility)` | Set file visibility (`'public'`, `'private'`) |
+| `afterSaving(callable $callback)` | Register post-save callback |
+| `save(?string $path)` | Execute packaging and copy files to disk |
+| `getCommand()` | Get the built config array |
+| `dd()` | Dump config and die |
+| `getCopySummary()` | Get `{total, copied, failed, totalSize}` |
+| `getCopiedFiles()` | Get array of successfully copied files |
+| `getFailedFiles()` | Get array of failed file copies |
+| `hasCopyFailures()` | Check if any files failed to copy |
 
-**DynamicDASHManifest:**
+### `DynamicHLSPlaylist`
 
-- `new DynamicDASHManifest(?string $disk)` - Create DASH manifest processor
-- `open(string $path)` - Open a manifest file
-- `setMediaUrlResolver(callable $resolver)` - Set resolver for media segment URLs
-- `setInitUrlResolver(callable $resolver)` - Set resolver for initialization segment URLs
-- `get()` - Get processed manifest content
-- `toResponse($request)` - Return as HTTP response
+| Method | Description |
+| --- | --- |
+| `open(string $path)` | Open a playlist file |
+| `setKeyUrlResolver(callable)` | Resolve encryption key URLs |
+| `setMediaUrlResolver(callable)` | Resolve media segment URLs |
+| `setPlaylistUrlResolver(callable)` | Resolve sub-playlist URLs |
+| `get()` | Get processed playlist content |
+| `all()` | Get all processed playlists (master + variants) |
+| `toResponse($request)` | Return as `application/vnd.apple.mpegurl` response |
 
-See the [Quick Reference](docs/QUICK_REFERENCE.md) for complete API documentation.
+### `DynamicDASHManifest`
+
+| Method | Description |
+| --- | --- |
+| `open(string $path)` | Open a manifest file |
+| `setMediaUrlResolver(callable)` | Resolve media segment URLs |
+| `setInitUrlResolver(callable)` | Resolve initialization segment URLs |
+| `get()` | Get processed manifest content |
+| `toResponse($request)` | Return as `application/dash+xml` response |
+
+## Configuration
+
+Key options in `config/streamer.php`:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `streamer.streamer_binary` | `'shaka-streamer'` | Path to the Shaka Streamer binary |
+| `timeout` | `14400` (4h) | Process timeout in seconds |
+| `temporary_files_root` | `storage_path('app/streamer/temp')` | Directory for temporary files |
+| `cache_files_root` | `'/dev/shm'` | Fast storage for small files (keys, manifests) |
+| `log_channel` | `null` | Log channel for streamer output |
+
+See [Configuration](docs/CONFIGURATION.md) for all options and environment variables.
 
 ## Testing
 
@@ -289,30 +338,20 @@ See the [Quick Reference](docs/QUICK_REFERENCE.md) for complete API documentatio
 composer test
 ```
 
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
 ## Contributing
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-## Security Vulnerabilities
+## Security
 
-If you discover a security vulnerability, please report it via a private channel (e.g., email or GitHub issues) rather than publicly disclosing it.
+If you discover a security vulnerability, please report it via a private channel (e.g. email or GitHub Security Advisories) rather than publicly disclosing it.
 
 ## Acknowledgments
 
 This package was inspired by and learned from:
 
-- [Laravel FFmpeg](https://github.com/protonemedia/laravel-ffmpeg) - Architecture patterns and Laravel integration approach.
-- [quasarstream/shaka-php](https://github.com/quasarstream/shaka-php) - Shaka Streamer wrapper implementation and command building logic.
-
-Much of the existing logic and design patterns from these excellent packages helped shape this implementation. Many thanks to their authors and contributors!
-
-## Projects Built on Laravel Shaka Streamer
-
-- [Stry](https://github.com/francoism90/stry) - A modern streaming platform built on top of Laravel Shaka Streamer.
+- [Laravel FFmpeg](https://github.com/protonemedia/laravel-ffmpeg) — Architecture patterns and Laravel integration approach
+- [quasarstream/shaka-php](https://github.com/quasarstream/shaka-php) — Shaka Packager wrapper and command building patterns
 
 ## License
 
