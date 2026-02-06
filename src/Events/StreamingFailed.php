@@ -14,6 +14,7 @@ class StreamingFailed
 
     public function __construct(
         public Exception $exception,
+        public float $executionTime = 0,
         public array $context = []
     ) {}
 }

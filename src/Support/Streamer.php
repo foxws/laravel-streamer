@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Foxws\Streamer\Events\StreamingCompleted;
+use Foxws\Streamer\Events\StreamingFailed;
+use Foxws\Streamer\Events\StreamingStarted;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Traits\ForwardsCalls;
@@ -509,20 +512,46 @@ class Streamer
             ]);
         }
 
-        // Get temporary directory for output
-        $outputDirectory = $this->getTemporaryDirectory();
+        // Dispatch event before starting the streaming operation
+        StreamingStarted::dispatch($this->mediaCollection, $config);
 
-        // Pass temp directory to shaka-streamer via -o flag
-        $result = $this->streamer->packageWithConfig($config, $outputDirectory);
+        // Start timer for execution time measurement
+        $startTime = microtime(true);
 
-        if ($this->logger) {
-            $this->logger->info('Streaming operation completed');
+        try {
+            // Get temporary directory for output
+            $outputDirectory = $this->getTemporaryDirectory();
+
+            // Pass temp directory to shaka-streamer via -o flag
+            $rawResult = $this->streamer->packageWithConfig($config, $outputDirectory);
+
+            if ($this->logger) {
+                $this->logger->info('Streaming operation completed');
+            }
+
+            // Get the first media's disk as the source disk
+            $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
+
+            $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
+
+            StreamingCompleted::dispatch($result, microtime(true) - $startTime);
+
+            return $result;
+        } catch (\Exception $e) {
+            $executionTime = microtime(true) - $startTime;
+
+            if ($this->logger) {
+                $this->logger->error('Streaming operation failed', [
+                    'exception' => $e->getMessage(),
+                    'execution_time' => $executionTime,
+                ]);
+            }
+
+            // Dispatch event on failure with exception and execution time
+            StreamingFailed::dispatch($e, $executionTime);
+
+            throw $e;
         }
-
-        // Get the first media's disk as the source disk
-        $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
-
-        return new StreamerResult($result, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
     }
 
     public function streamWithBuilder(CommandBuilder $builder): StreamerResult
@@ -536,12 +565,39 @@ class Streamer
             ]);
         }
 
-        $result = $this->streamer->packageWithConfig($config);
-
-        if ($this->logger) {
-            $this->logger->info('Streaming operation completed');
+        if ($this->mediaCollection) {
+            StreamingStarted::dispatch($this->mediaCollection, $config);
         }
 
-        return new StreamerResult($result);
+        $startTime = microtime(true);
+
+        try {
+            $rawResult = $this->streamer->packageWithConfig($config);
+
+            if ($this->logger) {
+                $this->logger->info('Streaming operation completed');
+            }
+
+            $result = new StreamerResult($rawResult);
+
+            // Dispatch completed event with result and execution time
+            StreamingCompleted::dispatch($result, microtime(true) - $startTime);
+
+            return $result;
+        } catch (\Exception $e) {
+            $executionTime = microtime(true) - $startTime;
+
+            if ($this->logger) {
+                $this->logger->error('Streaming operation failed', [
+                    'exception' => $e->getMessage(),
+                    'execution_time' => $executionTime,
+                ]);
+            }
+
+            // Dispatch failed event with exception and execution time
+            StreamingFailed::dispatch($e, $executionTime);
+
+            throw $e;
+        }
     }
 }

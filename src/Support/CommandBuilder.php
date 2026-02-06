@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Foxws\Streamer\Exceptions\InvalidStreamConfigurationException;
 use Illuminate\Support\Collection;
 
 /**
@@ -89,9 +90,28 @@ class CommandBuilder
         return $this;
     }
 
+    /**
+     * Add a raw Shaka Packager stream descriptor.
+     *
+     * Accepts the Shaka format (in, stream, output) and normalises it
+     * to the internal format used by the builder.
+     *
+     * @throws InvalidStreamConfigurationException
+     */
     public function addStream(array $stream): self
     {
-        $this->streams->push($stream);
+        StreamValidator::validate($stream);
+
+        // Extract known Shaka keys; everything else becomes options
+        $reserved = ['in', 'stream', 'output'];
+        $options = array_diff_key($stream, array_flip($reserved));
+
+        $this->streams->push([
+            'type' => $stream['stream'],
+            'input' => $stream['in'],
+            'output' => $stream['output'],
+            'options' => $options,
+        ]);
 
         return $this;
     }

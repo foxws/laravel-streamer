@@ -9,6 +9,7 @@ use Foxws\Streamer\Filesystem\Media;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Response;
+use SimpleXMLElement;
 
 class DynamicDASHManifest implements Responsable
 {
@@ -145,7 +146,7 @@ class DynamicDASHManifest implements Responsable
      */
     protected function processManifest(string $content): string
     {
-        $xml = new \SimpleXMLElement($content);
+        $xml = new SimpleXMLElement($content);
         $xml->registerXPathNamespace('mpd', 'urn:mpeg:dash:schema:mpd:2011');
 
         // Replace BaseURL elements with resolved URLs
@@ -205,7 +206,7 @@ class DynamicDASHManifest implements Responsable
      * Parses the SegmentTimeline to determine segment count, then generates
      * concrete signed URLs for each segment number.
      */
-    protected function expandSegmentTemplate(\SimpleXMLElement $template): void
+    protected function expandSegmentTemplate(SimpleXMLElement $template): void
     {
         $attrs = $template->attributes();
         $mediaPattern = (string) $attrs['media'];
@@ -254,7 +255,7 @@ class DynamicDASHManifest implements Responsable
      * Parses <S> elements with t (start), d (duration), and r (repeat) attributes
      * to determine the total segment count.
      */
-    protected function calculateSegmentCount(\SimpleXMLElement $template): int
+    protected function calculateSegmentCount(SimpleXMLElement $template): int
     {
         $template->registerXPathNamespace('mpd', 'urn:mpeg:dash:schema:mpd:2011');
         $segments = $template->xpath('mpd:SegmentTimeline/mpd:S');
@@ -277,7 +278,7 @@ class DynamicDASHManifest implements Responsable
     /**
      * Removes a child element from its parent in SimpleXML.
      */
-    protected function removeXmlChild(\SimpleXMLElement $child): void
+    protected function removeXmlChild(SimpleXMLElement $child): void
     {
         $dom = dom_import_simplexml($child);
         $dom->parentNode->removeChild($dom);
