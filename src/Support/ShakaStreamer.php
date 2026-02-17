@@ -39,7 +39,7 @@ class ShakaStreamer
         ?array $configuration = null
     ): self {
         $timeout = $configuration['timeout'] ?? 3600;
-        $streamerBinary = $configuration['streamer.streamer_binary'] ?? $configuration['streamer_binary'] ?? 'shaka-streamer';
+        $streamerBinary = $configuration['streamer']['streamer_binary'] ?? 'shaka-streamer';
 
         return new self($logger, $timeout, $streamerBinary);
     }

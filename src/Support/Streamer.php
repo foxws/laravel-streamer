@@ -28,12 +28,16 @@ class Streamer
 
     protected ?string $cacheDirectory = null;
 
+    protected ?array $configuration = null;
+
     public function __construct(
         ShakaStreamer $streamer,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        ?array $configuration = null
     ) {
         $this->streamer = $streamer;
         $this->logger = $logger;
+        $this->configuration = $configuration;
     }
 
     public static function create(
@@ -42,12 +46,12 @@ class Streamer
     ): self {
         $streamer = ShakaStreamer::create($logger, $configuration);
 
-        return new self($streamer, $logger);
+        return new self($streamer, $logger, $configuration);
     }
 
     public function fresh(): self
     {
-        return new self($this->streamer, $this->logger);
+        return new self($this->streamer, $this->logger, $this->configuration);
     }
 
     public function getStreamer(): ShakaStreamer
@@ -77,7 +81,7 @@ class Streamer
         }
 
         // Initialize a fresh CommandBuilder for this media collection
-        $this->builder = CommandBuilder::make();
+        $this->builder = $this->createBuilder();
 
         if ($this->logger) {
             $this->logger->debug('Opened media collection', [
@@ -97,10 +101,50 @@ class Streamer
     public function builder(): CommandBuilder
     {
         if (! $this->builder) {
-            $this->builder = CommandBuilder::make();
+            $this->builder = $this->createBuilder();
         }
 
         return $this->builder;
+    }
+
+    /**
+     * Create a new CommandBuilder with configuration defaults
+     */
+    protected function createBuilder(): CommandBuilder
+    {
+        $builder = CommandBuilder::make();
+
+        if (! $this->configuration) {
+            return $builder;
+        }
+
+        // Apply configuration defaults
+        if (filled($this->configuration['audio_codecs'] ?? null)) {
+            $builder->withAudioCodecs($this->parseCodecs($this->configuration['audio_codecs'], ['aac']));
+        }
+
+        if (filled($this->configuration['video_codecs'] ?? null)) {
+            $builder->withVideoCodecs($this->parseCodecs($this->configuration['video_codecs'], ['h264']));
+        }
+
+        if (filled($this->configuration['resolutions'] ?? null)) {
+            $resolutions = $this->parseCodecs($this->configuration['resolutions'], []);
+            if (! empty($resolutions)) {
+                $builder->withResolutions($resolutions);
+            }
+        }
+
+        if (filled($this->configuration['segment_duration'] ?? null)) {
+            $builder->withSegmentDuration($this->configuration['segment_duration']);
+        }
+
+        if (filled($this->configuration['streamer_options'] ?? null) && is_array($this->configuration['streamer_options'])) {
+            foreach ($this->configuration['streamer_options'] as $key => $value) {
+                $builder->withOption($key, $value);
+            }
+        }
+
+        return $builder;
     }
 
     /**
@@ -599,5 +643,21 @@ class Streamer
 
             throw $e;
         }
+    }
+
+    /**
+     * Parse comma-separated string or return default
+     */
+    protected function parseCodecs(string|array|null $value, array $default = []): array
+    {
+        if (empty($value)) {
+            return $default;
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        return array_map('trim', explode(',', $value));
     }
 }
