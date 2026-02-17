@@ -37,16 +37,14 @@ class StreamerServiceProvider extends PackageServiceProvider
         });
 
         $this->app->singleton('laravel-streamer-configuration', function () {
-            $baseConfig = [
-                'streamer.streamer_binary' => Config::string('streamer.streamer.streamer_binary', 'shaka-streamer'),
-                'timeout' => Config::integer('streamer.timeout', 3600),
-            ];
+            $config = Config::get('streamer', []);
 
-            if ($configuredTemporaryRoot = Config::string('streamer.temporary_files_root', '')) {
-                $baseConfig['temporary_directory'] = $configuredTemporaryRoot;
+            // Add temporary_directory if configured
+            if (! empty($config['temporary_files_root'])) {
+                $config['temporary_directory'] = $config['temporary_files_root'];
             }
 
-            return $baseConfig;
+            return $config;
         });
 
         $this->app->singleton(TemporaryDirectories::class, function () {
@@ -68,8 +66,9 @@ class StreamerServiceProvider extends PackageServiceProvider
         $this->app->singleton(Streamer::class, function ($app) {
             $driver = $app->make(ShakaStreamer::class);
             $logger = $app->make('laravel-streamer-logger');
+            $config = $app->make('laravel-streamer-configuration');
 
-            return new Streamer($driver, $logger);
+            return new Streamer($driver, $logger, $config);
         });
 
         // Register the main class to use with the facade
