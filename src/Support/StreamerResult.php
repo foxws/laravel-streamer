@@ -6,6 +6,8 @@ namespace Foxws\Streamer\Support;
 
 use Foxws\Streamer\Filesystem\Disk;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Concurrency;
+use Illuminate\Support\Facades\Storage;
 
 class StreamerResult
 {
@@ -23,7 +25,8 @@ class StreamerResult
         protected string $output,
         protected ?Disk $sourceDisk = null,
         protected ?string $temporaryDirectory = null,
-        protected ?string $cacheDirectory = null
+        protected ?string $cacheDirectory = null,
+        protected ?array $configuration = null,
     ) {}
 
     public function getOutput(): string
@@ -45,14 +48,16 @@ class StreamerResult
         // Get the target directory from outputPath parameter or preserve source structure
         $targetDirectory = $outputPath ?: $this->getSourceDirectory();
 
-        // Copy files from temp directory
-        if ($tempDisk = $this->getTempFilesystem()) {
-            $this->copyFilesFromDisk($tempDisk, $targetDisk, $targetDirectory, $visibility, $this->temporaryDirectory);
-        }
+        $tempDisk = $this->getTempFilesystem();
+        $cacheDisk = $this->getCacheFilesystem();
 
-        // Copy files from cache directory if it exists
-        if ($cacheDisk = $this->getCacheFilesystem()) {
-            $this->copyFilesFromDisk($cacheDisk, $targetDisk, $targetDirectory, $visibility, $this->cacheDirectory);
+        $fileOps = array_merge(
+            $tempDisk ? $this->buildFileOperations($tempDisk->allFiles(), $targetDirectory, $this->temporaryDirectory) : [],
+            $cacheDisk ? $this->buildFileOperations($cacheDisk->allFiles(), $targetDirectory, $this->cacheDirectory) : [],
+        );
+
+        if (! empty($fileOps)) {
+            $this->copyFilesConcurrently($fileOps, $targetDisk->getName(), $visibility);
         }
 
         // Clean up temporary directories
@@ -72,59 +77,119 @@ class StreamerResult
     }
 
     /**
-     * Copy files from source disk to target disk
+     * Build primitive file operation descriptors from a list of relative paths.
+     *
+     * @param  array<string>  $files
+     * @return array<int, array{absolutePath: string, targetPath: string, filename: string, extension: string, isKeyFile: bool, isSmallFile: bool, size: int}>
      */
-    protected function copyFilesFromDisk(Filesystem $sourceDisk, Disk $targetDisk, ?string $targetDirectory, ?string $visibility, string $sourceBasePath): void
+    protected function buildFileOperations(array $files, ?string $targetDirectory, string $sourceBasePath): array
     {
-        foreach ($sourceDisk->allFiles() as $relativePath) {
-            $targetPath = $targetDirectory ? $targetDirectory.$relativePath : $relativePath;
+        $ops = [];
 
-            // Check if this is an encryption key file
+        foreach ($files as $relativePath) {
             $filename = basename($relativePath);
             $extension = pathinfo($filename, PATHINFO_EXTENSION);
-            $isKeyFile = $extension === 'key' || preg_match('/^[a-zA-Z_-]+_\d+$/', pathinfo($filename, PATHINFO_FILENAME));
-            $isSmallFile = $isKeyFile || $extension === 'm3u8';
+            $isKeyFile = $extension === 'key' || (bool) preg_match('/^[a-zA-Z_-]+_\d+$/', pathinfo($filename, PATHINFO_FILENAME));
+            $absolutePath = $sourceBasePath.DIRECTORY_SEPARATOR.$relativePath;
 
-            try {
-                if ($isSmallFile) {
-                    $content = $sourceDisk->get($relativePath);
-                    $targetDisk->put($targetPath, $content);
+            $ops[] = [
+                'absolutePath' => $absolutePath,
+                'targetPath' => $targetDirectory ? $targetDirectory.$relativePath : $relativePath,
+                'filename' => $filename,
+                'extension' => $extension,
+                'isKeyFile' => $isKeyFile,
+                'isSmallFile' => $isKeyFile || $extension === 'm3u8',
+                'size' => filesize($absolutePath),
+            ];
+        }
 
-                    // Track uploaded encryption key metadata
-                    if ($isKeyFile) {
+        return $ops;
+    }
+
+    /**
+     * Upload files concurrently using Laravel's Concurrency facade.
+     *
+     * @param  array<int, array{absolutePath: string, targetPath: string, filename: string, extension: string, isKeyFile: bool, isSmallFile: bool, size: int}>  $fileOps
+     */
+    protected function copyFilesConcurrently(array $fileOps, string $diskName, ?string $visibility): void
+    {
+        $workers = $this->configuration['concurrency_workers'] ?? 10;
+        $chunkSize = (int) ceil(count($fileOps) / $workers);
+        $chunks = array_chunk($fileOps, max(1, $chunkSize));
+
+        $tasks = [];
+
+        foreach ($chunks as $chunk) {
+            $tasks[] = function () use ($chunk, $diskName, $visibility): array {
+                $disk = Storage::disk($diskName);
+                $results = [];
+
+                $options = $visibility ? ['visibility' => $visibility] : [];
+
+                foreach ($chunk as $op) {
+                    try {
+                        $content = null;
+
+                        if ($op['isSmallFile']) {
+                            $content = file_get_contents($op['absolutePath']);
+                            $disk->put($op['targetPath'], $content, $options);
+                        } else {
+                            $stream = fopen($op['absolutePath'], 'rb');
+                            $disk->writeStream($op['targetPath'], $stream, $options);
+
+                            if (is_resource($stream)) {
+                                fclose($stream);
+                            }
+                        }
+
+                        $results[] = [
+                            'success' => true,
+                            'targetPath' => $op['targetPath'],
+                            'source' => $op['absolutePath'],
+                            'size' => $op['size'],
+                            'type' => $op['isKeyFile'] ? 'key' : ($op['extension'] === 'm3u8' ? 'manifest' : 'segment'),
+                            'isKeyFile' => $op['isKeyFile'],
+                            'filename' => $op['filename'],
+                            'keyContent' => $op['isKeyFile'] ? bin2hex($content) : null,
+                        ];
+                    } catch (\Exception $e) {
+                        $results[] = [
+                            'success' => false,
+                            'targetPath' => $op['targetPath'],
+                            'source' => $op['absolutePath'],
+                            'error' => $e->getMessage(),
+                        ];
+                    }
+                }
+
+                return $results;
+            };
+        }
+
+        foreach (Concurrency::run($tasks) as $chunkResults) {
+            foreach ($chunkResults as $result) {
+                if ($result['success']) {
+                    $this->copiedFiles[$result['targetPath']] = [
+                        'source' => $result['source'],
+                        'size' => $result['size'],
+                        'type' => $result['type'],
+                    ];
+
+                    if ($result['isKeyFile']) {
                         $this->uploadedEncryptionKeys[] = [
-                            'filename' => $filename,
-                            'path' => $targetPath,
-                            'content' => bin2hex($content),
+                            'filename' => $result['filename'],
+                            'path' => $result['targetPath'],
+                            'content' => $result['keyContent'],
                         ];
                     }
                 } else {
-                    // Stream large binary files (video/audio segments)
-                    $stream = $sourceDisk->readStream($relativePath);
-                    $targetDisk->writeStream($targetPath, $stream);
-
-                    if (is_resource($stream)) {
-                        fclose($stream);
-                    }
+                    $this->failedFiles[] = [
+                        'source' => $result['source'],
+                        'target' => $result['targetPath'],
+                        'error' => $result['error'],
+                        'size' => 0,
+                    ];
                 }
-
-                if ($visibility) {
-                    $targetDisk->setVisibility($targetPath, $visibility);
-                }
-
-                // Track successfully copied file
-                $this->copiedFiles[$targetPath] = [
-                    'source' => $sourceBasePath.'/'.$relativePath,
-                    'size' => $sourceDisk->size($relativePath),
-                    'type' => $isKeyFile ? 'key' : ($extension === 'm3u8' ? 'manifest' : 'segment'),
-                ];
-            } catch (\Exception $e) {
-                $this->failedFiles[] = [
-                    'source' => $sourceBasePath.'/'.$relativePath,
-                    'target' => $targetPath,
-                    'error' => $e->getMessage(),
-                    'size' => 0,
-                ];
             }
         }
     }

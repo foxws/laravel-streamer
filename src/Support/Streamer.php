@@ -576,7 +576,7 @@ class Streamer
             // Get the first media's disk as the source disk
             $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
 
-            $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory);
+            $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory, $this->configuration);
 
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
 
@@ -616,13 +616,17 @@ class Streamer
         $startTime = microtime(true);
 
         try {
-            $rawResult = $this->streamer->packageWithConfig($config);
+            $outputDirectory = $this->getTemporaryDirectory();
+
+            $rawResult = $this->streamer->packageWithConfig($config, $outputDirectory);
 
             if ($this->logger) {
                 $this->logger->info('Streaming operation completed');
             }
 
-            $result = new StreamerResult($rawResult);
+            $sourceDisk = $this->mediaCollection?->collection()->first()?->getDisk();
+
+            $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory, $this->configuration);
 
             // Dispatch completed event with result and execution time
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
