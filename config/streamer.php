@@ -170,4 +170,20 @@ return [
 
     'concurrency_workers' => (int) env('STREAMER_CONCURRENCY_WORKERS', 10),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Concurrency Worker Timeout
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of seconds each concurrent child process (used when
+    | uploading streamed files to the target disk) may run before being
+    | considered timed out. Each worker uploads a chunk of segments, so
+    | large outputs may need a higher value. Set to null for no timeout.
+    |
+    | Default: 3600 seconds (1 hour)
+    |
+    */
+
+    'concurrency_timeout' => (int) env('STREAMER_CONCURRENCY_TIMEOUT', 3600),
+
 ];
