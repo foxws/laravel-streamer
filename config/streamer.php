@@ -49,7 +49,7 @@ return [
     |
     */
 
-    'log_channel' => env('STREAMER_LOG_CHANNEL', null),
+    'log_channel' => env('STREAMER_LOG_CHANNEL', env('LOG_CHANNEL', 'stack')),
 
     /*
     |--------------------------------------------------------------------------
@@ -152,5 +152,22 @@ return [
     */
 
     'streamer_options' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Concurrency Workers
+    |--------------------------------------------------------------------------
+    |
+    | Number of parallel child processes used when uploading streamed files
+    | to the target disk (e.g. S3). Each worker handles a chunk of files
+    | concurrently via Laravel's Concurrency facade.
+    |
+    | Higher values can improve upload throughput for large HLS/DASH outputs
+    | with many segments, but consume more system resources. A value between
+    | 10 and 30 is recommended for most setups.
+    |
+    */
+
+    'concurrency_workers' => (int) env('STREAMER_CONCURRENCY_WORKERS', 10),
 
 ];
