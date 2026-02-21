@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Support;
 
 use Foxws\Streamer\Filesystem\Disk;
+use Illuminate\Concurrency\ConcurrencyManager;
+use Illuminate\Console\Application;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Concurrency;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
+use Laravel\SerializableClosure\SerializableClosure;
 
 class StreamerResult
 {
@@ -107,13 +111,18 @@ class StreamerResult
     }
 
     /**
-     * Upload files concurrently using Laravel's Concurrency facade.
+     * Upload files concurrently using a direct process pool.
+     *
+     * We drive the process pool directly (instead of using Concurrency::run()) so we
+     * can apply an explicit per-worker timeout from config, overriding Laravel's
+     * PendingProcess default of 60 seconds which is far too short for large uploads.
      *
      * @param  array<int, array{absolutePath: string, targetPath: string, filename: string, extension: string, isKeyFile: bool, isSmallFile: bool, size: int}>  $fileOps
      */
     protected function copyFilesConcurrently(array $fileOps, string $diskName, ?string $visibility): void
     {
         $workers = $this->configuration['concurrency_workers'] ?? 10;
+        $workerTimeout = $this->configuration['concurrency_timeout'] ?? 3600;
         $chunkSize = (int) ceil(count($fileOps) / $workers);
         $chunks = array_chunk($fileOps, max(1, $chunkSize));
 
@@ -166,7 +175,46 @@ class StreamerResult
             };
         }
 
-        foreach (Concurrency::run($tasks) as $chunkResults) {
+        // Use Concurrency::run() when the facade has been faked/replaced, or when the sync
+        // driver is configured (e.g. in tests via TestCase::getEnvironmentSetUp), so tasks
+        // run synchronously in-process without spawning subprocesses.
+        // In production with a non-sync driver we use Process::pool() directly so we can
+        // apply a configurable per-worker timeout (Laravel's default of 60 s is too short).
+        if (! (Concurrency::getFacadeRoot() instanceof ConcurrencyManager) || config('concurrency.default') === 'sync') {
+            $allChunkResults = collect(Concurrency::run($tasks));
+        } else {
+            $command = Application::formatCommandString('invoke-serialized-closure');
+
+            $poolResults = Process::pool(function (\Illuminate\Process\Pool $pool) use ($tasks, $command, $workerTimeout): void {
+                foreach ($tasks as $key => $task) {
+                    $pool->as((string) $key)
+                        ->path(base_path())
+                        ->timeout($workerTimeout)
+                        ->env([
+                            'LARAVEL_INVOKABLE_CLOSURE' => base64_encode(
+                                serialize(new SerializableClosure($task))
+                            ),
+                        ])
+                        ->command($command);
+                }
+            })->start()->wait();
+
+            $allChunkResults = $poolResults->collect()->mapWithKeys(function ($result, $key) {
+                if ($result->failed()) {
+                    throw new \Exception('Concurrent copy process failed with exit code ['.$result->exitCode().']. Message: '.$result->errorOutput());
+                }
+
+                $decoded = json_decode($result->output(), true);
+
+                if (! ($decoded['successful'] ?? false)) {
+                    throw new \Exception($decoded['message'] ?? 'Concurrent copy process returned an error.');
+                }
+
+                return [(int) $key => unserialize($decoded['result'])];
+            })->sortKeys()->values();
+        }
+
+        foreach ($allChunkResults as $chunkResults) {
             foreach ($chunkResults as $result) {
                 if ($result['success']) {
                     $this->copiedFiles[$result['targetPath']] = [
