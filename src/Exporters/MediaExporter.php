@@ -160,36 +160,11 @@ class MediaExporter
     /**
      * Get all files that failed to copy during the last toDisk() operation.
      *
-     * @return array<int, array{source: string, target: string, error: string, size: int}> Array of failed copy operations
+     * @return array<int, array{source: string, target: string, error: string}>
      */
     public function getFailedFiles(): array
     {
         return $this->lastResult?->getFailedFiles() ?? [];
-    }
-
-    /**
-     * Get all successfully copied files from the last toDisk() operation.
-     *
-     * @return array<string, array{source: string, size: int, type: string}> Array of copied files indexed by target path
-     */
-    public function getCopiedFiles(): array
-    {
-        return $this->lastResult?->getCopiedFiles() ?? [];
-    }
-
-    /**
-     * Get a summary of the copy operation.
-     *
-     * @return array{total: int, copied: int, failed: int, totalSize: int}
-     */
-    public function getCopySummary(): array
-    {
-        return $this->lastResult?->getCopySummary() ?? [
-            'total' => 0,
-            'copied' => 0,
-            'failed' => 0,
-            'totalSize' => 0,
-        ];
     }
 
     /**
