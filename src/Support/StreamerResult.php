@@ -5,20 +5,11 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Support;
 
 use Foxws\Streamer\Filesystem\Disk;
-use Illuminate\Concurrency\ConcurrencyManager;
-use Illuminate\Console\Application;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Concurrency;
-use Illuminate\Support\Facades\Process;
-use Illuminate\Support\Facades\Storage;
-use Laravel\SerializableClosure\SerializableClosure;
 
 class StreamerResult
 {
-    protected array $uploadedEncryptionKeys = [];
-
-    protected array $copiedFiles = [];
-
     protected array $failedFiles = [];
 
     protected ?Filesystem $tempFilesystem = null;
@@ -84,26 +75,18 @@ class StreamerResult
      * Build primitive file operation descriptors from a list of relative paths.
      *
      * @param  array<string>  $files
-     * @return array<int, array{absolutePath: string, targetPath: string, filename: string, extension: string, isKeyFile: bool, isSmallFile: bool, size: int}>
+     * @return array<int, array{absolutePath: string, targetPath: string}>
      */
     protected function buildFileOperations(array $files, ?string $targetDirectory, string $sourceBasePath): array
     {
         $ops = [];
 
         foreach ($files as $relativePath) {
-            $filename = basename($relativePath);
-            $extension = pathinfo($filename, PATHINFO_EXTENSION);
-            $isKeyFile = $extension === 'key' || (bool) preg_match('/^[a-zA-Z_-]+_\d+$/', pathinfo($filename, PATHINFO_FILENAME));
             $absolutePath = $sourceBasePath.DIRECTORY_SEPARATOR.$relativePath;
 
             $ops[] = [
                 'absolutePath' => $absolutePath,
                 'targetPath' => $targetDirectory ? $targetDirectory.$relativePath : $relativePath,
-                'filename' => $filename,
-                'extension' => $extension,
-                'isKeyFile' => $isKeyFile,
-                'isSmallFile' => $isKeyFile || $extension === 'm3u8',
-                'size' => filesize($absolutePath),
             ];
         }
 
@@ -111,18 +94,17 @@ class StreamerResult
     }
 
     /**
-     * Upload files concurrently using a direct process pool.
+     * Upload files concurrently using the fork driver via the Concurrency facade.
      *
-     * We drive the process pool directly (instead of using Concurrency::run()) so we
-     * can apply an explicit per-worker timeout from config, overriding Laravel's
-     * PendingProcess default of 60 seconds which is far too short for large uploads.
+     * Files are chunked into up to CONCURRENCY_WORKERS forks. The fork driver
+     * (spatie/fork) has no hard-coded timeout, unlike the default process driver,
+     * making it suitable for large file uploads to remote disks such as S3.
      *
-     * @param  array<int, array{absolutePath: string, targetPath: string, filename: string, extension: string, isKeyFile: bool, isSmallFile: bool, size: int}>  $fileOps
+     * @param  array<int, array{absolutePath: string, targetPath: string}>  $fileOps
      */
     protected function copyFilesConcurrently(array $fileOps, string $diskName, ?string $visibility): void
     {
         $workers = $this->configuration['concurrency_workers'] ?? 10;
-        $workerTimeout = $this->configuration['concurrency_timeout'] ?? 3600;
         $chunkSize = (int) ceil(count($fileOps) / $workers);
         $chunks = array_chunk($fileOps, max(1, $chunkSize));
 
@@ -130,116 +112,32 @@ class StreamerResult
 
         foreach ($chunks as $chunk) {
             $tasks[] = function () use ($chunk, $diskName, $visibility): array {
-                $disk = Storage::disk($diskName);
-                $results = [];
-
+                $disk = Disk::make($diskName);
+                $failures = [];
                 $options = $visibility ? ['visibility' => $visibility] : [];
 
                 foreach ($chunk as $op) {
                     try {
-                        $content = null;
+                        $stream = fopen($op['absolutePath'], 'rb');
+                        $disk->writeStream($op['targetPath'], $stream, $options);
 
-                        if ($op['isSmallFile']) {
-                            $content = file_get_contents($op['absolutePath']);
-                            $disk->put($op['targetPath'], $content, $options);
-                        } else {
-                            $stream = fopen($op['absolutePath'], 'rb');
-                            $disk->writeStream($op['targetPath'], $stream, $options);
-
-                            if (is_resource($stream)) {
-                                fclose($stream);
-                            }
+                        if (is_resource($stream)) {
+                            fclose($stream);
                         }
-
-                        $results[] = [
-                            'success' => true,
-                            'targetPath' => $op['targetPath'],
-                            'source' => $op['absolutePath'],
-                            'size' => $op['size'],
-                            'type' => $op['isKeyFile'] ? 'key' : ($op['extension'] === 'm3u8' ? 'manifest' : 'segment'),
-                            'isKeyFile' => $op['isKeyFile'],
-                            'filename' => $op['filename'],
-                            'keyContent' => $op['isKeyFile'] ? bin2hex($content) : null,
-                        ];
                     } catch (\Exception $e) {
-                        $results[] = [
-                            'success' => false,
-                            'targetPath' => $op['targetPath'],
+                        $failures[] = [
                             'source' => $op['absolutePath'],
+                            'target' => $op['targetPath'],
                             'error' => $e->getMessage(),
                         ];
                     }
                 }
 
-                return $results;
+                return $failures;
             };
         }
 
-        // Use Concurrency::run() when the facade has been faked/replaced, or when the sync
-        // driver is configured (e.g. in tests via TestCase::getEnvironmentSetUp), so tasks
-        // run synchronously in-process without spawning subprocesses.
-        // In production with a non-sync driver we use Process::pool() directly so we can
-        // apply a configurable per-worker timeout (Laravel's default of 60 s is too short).
-        if (! (Concurrency::getFacadeRoot() instanceof ConcurrencyManager) || config('concurrency.default') === 'sync') {
-            $allChunkResults = collect(Concurrency::run($tasks));
-        } else {
-            $command = Application::formatCommandString('invoke-serialized-closure');
-
-            $poolResults = Process::pool(function (\Illuminate\Process\Pool $pool) use ($tasks, $command, $workerTimeout): void {
-                foreach ($tasks as $key => $task) {
-                    $pool->as((string) $key)
-                        ->path(base_path())
-                        ->timeout($workerTimeout)
-                        ->env([
-                            'LARAVEL_INVOKABLE_CLOSURE' => base64_encode(
-                                serialize(new SerializableClosure($task))
-                            ),
-                        ])
-                        ->command($command);
-                }
-            })->start()->wait();
-
-            $allChunkResults = $poolResults->collect()->mapWithKeys(function ($result, $key) {
-                if ($result->failed()) {
-                    throw new \Exception('Concurrent copy process failed with exit code ['.$result->exitCode().']. Message: '.$result->errorOutput());
-                }
-
-                $decoded = json_decode($result->output(), true);
-
-                if (! ($decoded['successful'] ?? false)) {
-                    throw new \Exception($decoded['message'] ?? 'Concurrent copy process returned an error.');
-                }
-
-                return [(int) $key => unserialize($decoded['result'])];
-            })->sortKeys()->values();
-        }
-
-        foreach ($allChunkResults as $chunkResults) {
-            foreach ($chunkResults as $result) {
-                if ($result['success']) {
-                    $this->copiedFiles[$result['targetPath']] = [
-                        'source' => $result['source'],
-                        'size' => $result['size'],
-                        'type' => $result['type'],
-                    ];
-
-                    if ($result['isKeyFile']) {
-                        $this->uploadedEncryptionKeys[] = [
-                            'filename' => $result['filename'],
-                            'path' => $result['targetPath'],
-                            'content' => $result['keyContent'],
-                        ];
-                    }
-                } else {
-                    $this->failedFiles[] = [
-                        'source' => $result['source'],
-                        'target' => $result['targetPath'],
-                        'error' => $result['error'],
-                        'size' => 0,
-                    ];
-                }
-            }
-        }
+        $this->failedFiles = array_merge(...Concurrency::driver('fork')->run($tasks));
     }
 
     /**     * Get filesystem instance for temporary directory
@@ -350,31 +248,9 @@ class StreamerResult
     }
 
     /**
-     * Get encryption keys that were uploaded during the last toDisk() call.
-     *
-     * Returns keys with their uploaded paths and hex-encoded content, ready for database storage.
-     *
-     * @return array<int, array{filename: string, path: string, content: string}> Array of uploaded keys
-     */
-    public function getUploadedEncryptionKeys(): array
-    {
-        return $this->uploadedEncryptionKeys;
-    }
-
-    /**
-     * Get all successfully copied files from the last toDisk() operation.
-     *
-     * @return array<string, array{source: string, size: int, type: string}> Array of copied files indexed by target path
-     */
-    public function getCopiedFiles(): array
-    {
-        return $this->copiedFiles;
-    }
-
-    /**
      * Get all files that failed to copy during the last toDisk() operation.
      *
-     * @return array<int, array{source: string, target: string, error: string, size: int}> Array of failed copy operations
+     * @return array<int, array{source: string, target: string, error: string}>
      */
     public function getFailedFiles(): array
     {
@@ -387,25 +263,5 @@ class StreamerResult
     public function hasCopyFailures(): bool
     {
         return ! empty($this->failedFiles);
-    }
-
-    /**
-     * Get a summary of the copy operation.
-     *
-     * @return array{total: int, copied: int, failed: int, totalSize: int}
-     */
-    public function getCopySummary(): array
-    {
-        $totalSize = 0;
-        foreach ($this->copiedFiles as $file) {
-            $totalSize += $file['size'] ?? 0;
-        }
-
-        return [
-            'total' => count($this->copiedFiles) + count($this->failedFiles),
-            'copied' => count($this->copiedFiles),
-            'failed' => count($this->failedFiles),
-            'totalSize' => $totalSize,
-        ];
     }
 }
