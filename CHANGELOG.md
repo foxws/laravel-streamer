@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 0.8.0 - 2026-02-23
+
+### What's Changed
+
+* refactor: update concurrency settings and improve error handling by @francoism90 in https://github.com/foxws/laravel-streamer/pull/7
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/0.7.0...0.8.0
+
 ## 0.7.0 - 2026-02-23
 
 **Full Changelog**: https://github.com/foxws/laravel-streamer/compare/0.6.0...0.7.0
