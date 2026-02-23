@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Exception;
 use Foxws\Streamer\Filesystem\Disk;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Concurrency;
+use RuntimeException;
 
 class StreamerResult
 {
@@ -37,7 +39,7 @@ class StreamerResult
         $targetDisk = Disk::make($disk);
 
         if (! $this->temporaryDirectory) {
-            throw new \RuntimeException('Cannot copy files: temporary directory not set');
+            throw new RuntimeException('Cannot copy files: temporary directory not set');
         }
 
         // Get the target directory from outputPath parameter or preserve source structure
@@ -55,7 +57,7 @@ class StreamerResult
             $this->copyFilesConcurrently($fileOps, $targetDisk->getName(), $visibility);
         }
 
-        // Clean up temporary directories
+        // Cleanup temporary and cache directories after copying
         if ($cleanup) {
             if ($tempDisk && is_dir($this->temporaryDirectory)) {
                 $tempDisk->deleteDirectory('/');
@@ -66,6 +68,22 @@ class StreamerResult
                 $cacheDisk->deleteDirectory('/');
                 @rmdir($this->cacheDirectory);
             }
+        }
+
+        if ($this->hasCopyFailures()) {
+            $errors = array_map(
+                fn (array $f) => "{$f['target']}: {$f['error']}",
+                $this->failedFiles
+            );
+
+            throw new RuntimeException(
+                sprintf(
+                    '%d file(s) failed to copy to disk "%s" after retries: %s',
+                    count($this->failedFiles),
+                    $targetDisk->getName(),
+                    implode('; ', $errors)
+                )
+            );
         }
 
         return $this;
@@ -96,15 +114,16 @@ class StreamerResult
     /**
      * Upload files concurrently using the fork driver via the Concurrency facade.
      *
-     * Files are chunked into up to CONCURRENCY_WORKERS forks. The fork driver
-     * (spatie/fork) has no hard-coded timeout, unlike the default process driver,
-     * making it suitable for large file uploads to remote disks such as S3.
+     * Files are chunked into up to 5 forks (capped to avoid overwhelming remote
+     * storage such as S3 or Garage with too many simultaneous connections).
+     * Each file upload retries up to 3 times with exponential backoff (1s, 2s)
+     * to recover from transient throttling or connection errors.
      *
      * @param  array<int, array{absolutePath: string, targetPath: string}>  $fileOps
      */
     protected function copyFilesConcurrently(array $fileOps, string $diskName, ?string $visibility): void
     {
-        $workers = $this->configuration['concurrency_workers'] ?? 10;
+        $workers = min($this->configuration['concurrency_workers'] ?? 5, 5);
         $chunkSize = (int) ceil(count($fileOps) / $workers);
         $chunks = array_chunk($fileOps, max(1, $chunkSize));
 
@@ -117,19 +136,43 @@ class StreamerResult
                 $options = $visibility ? ['visibility' => $visibility] : [];
 
                 foreach ($chunk as $op) {
-                    try {
-                        $stream = fopen($op['absolutePath'], 'rb');
-                        $disk->writeStream($op['targetPath'], $stream, $options);
+                    $attempt = 0;
+                    $maxAttempts = 3;
+                    $stream = null;
 
-                        if (is_resource($stream)) {
-                            fclose($stream);
+                    while ($attempt < $maxAttempts) {
+                        try {
+                            $stream = fopen($op['absolutePath'], 'rb');
+
+                            if ($stream === false) {
+                                throw new RuntimeException("Failed to open file: {$op['absolutePath']}");
+                            }
+
+                            $disk->writeStream($op['targetPath'], $stream, $options);
+
+                            if (is_resource($stream)) {
+                                fclose($stream);
+                            }
+
+                            break;
+                        } catch (Exception $e) {
+                            if (is_resource($stream)) {
+                                fclose($stream);
+                            }
+
+                            $attempt++;
+
+                            if ($attempt >= $maxAttempts) {
+                                $failures[] = [
+                                    'source' => $op['absolutePath'],
+                                    'target' => $op['targetPath'],
+                                    'error' => $e->getMessage(),
+                                ];
+                            } else {
+                                // Exponential backoff: 1s on first retry, 2s on second
+                                usleep((int) (500000 * (2 ** $attempt)));
+                            }
                         }
-                    } catch (\Exception $e) {
-                        $failures[] = [
-                            'source' => $op['absolutePath'],
-                            'target' => $op['targetPath'],
-                            'error' => $e->getMessage(),
-                        ];
                     }
                 }
 
@@ -262,6 +305,6 @@ class StreamerResult
      */
     public function hasCopyFailures(): bool
     {
-        return ! empty($this->failedFiles);
+        return filled($this->failedFiles);
     }
 }
