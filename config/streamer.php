@@ -184,16 +184,14 @@ return [
     | Concurrency Workers
     |--------------------------------------------------------------------------
     |
-    | Number of parallel child processes used when uploading streamed files
-    | to the target disk (e.g. S3). Each worker handles a chunk of files
-    | concurrently via Laravel's Concurrency facade.
+    | Maximum number of concurrent S3 uploads when copying streamed files
+    | to an S3-backed disk. Ignored for local disks.
     |
-    | Higher values can improve upload throughput for large HLS/DASH outputs
-    | with many segments, but consume more system resources. A value between
-    | 5 and 15 is recommended for most setups.
+    | Each in-flight upload holds an open file stream, so memory usage scales
+    | with this value. Lower it if you run many parallel streaming jobs.
     |
     */
 
-    'concurrency_workers' => (int) env('STREAMER_CONCURRENCY_WORKERS', 5),
+    'concurrency_workers' => (int) env('STREAMER_CONCURRENCY_WORKERS', 10),
 
 ];
