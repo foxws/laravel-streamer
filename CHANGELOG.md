@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 0.9.0 - 2026-02-23
+
+### What's Changed
+
+* feat: add hardware acceleration and extra input arguments support by @francoism90 in https://github.com/foxws/laravel-streamer/pull/8
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/0.8.0...0.9.0
+
 ## 0.8.0 - 2026-02-23
 
 ### What's Changed
