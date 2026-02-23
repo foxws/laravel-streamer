@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Filesystem;
 
+use Aws\S3\S3Client;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\AwsS3V3Adapter as LaravelS3Adapter;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\ForwardsCalls;
 use League\Flysystem\FilesystemAdapter as FlysystemFilesystemAdapter;
 use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\Flysystem\PathPrefixer;
+use ReflectionProperty;
 
 /**
  * @method bool has(string $path)
@@ -124,6 +128,61 @@ class Disk
     public function isLocalDisk(): bool
     {
         return $this->getFlysystemAdapter() instanceof LocalFilesystemAdapter;
+    }
+
+    public function isS3Disk(): bool
+    {
+        return $this->getFilesystemAdapter() instanceof LaravelS3Adapter;
+    }
+
+    /**
+     * Returns the underlying AWS S3 client for this disk.
+     * Only valid when isS3Disk() is true.
+     */
+    public function getS3Client(): S3Client
+    {
+        /** @var LaravelS3Adapter $adapter */
+        $adapter = $this->getFilesystemAdapter();
+
+        return $adapter->getClient();
+    }
+
+    /**
+     * Returns the S3 bucket name extracted from the Flysystem adapter.
+     * Only valid when isS3Disk() is true.
+     */
+    public function getS3Bucket(): string
+    {
+        $prop = new ReflectionProperty($this->getFlysystemAdapter(), 'bucket');
+
+        return (string) $prop->getValue($this->getFlysystemAdapter());
+    }
+
+    /**
+     * Applies the Flysystem path prefix (if any) to a relative path,
+     * producing the exact S3 object key that Flysystem would use.
+     */
+    public function prefixS3Path(string $path): string
+    {
+        $prop = new ReflectionProperty($this->getFlysystemAdapter(), 'prefixer');
+
+        /** @var PathPrefixer $prefixer */
+        $prefixer = $prop->getValue($this->getFlysystemAdapter());
+
+        return $prefixer->prefixPath($path);
+    }
+
+    /**
+     * Returns adapter-level default options (e.g. CacheControl) that
+     * should be merged into every PutObject call to preserve disk config.
+     *
+     * @return array<string, mixed>
+     */
+    public function getS3UploadOptions(): array
+    {
+        $prop = new ReflectionProperty($this->getFlysystemAdapter(), 'options');
+
+        return (array) $prop->getValue($this->getFlysystemAdapter());
     }
 
     /**
