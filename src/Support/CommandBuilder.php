@@ -139,9 +139,9 @@ class CommandBuilder
     /**
      * Set segment duration in seconds
      */
-    public function withSegmentDuration(int $seconds): self
+    public function withSegmentDuration(float $seconds): self
     {
-        $this->pipelineOptions->put('segment_size', (float) $seconds);
+        $this->pipelineOptions->put('segment_size', $seconds);
 
         return $this;
     }
@@ -234,6 +234,66 @@ class CommandBuilder
     public function withLowLatencyDashMode(bool $enabled = true): self
     {
         $this->pipelineOptions->put('low_latency_dash_mode', $enabled);
+
+        return $this;
+    }
+
+    /**
+     * Force subtitle tracks to be marked as forced
+     */
+    public function withForcedSubtitle(bool $forced = true): self
+    {
+        $this->pipelineOptions->put('forced_subtitle', $forced);
+
+        return $this;
+    }
+
+    /**
+     * Limit resolution by a specific dimension string (e.g. 'width' or 'height')
+     */
+    public function withLimitResolutionBy(string $dimension): self
+    {
+        $this->pipelineOptions->put('limit_resolution_by', $dimension);
+
+        return $this;
+    }
+
+    /**
+     * Set the hardware acceleration API to use (e.g. 'vaapi', 'nvenc', 'videotoolbox')
+     */
+    public function withHwaccelApi(string $api): self
+    {
+        $this->pipelineOptions->put('hwaccel_api', $api);
+
+        return $this;
+    }
+
+    /**
+     * Set the audio channel layouts (e.g. 'stereo', 'surround')
+     */
+    public function withChannelLayouts(string $layouts): self
+    {
+        $this->pipelineOptions->put('channel_layouts', $layouts);
+
+        return $this;
+    }
+
+    /**
+     * Set the segment output folder
+     */
+    public function withSegmentFolder(string $folder): self
+    {
+        $this->pipelineOptions->put('segment_folder', $folder);
+
+        return $this;
+    }
+
+    /**
+     * Set extra input arguments passed directly to the packager
+     */
+    public function withExtraInputArgs(string $args): self
+    {
+        $this->pipelineOptions->put('extra_input_args', $args);
 
         return $this;
     }

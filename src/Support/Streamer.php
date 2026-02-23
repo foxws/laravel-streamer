@@ -138,6 +138,14 @@ class Streamer
             $builder->withSegmentDuration($this->configuration['segment_duration']);
         }
 
+        if (filled($this->configuration['hwaccel_api'] ?? null)) {
+            $builder->withHwaccelApi($this->configuration['hwaccel_api']);
+        }
+
+        if (filled($this->configuration['extra_input_args'] ?? null)) {
+            $builder->withExtraInputArgs($this->configuration['extra_input_args']);
+        }
+
         if (filled($this->configuration['streamer_options'] ?? null) && is_array($this->configuration['streamer_options'])) {
             foreach ($this->configuration['streamer_options'] as $key => $value) {
                 $builder->withOption($key, $value);
@@ -473,6 +481,66 @@ class Streamer
     public function withLowLatencyDashMode(bool $enabled = true): self
     {
         $this->builder()->withLowLatencyDashMode($enabled);
+
+        return $this;
+    }
+
+    /**
+     * Force subtitle tracks to be marked as forced
+     */
+    public function withForcedSubtitle(bool $forced = true): self
+    {
+        $this->builder()->withForcedSubtitle($forced);
+
+        return $this;
+    }
+
+    /**
+     * Limit resolution by a specific dimension string (e.g. 'width' or 'height')
+     */
+    public function withLimitResolutionBy(string $dimension): self
+    {
+        $this->builder()->withLimitResolutionBy($dimension);
+
+        return $this;
+    }
+
+    /**
+     * Set the hardware acceleration API to use (e.g. 'vaapi', 'nvenc', 'videotoolbox')
+     */
+    public function withHwaccelApi(string $api): self
+    {
+        $this->builder()->withHwaccelApi($api);
+
+        return $this;
+    }
+
+    /**
+     * Set the audio channel layouts (e.g. 'stereo', 'surround')
+     */
+    public function withChannelLayouts(string $layouts): self
+    {
+        $this->builder()->withChannelLayouts($layouts);
+
+        return $this;
+    }
+
+    /**
+     * Set the segment output folder
+     */
+    public function withSegmentFolder(string $folder): self
+    {
+        $this->builder()->withSegmentFolder($folder);
+
+        return $this;
+    }
+
+    /**
+     * Set extra input arguments passed directly to the packager
+     */
+    public function withExtraInputArgs(string $args): self
+    {
+        $this->builder()->withExtraInputArgs($args);
 
         return $this;
     }

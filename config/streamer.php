@@ -141,6 +141,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Hardware Acceleration API
+    |--------------------------------------------------------------------------
+    |
+    | Hardware acceleration API for video encoding.
+    | Common options: 'vaapi', 'nvenc', 'videotoolbox', 'qsv'
+    | Leave null to use software encoding.
+    |
+    */
+
+    'hwaccel_api' => env('STREAMER_HWACCEL_API', null),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extra Input Arguments
+    |--------------------------------------------------------------------------
+    |
+    | Additional raw arguments passed directly to the packager's input.
+    | Useful for advanced scenarios such as custom demuxer flags.
+    | Leave null to pass no extra arguments.
+    |
+    */
+
+    'extra_input_args' => env('STREAMER_EXTRA_INPUT_ARGS', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Shaka Streamer Options
     |--------------------------------------------------------------------------
     |
