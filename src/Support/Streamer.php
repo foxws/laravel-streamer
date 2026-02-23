@@ -119,21 +119,6 @@ class Streamer
         }
 
         // Apply configuration defaults
-        if (filled($this->configuration['audio_codecs'] ?? null)) {
-            $builder->withAudioCodecs($this->parseCodecs($this->configuration['audio_codecs'], ['aac']));
-        }
-
-        if (filled($this->configuration['video_codecs'] ?? null)) {
-            $builder->withVideoCodecs($this->parseCodecs($this->configuration['video_codecs'], ['h264']));
-        }
-
-        if (filled($this->configuration['resolutions'] ?? null)) {
-            $resolutions = $this->parseCodecs($this->configuration['resolutions'], []);
-            if (! empty($resolutions)) {
-                $builder->withResolutions($resolutions);
-            }
-        }
-
         if (filled($this->configuration['segment_duration'] ?? null)) {
             $builder->withSegmentDuration($this->configuration['segment_duration']);
         }
@@ -187,6 +172,21 @@ class Streamer
 
         $this->builder()->addVideoStream($inputPath, $outputPath, $options);
 
+        // Apply video codec and resolution configuration defaults (only if not already set)
+        if ($this->configuration) {
+            if (! $this->builder()->getOptions()->has('video_codecs') && filled($this->configuration['video_codecs'] ?? null)) {
+                $this->builder()->withVideoCodecs($this->parseCodecs($this->configuration['video_codecs'], ['h264']));
+            }
+
+            if (! $this->builder()->getOptions()->has('resolutions') && filled($this->configuration['resolutions'] ?? null)) {
+                $resolutions = $this->parseCodecs($this->configuration['resolutions'], []);
+
+                if (filled($resolutions)) {
+                    $this->builder()->withResolutions($resolutions);
+                }
+            }
+        }
+
         return $this;
     }
 
@@ -202,6 +202,11 @@ class Streamer
         $outputPath = $this->resolveOutputPath($output);
 
         $this->builder()->addAudioStream($inputPath, $outputPath, $options);
+
+        // Apply audio codec configuration defaults (only if not already set)
+        if ($this->configuration && ! $this->builder()->getOptions()->has('audio_codecs') && filled($this->configuration['audio_codecs'] ?? null)) {
+            $this->builder()->withAudioCodecs($this->parseCodecs($this->configuration['audio_codecs'], ['aac']));
+        }
 
         return $this;
     }
