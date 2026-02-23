@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 1.0.0 - 2026-02-23
+
+### What's Changed
+
+* feat: add S3 support and improve file upload handling by @francoism90 in https://github.com/foxws/laravel-streamer/pull/9
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/0.9.0...1.0.0
+
 ## 0.9.0 - 2026-02-23
 
 ### What's Changed
