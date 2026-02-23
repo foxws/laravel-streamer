@@ -370,11 +370,7 @@ class CommandBuilder
 
             // Only add each unique input once
             if (! isset($processedInputs[$input])) {
-                $inputs[] = [
-                    'input_type' => 'file',
-                    'name' => $input,
-                    'media_type' => $stream['type'],
-                ];
+                $inputs[] = $this->buildInputStream($stream);
                 $processedInputs[$input] = count($inputs) - 1;
             }
         }
@@ -420,6 +416,18 @@ class CommandBuilder
         }
 
         return $config;
+    }
+
+    /**
+     * Build a single input entry for InputConfig
+     */
+    protected function buildInputStream(array $stream): array
+    {
+        return array_merge([
+            'input_type' => 'file',
+            'name' => $stream['input'],
+            'media_type' => $stream['type'],
+        ], array_filter($stream['options'] ?? []));
     }
 
     /**
