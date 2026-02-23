@@ -229,21 +229,21 @@ class CommandBuilder
     }
 
     /**
-     * Enable or disable low latency DASH mode
+     * Enable or disable iframe playlist generation (HLS I-frame only playlist)
      */
-    public function withLowLatencyDashMode(bool $enabled = true): self
+    public function withGenerateIframePlaylist(bool $enabled = true): self
     {
-        $this->pipelineOptions->put('low_latency_dash_mode', $enabled);
+        $this->pipelineOptions->put('generate_iframe_playlist', $enabled);
 
         return $this;
     }
 
     /**
-     * Force subtitle tracks to be marked as forced
+     * Enable or disable low latency DASH mode
      */
-    public function withForcedSubtitle(bool $forced = true): self
+    public function withLowLatencyDashMode(bool $enabled = true): self
     {
-        $this->pipelineOptions->put('forced_subtitle', $forced);
+        $this->pipelineOptions->put('low_latency_dash_mode', $enabled);
 
         return $this;
     }
