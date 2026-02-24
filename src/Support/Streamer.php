@@ -177,14 +177,6 @@ class Streamer
             if (! $this->builder()->getOptions()->has('video_codecs') && filled($this->configuration['video_codecs'] ?? null)) {
                 $this->builder()->withVideoCodecs($this->parseCodecs($this->configuration['video_codecs'], ['h264']));
             }
-
-            if (! $this->builder()->getOptions()->has('resolutions') && filled($this->configuration['resolutions'] ?? null)) {
-                $resolutions = $this->parseCodecs($this->configuration['resolutions'], []);
-
-                if (filled($resolutions)) {
-                    $this->builder()->withResolutions($resolutions);
-                }
-            }
         }
 
         return $this;

@@ -110,22 +110,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Resolutions
-    |--------------------------------------------------------------------------
-    |
-    | Default resolutions to generate for streaming.
-    | An array of strings, each representing a resolution (e.g., '1080p', '720p').
-    |
-    | Common options: '2160p', '1080p', '720p', '480p', '360p'
-    | Leave empty to use source resolution only.
-    | Specify as comma-separated string: STREAMER_RESOLUTIONS="1080p,720p,480p"
-    |
-    */
-
-    'resolutions' => env('STREAMER_RESOLUTIONS', null),
-
-    /*
-    |--------------------------------------------------------------------------
     | Segment Duration
     |--------------------------------------------------------------------------
     |

@@ -23,9 +23,9 @@ class VideoResolution implements Arrayable
         4320 => '8k',
     ];
 
-    public static function make(int $height): static
+    public static function make(int $height): self
     {
-        return new static($height);
+        return new self($height);
     }
 
     public function __construct(
