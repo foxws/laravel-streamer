@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
-use Exception;
 use Foxws\Streamer\Filesystem\Disk;
 use Generator;
 use GuzzleHttp\Promise\EachPromise;
@@ -231,7 +230,7 @@ class StreamerResult
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 if (isset($stream) && is_resource($stream)) {
                     fclose($stream);
                 }

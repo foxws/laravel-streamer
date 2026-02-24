@@ -698,7 +698,7 @@ class Streamer
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
 
             return $result;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $executionTime = microtime(true) - $startTime;
 
             if ($this->logger) {

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Events;
 
-use Exception;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class StreamingFailed
 {
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public Exception $exception,
+        public Throwable $exception,
         public float $executionTime = 0,
         public array $context = []
     ) {}
