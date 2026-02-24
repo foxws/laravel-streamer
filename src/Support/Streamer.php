@@ -11,6 +11,7 @@ use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 class Streamer
 {
@@ -646,7 +647,7 @@ class Streamer
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
             $executionTime = microtime(true) - $startTime;
 
             if ($this->logger) {
@@ -697,7 +698,7 @@ class Streamer
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $executionTime = microtime(true) - $startTime;
 
             if ($this->logger) {

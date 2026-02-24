@@ -55,9 +55,13 @@ class StreamerResult
             $cacheDisk ? $this->buildFileOperations($cacheDisk->allFiles(), $targetDirectory, $this->cacheDirectory) : [],
         );
 
-        if (! empty($fileOps)) {
-            $this->copyFilesConcurrently($fileOps, $targetDisk->getName(), $visibility);
-        }
+        throw_if(
+            blank($fileOps),
+            RuntimeException::class,
+            'Streamer produced no output files. Verify that the input media contains valid video or audio streams.'
+        );
+
+        $this->copyFilesConcurrently($fileOps, $targetDisk->getName(), $visibility);
 
         if ($cleanup) {
             if ($tempDisk && is_dir($this->temporaryDirectory)) {
@@ -227,7 +231,7 @@ class StreamerResult
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 if (isset($stream) && is_resource($stream)) {
                     fclose($stream);
                 }
