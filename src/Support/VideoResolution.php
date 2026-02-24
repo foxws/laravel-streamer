@@ -11,12 +11,12 @@ class VideoResolution implements Arrayable
 {
     /** @var array<int, string> */
     private const RESOLUTIONS = [
-        144  => '144p',
-        240  => '240p',
-        360  => '360p',
-        480  => '480p',
-        576  => '576p',
-        720  => '720p',
+        144 => '144p',
+        240 => '240p',
+        360 => '360p',
+        480 => '480p',
+        576 => '576p',
+        720 => '720p',
         1080 => '1080p',
         1440 => '1440p',
         2160 => '4k',
