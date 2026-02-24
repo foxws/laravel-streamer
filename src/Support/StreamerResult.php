@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
-use Exception;
 use Foxws\Streamer\Filesystem\Disk;
 use Generator;
 use GuzzleHttp\Promise\EachPromise;
