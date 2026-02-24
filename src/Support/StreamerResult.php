@@ -8,7 +8,7 @@ use Foxws\Streamer\Filesystem\Disk;
 use Generator;
 use GuzzleHttp\Promise\EachPromise;
 use Illuminate\Contracts\Filesystem\Filesystem;
-use League\MimeTypeDetection\FinfoMimeTypeDetector;
+use League\MimeTypeDetection\ExtensionMimeTypeDetector;
 use RuntimeException;
 use Throwable;
 
@@ -145,7 +145,7 @@ class StreamerResult
         $bucket = $disk->getS3Bucket();
         $adapterOptions = $disk->getS3UploadOptions();
         $concurrency = (int) ($this->configuration['concurrency_workers'] ?? 10);
-        $mimeDetector = new FinfoMimeTypeDetector;
+        $mimeDetector = new ExtensionMimeTypeDetector;
 
         $acl = match ($visibility) {
             'public' => 'public-read',

@@ -635,14 +635,14 @@ class Streamer
             // Pass temp directory to shaka-streamer via -o flag
             $rawResult = $this->streamer->packageWithConfig($config, $outputDirectory);
 
-            if ($this->logger) {
-                $this->logger->info('Streaming operation completed');
-            }
-
             // Get the first media's disk as the source disk
             $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
 
             $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory, $this->configuration);
+
+            if ($this->logger) {
+                $this->logger->info('Streaming operation completed');
+            }
 
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);
 
@@ -686,13 +686,13 @@ class Streamer
 
             $rawResult = $this->streamer->packageWithConfig($config, $outputDirectory);
 
-            if ($this->logger) {
-                $this->logger->info('Streaming operation completed');
-            }
-
             $sourceDisk = $this->mediaCollection?->collection()->first()?->getDisk();
 
             $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory, $this->configuration);
+
+            if ($this->logger) {
+                $this->logger->info('Streaming operation completed');
+            }
 
             // Dispatch completed event with result and execution time
             StreamingCompleted::dispatch($result, microtime(true) - $startTime);

@@ -62,8 +62,8 @@ class StreamerServiceProvider extends PackageServiceProvider
             return ShakaStreamer::create($logger, $config);
         });
 
-        // Register the Streamer
-        $this->app->singleton(Streamer::class, function ($app) {
+        // Register Laravel Streamer
+        $this->app->scoped(Streamer::class, function ($app) {
             $driver = $app->make(ShakaStreamer::class);
             $logger = $app->make('laravel-streamer-logger');
             $config = $app->make('laravel-streamer-configuration');

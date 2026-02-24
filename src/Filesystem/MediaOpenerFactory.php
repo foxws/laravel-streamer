@@ -37,7 +37,7 @@ class MediaOpenerFactory
 
         $resolver = $this->streamerResolver;
 
-        return $this->streamer = $resolver();
+        return ($resolver)();
     }
 
     public function new(): MediaOpener
