@@ -300,26 +300,6 @@ class Streamer
     }
 
     /**
-     * Set segment duration
-     */
-    public function withSegmentDuration(int $seconds): self
-    {
-        $this->builder()->withSegmentDuration($seconds);
-
-        return $this;
-    }
-
-    /**
-     * Enable encryption
-     */
-    public function withEncryption(array $encryptionConfig): self
-    {
-        $this->builder()->withEncryption($encryptionConfig);
-
-        return $this;
-    }
-
-    /**
      * Enable AES-128 encryption with auto-generated keys.
      *
      * Generates encryption key, writes to cache storage, and configures Shaka Streamer.
@@ -400,166 +380,6 @@ class Streamer
     {
         if ($use) {
             $this->streamer->addArgument('--use-system-binaries');
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set the streaming mode (vod or live)
-     */
-    public function withStreamingMode(string $mode): self
-    {
-        $this->builder()->withStreamingMode($mode);
-
-        return $this;
-    }
-
-    /**
-     * Set the manifest formats to create
-     *
-     * @param  array<int, string>  $formats  e.g. ['dash', 'hls']
-     */
-    public function withManifestFormat(array $formats): self
-    {
-        $this->builder()->withManifestFormat($formats);
-
-        return $this;
-    }
-
-    /**
-     * Set the resolutions to encode
-     *
-     * @param  array<int, string>  $resolutions  e.g. ['1080p', '720p', '480p']
-     */
-    public function withResolutions(array $resolutions): self
-    {
-        $this->builder()->withResolutions($resolutions);
-
-        return $this;
-    }
-
-    /**
-     * Enable or disable segment per file output
-     */
-    public function withSegmentPerFile(bool $enabled = true): self
-    {
-        $this->builder()->withSegmentPerFile($enabled);
-
-        return $this;
-    }
-
-    /**
-     * Set the audio codecs to use for packaging
-     *
-     * @param  array<int, string>  $codecs  e.g. ['aac', 'opus']
-     */
-    public function withAudioCodecs(array $codecs): self
-    {
-        $this->builder()->withAudioCodecs($codecs);
-
-        return $this;
-    }
-
-    /**
-     * Set the video codecs to use for packaging
-     *
-     * @param  array<int, string>  $codecs  e.g. ['h264', 'hw:vp9']
-     */
-    public function withVideoCodecs(array $codecs): self
-    {
-        $this->builder()->withVideoCodecs($codecs);
-
-        return $this;
-    }
-
-    /**
-     * Enable or disable iframe playlist generation (HLS I-frame only playlist)
-     */
-    public function withGenerateIframePlaylist(bool $enabled = true): self
-    {
-        $this->builder()->withGenerateIframePlaylist($enabled);
-
-        return $this;
-    }
-
-    /**
-     * Enable or disable low latency DASH mode
-     */
-    public function withLowLatencyDashMode(bool $enabled = true): self
-    {
-        $this->builder()->withLowLatencyDashMode($enabled);
-
-        return $this;
-    }
-
-    /**
-     * Limit resolution by a specific dimension string (e.g. 'width' or 'height')
-     */
-    public function withLimitResolutionBy(string $dimension): self
-    {
-        $this->builder()->withLimitResolutionBy($dimension);
-
-        return $this;
-    }
-
-    /**
-     * Set the hardware acceleration API to use (e.g. 'vaapi', 'nvenc', 'videotoolbox')
-     */
-    public function withHwaccelApi(string $api): self
-    {
-        $this->builder()->withHwaccelApi($api);
-
-        return $this;
-    }
-
-    /**
-     * Set the audio channel layouts (e.g. 'stereo', 'surround')
-     */
-    public function withChannelLayouts(string $layouts): self
-    {
-        $this->builder()->withChannelLayouts($layouts);
-
-        return $this;
-    }
-
-    /**
-     * Set the segment output folder
-     */
-    public function withSegmentFolder(string $folder): self
-    {
-        $this->builder()->withSegmentFolder($folder);
-
-        return $this;
-    }
-
-    /**
-     * Set extra input arguments passed directly to the packager
-     */
-    public function withExtraInputArgs(string $args): self
-    {
-        $this->builder()->withExtraInputArgs($args);
-
-        return $this;
-    }
-
-    /**
-     * Add a custom option to the builder
-     */
-    public function withOption(string $key, mixed $value): self
-    {
-        $this->builder()->withOption($key, $value);
-
-        return $this;
-    }
-
-    /**
-     * Add multiple custom options to the builder
-     */
-    public function withOptions(array $options): self
-    {
-        foreach ($options as $key => $value) {
-            $this->builder()->withOption($key, $value);
         }
 
         return $this;
@@ -729,5 +549,16 @@ class Streamer
         }
 
         return array_map('trim', explode(',', $value));
+    }
+
+    /**
+     * Forward all other method calls to the underlying CommandBuilder,
+     * returning $this for fluent chaining when the builder returns itself.
+     */
+    public function __call(string $name, array $arguments): mixed
+    {
+        $result = $this->forwardCallTo($this->builder(), $name, $arguments);
+
+        return $result instanceof CommandBuilder ? $this : $result;
     }
 }
