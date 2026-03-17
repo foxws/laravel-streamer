@@ -42,7 +42,7 @@ Streamer::fromDisk('s3')
 ## Requirements
 
 - PHP 8.3+
-- Laravel 11 or 12
+- Laravel 12 or 13
 - [Shaka Streamer](https://github.com/shaka-project/shaka-streamer) binary (`pip install shaka-streamer`)
 
 ## Installation
@@ -173,11 +173,11 @@ See [URL Resolvers](docs/URL_RESOLVERS.md) for more details.
 
 Listen to streaming lifecycle events:
 
-| Event | Payload |
-| --- | --- |
-| `StreamingStarted` | `MediaCollection $mediaCollection`, `array $options` |
-| `StreamingCompleted` | `StreamerResult $result`, `float $executionTime` |
-| `StreamingFailed` | `Exception $exception`, `float $executionTime` |
+| Event                | Payload                                              |
+| -------------------- | ---------------------------------------------------- |
+| `StreamingStarted`   | `MediaCollection $mediaCollection`, `array $options` |
+| `StreamingCompleted` | `StreamerResult $result`, `float $executionTime`     |
+| `StreamingFailed`    | `Exception $exception`, `float $executionTime`       |
 
 ### Post-Export Inspection
 
@@ -204,91 +204,91 @@ $exporter->toDisk('s3')->save();
 
 ### `Streamer` Facade → `MediaOpener`
 
-| Method | Description |
-| --- | --- |
-| `fromDisk($disk)` | Set the source filesystem disk |
-| `open($paths)` | Open one or more media files |
-| `openFromDisk($disk, $paths)` | Set disk and open files in one call |
-| `get()` | Get the `MediaCollection` |
-| `export()` | Start the export chain (returns `MediaExporter`) |
-| `dynamicHLSPlaylist(?string $disk)` | Create a `DynamicHLSPlaylist` instance |
-| `dynamicDASHManifest(?string $disk)` | Create a `DynamicDASHManifest` instance |
-| `cleanupTemporaryFiles()` | Delete all temporary directories |
+| Method                               | Description                                      |
+| ------------------------------------ | ------------------------------------------------ |
+| `fromDisk($disk)`                    | Set the source filesystem disk                   |
+| `open($paths)`                       | Open one or more media files                     |
+| `openFromDisk($disk, $paths)`        | Set disk and open files in one call              |
+| `get()`                              | Get the `MediaCollection`                        |
+| `export()`                           | Start the export chain (returns `MediaExporter`) |
+| `dynamicHLSPlaylist(?string $disk)`  | Create a `DynamicHLSPlaylist` instance           |
+| `dynamicDASHManifest(?string $disk)` | Create a `DynamicDASHManifest` instance          |
+| `cleanupTemporaryFiles()`            | Delete all temporary directories                 |
 
 ### Stream Configuration (via `MediaOpener` → `Streamer`)
 
-| Method | Description |
-| --- | --- |
-| `addVideoStream($input, $output, $options)` | Add a video stream |
-| `addAudioStream($input, $output, $options)` | Add an audio stream |
-| `addTextStream($input, $output, $options)` | Add a text/subtitle stream |
-| `addStream(array $stream)` | Add a raw Shaka stream descriptor (`in`, `stream`, `output`, …) |
-| `withHlsMasterPlaylist($path)` | Set HLS output |
-| `withMpdOutput($path)` | Set DASH/MPD output |
-| `withSegmentDuration(int $seconds)` | Set segment duration |
-| `withManifestFormat(array $formats)` | Set manifest formats (e.g. `['dash', 'hls']`) |
-| `withResolutions(array $resolutions)` | Set encoding resolutions |
-| `withVideoCodecs(array $codecs)` | Set video codecs (e.g. `['h264', 'hw:vp9']`) |
-| `withAudioCodecs(array $codecs)` | Set audio codecs (e.g. `['aac', 'opus']`) |
-| `withSegmentPerFile(bool $enabled)` | Enable segment-per-file output |
-| `withLowLatencyDashMode(bool $enabled)` | Enable low-latency DASH |
-| `withStreamingMode(string $mode)` | Set mode (`'vod'` or `'live'`) |
-| `withEncryption(array $config)` | Set raw encryption config |
-| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key |
-| `withKeyRotationDuration(int $seconds)` | Enable key rotation (requires `'cenc'` or `'cbcs'`) |
-| `withOption($key, $value)` | Set a custom pipeline option |
-| `withOptions(array $options)` | Set multiple custom pipeline options |
-| `getCommand()` | Get the built config array (for debugging) |
+| Method                                             | Description                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------- |
+| `addVideoStream($input, $output, $options)`        | Add a video stream                                              |
+| `addAudioStream($input, $output, $options)`        | Add an audio stream                                             |
+| `addTextStream($input, $output, $options)`         | Add a text/subtitle stream                                      |
+| `addStream(array $stream)`                         | Add a raw Shaka stream descriptor (`in`, `stream`, `output`, …) |
+| `withHlsMasterPlaylist($path)`                     | Set HLS output                                                  |
+| `withMpdOutput($path)`                             | Set DASH/MPD output                                             |
+| `withSegmentDuration(int $seconds)`                | Set segment duration                                            |
+| `withManifestFormat(array $formats)`               | Set manifest formats (e.g. `['dash', 'hls']`)                   |
+| `withResolutions(array $resolutions)`              | Set encoding resolutions                                        |
+| `withVideoCodecs(array $codecs)`                   | Set video codecs (e.g. `['h264', 'hw:vp9']`)                    |
+| `withAudioCodecs(array $codecs)`                   | Set audio codecs (e.g. `['aac', 'opus']`)                       |
+| `withSegmentPerFile(bool $enabled)`                | Enable segment-per-file output                                  |
+| `withLowLatencyDashMode(bool $enabled)`            | Enable low-latency DASH                                         |
+| `withStreamingMode(string $mode)`                  | Set mode (`'vod'` or `'live'`)                                  |
+| `withEncryption(array $config)`                    | Set raw encryption config                                       |
+| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key                                |
+| `withKeyRotationDuration(int $seconds)`            | Enable key rotation (requires `'cenc'` or `'cbcs'`)             |
+| `withOption($key, $value)`                         | Set a custom pipeline option                                    |
+| `withOptions(array $options)`                      | Set multiple custom pipeline options                            |
+| `getCommand()`                                     | Get the built config array (for debugging)                      |
 
 ### `MediaExporter` (returned by `export()`)
 
-| Method | Description |
-| --- | --- |
-| `toDisk($disk)` | Set target disk for output |
-| `toPath(string $path)` | Set target subdirectory |
+| Method                               | Description                                   |
+| ------------------------------------ | --------------------------------------------- |
+| `toDisk($disk)`                      | Set target disk for output                    |
+| `toPath(string $path)`               | Set target subdirectory                       |
 | `withVisibility(string $visibility)` | Set file visibility (`'public'`, `'private'`) |
-| `afterSaving(callable $callback)` | Register post-save callback |
-| `save(?string $path)` | Execute packaging and copy files to disk |
-| `getCommand()` | Get the built config array |
-| `dd()` | Dump config and die |
-| `getCopySummary()` | Get `{total, copied, failed, totalSize}` |
-| `getCopiedFiles()` | Get array of successfully copied files |
-| `getFailedFiles()` | Get array of failed file copies |
-| `hasCopyFailures()` | Check if any files failed to copy |
+| `afterSaving(callable $callback)`    | Register post-save callback                   |
+| `save(?string $path)`                | Execute packaging and copy files to disk      |
+| `getCommand()`                       | Get the built config array                    |
+| `dd()`                               | Dump config and die                           |
+| `getCopySummary()`                   | Get `{total, copied, failed, totalSize}`      |
+| `getCopiedFiles()`                   | Get array of successfully copied files        |
+| `getFailedFiles()`                   | Get array of failed file copies               |
+| `hasCopyFailures()`                  | Check if any files failed to copy             |
 
 ### `DynamicHLSPlaylist`
 
-| Method | Description |
-| --- | --- |
-| `open(string $path)` | Open a playlist file |
-| `setKeyUrlResolver(callable)` | Resolve encryption key URLs |
-| `setMediaUrlResolver(callable)` | Resolve media segment URLs |
-| `setPlaylistUrlResolver(callable)` | Resolve sub-playlist URLs |
-| `get()` | Get processed playlist content |
-| `all()` | Get all processed playlists (master + variants) |
-| `toResponse($request)` | Return as `application/vnd.apple.mpegurl` response |
+| Method                             | Description                                        |
+| ---------------------------------- | -------------------------------------------------- |
+| `open(string $path)`               | Open a playlist file                               |
+| `setKeyUrlResolver(callable)`      | Resolve encryption key URLs                        |
+| `setMediaUrlResolver(callable)`    | Resolve media segment URLs                         |
+| `setPlaylistUrlResolver(callable)` | Resolve sub-playlist URLs                          |
+| `get()`                            | Get processed playlist content                     |
+| `all()`                            | Get all processed playlists (master + variants)    |
+| `toResponse($request)`             | Return as `application/vnd.apple.mpegurl` response |
 
 ### `DynamicDASHManifest`
 
-| Method | Description |
-| --- | --- |
-| `open(string $path)` | Open a manifest file |
-| `setMediaUrlResolver(callable)` | Resolve media segment URLs |
-| `setInitUrlResolver(callable)` | Resolve initialization segment URLs |
-| `get()` | Get processed manifest content |
-| `toResponse($request)` | Return as `application/dash+xml` response |
+| Method                          | Description                               |
+| ------------------------------- | ----------------------------------------- |
+| `open(string $path)`            | Open a manifest file                      |
+| `setMediaUrlResolver(callable)` | Resolve media segment URLs                |
+| `setInitUrlResolver(callable)`  | Resolve initialization segment URLs       |
+| `get()`                         | Get processed manifest content            |
+| `toResponse($request)`          | Return as `application/dash+xml` response |
 
 ## Configuration
 
 Key options in `config/streamer.php`:
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `streamer.streamer_binary` | `'shaka-streamer'` | Path to the Shaka Streamer binary |
-| `timeout` | `14400` (4h) | Process timeout in seconds |
-| `temporary_files_root` | `storage_path('app/streamer/temp')` | Directory for temporary files |
-| `cache_files_root` | `'/dev/shm'` | Fast storage for small files (keys, manifests) |
-| `log_channel` | `null` | Log channel for streamer output |
+| Option                     | Default                             | Description                                    |
+| -------------------------- | ----------------------------------- | ---------------------------------------------- |
+| `streamer.streamer_binary` | `'shaka-streamer'`                  | Path to the Shaka Streamer binary              |
+| `timeout`                  | `14400` (4h)                        | Process timeout in seconds                     |
+| `temporary_files_root`     | `storage_path('app/streamer/temp')` | Directory for temporary files                  |
+| `cache_files_root`         | `'/dev/shm'`                        | Fast storage for small files (keys, manifests) |
+| `log_channel`              | `null`                              | Log channel for streamer output                |
 
 See [Configuration](docs/CONFIGURATION.md) for all options and environment variables.
 

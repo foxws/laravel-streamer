@@ -21,14 +21,14 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        php: [8.4, 8.3]
-        laravel: [12.*, 11.*]
+        php: [8.4, 8.5]
+        laravel: [12.*, 13.*]
         stability: [prefer-stable]
         include:
           - laravel: 12.*
             testbench: 10.*
-          - laravel: 11.*
-            testbench: 9.*
+          - laravel: 13.*
+            testbench: 11.*
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
@@ -55,7 +55,6 @@ jobs:
           python3 -m pip show shaka-streamer
 
       - name: Setup Shaka Packager
-        if: runner.os == 'Linux'
         run: |
           wget -q https://github.com/shaka-project/shaka-packager/releases/download/v3.4.2/packager-linux-x64 -O /tmp/packager
           sudo mv /tmp/packager /usr/local/bin/packager
