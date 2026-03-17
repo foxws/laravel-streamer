@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\Facades\Streamer;
+use Foxws\Streamer\Http\DynamicDASHManifest;
+use Foxws\Streamer\Http\DynamicHLSPlaylist;
 use Foxws\Streamer\MediaOpener;
 use Illuminate\Support\Facades\Storage;
 
@@ -33,27 +36,27 @@ it('can handle workflow from open to export', function () {
 
     $exporter = Streamer::open('input.mp4')->export();
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can create dynamic HLS playlist', function () {
     $playlist = MediaOpener::dynamicHLSPlaylist();
 
-    expect($playlist)->toBeInstanceOf(\Foxws\Streamer\Http\DynamicHLSPlaylist::class);
+    expect($playlist)->toBeInstanceOf(DynamicHLSPlaylist::class);
 });
 
 it('can create dynamic DASH manifest', function () {
     $manifest = MediaOpener::dynamicDASHManifest();
 
-    expect($manifest)->toBeInstanceOf(\Foxws\Streamer\Http\DynamicDASHManifest::class);
+    expect($manifest)->toBeInstanceOf(DynamicDASHManifest::class);
 });
 
 it('can create dynamic playlists with specific disk', function () {
     $playlist = MediaOpener::dynamicHLSPlaylist('export');
     $manifest = MediaOpener::dynamicDASHManifest('local');
 
-    expect($playlist)->toBeInstanceOf(\Foxws\Streamer\Http\DynamicHLSPlaylist::class);
-    expect($manifest)->toBeInstanceOf(\Foxws\Streamer\Http\DynamicDASHManifest::class);
+    expect($playlist)->toBeInstanceOf(DynamicHLSPlaylist::class);
+    expect($manifest)->toBeInstanceOf(DynamicDASHManifest::class);
 });
 
 it('can cleanup temporary files', function () {

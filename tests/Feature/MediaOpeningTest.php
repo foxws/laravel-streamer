@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\Facades\Streamer;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
@@ -68,7 +69,7 @@ it('can chain disk and open operations', function () {
 it('can get packager instance from opener', function () {
     $opener = new MediaOpener;
 
-    expect($opener->getStreamer())->toBeInstanceOf(\Foxws\Streamer\Support\Streamer::class);
+    expect($opener->getStreamer())->toBeInstanceOf(Foxws\Streamer\Support\Streamer::class);
 });
 
 it('can export from media opener', function () {
@@ -77,11 +78,11 @@ it('can export from media opener', function () {
     $opener = Streamer::open('test.mp4');
     $exporter = $opener->export();
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('validates that media collection is not empty before opening', function () {
-    $streamer = app(\Foxws\Streamer\Support\Streamer::class);
+    $streamer = app(Foxws\Streamer\Support\Streamer::class);
     $emptyCollection = MediaCollection::make([]);
 
     $streamer->open($emptyCollection);

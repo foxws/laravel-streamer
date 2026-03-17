@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Support\Facades\Process;
 use Psr\Log\LoggerInterface;
 
@@ -305,7 +306,7 @@ class ShakaStreamer
     /**
      * Handle process failure with detailed logging
      *
-     * @param  \Illuminate\Contracts\Process\ProcessResult  $result
+     * @param  ProcessResult  $result
      *
      * @throws \RuntimeException
      */

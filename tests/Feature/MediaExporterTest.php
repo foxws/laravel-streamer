@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\Facades\Streamer;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,7 +16,7 @@ it('can create exporter from media opener', function () {
 
     $exporter = Streamer::open('video.mp4')->export();
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can specify target disk for export', function () {
@@ -25,7 +26,7 @@ it('can specify target disk for export', function () {
         ->export()
         ->toDisk('export');
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can specify path for export', function () {
@@ -35,7 +36,7 @@ it('can specify path for export', function () {
         ->export()
         ->toPath('output/');
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can set file visibility for export', function () {
@@ -45,7 +46,7 @@ it('can set file visibility for export', function () {
         ->export()
         ->withVisibility('public');
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can chain path and disk methods', function () {
@@ -57,7 +58,7 @@ it('can chain path and disk methods', function () {
         ->toPath('videos/')
         ->withVisibility('public');
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can get command for debugging', function () {
@@ -82,7 +83,7 @@ it('can add after saving callbacks', function () {
             $callbackExecuted = true;
         });
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });
 
 it('can handle multiple export destinations', function () {
@@ -91,6 +92,6 @@ it('can handle multiple export destinations', function () {
     $exporter1 = Streamer::open('video.mp4')->export()->toDisk('local');
     $exporter2 = Streamer::open('video.mp4')->export()->toDisk('export');
 
-    expect($exporter1)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
-    expect($exporter2)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter1)->toBeInstanceOf(MediaExporter::class);
+    expect($exporter2)->toBeInstanceOf(MediaExporter::class);
 });

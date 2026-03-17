@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Examples;
 
+use Foxws\Streamer\Filesystem\Media;
+use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Support\Packager;
 
 /**
@@ -82,8 +84,8 @@ class FluentBuilderExamples
      */
     public function usingPackagerDirectly(Packager $packager): void
     {
-        $mediaCollection = \Foxws\Streamer\Filesystem\MediaCollection::make([
-            \Foxws\Streamer\Filesystem\Media::make('videos', 'input.mp4'),
+        $mediaCollection = MediaCollection::make([
+            Media::make('videos', 'input.mp4'),
         ]);
 
         $result = $packager
@@ -289,8 +291,8 @@ class FluentBuilderExamples
      */
     public function reusingPackager(Packager $packager): void
     {
-        $mediaCollection = \Foxws\Streamer\Filesystem\MediaCollection::make([
-            \Foxws\Streamer\Filesystem\Media::make('videos', 'input.mp4'),
+        $mediaCollection = MediaCollection::make([
+            Media::make('videos', 'input.mp4'),
         ]);
 
         // First packaging operation

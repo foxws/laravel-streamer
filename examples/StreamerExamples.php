@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Examples;
 
+use Foxws\Streamer\Exceptions\RuntimeException;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Support\CommandBuilder;
@@ -255,7 +256,7 @@ class StreamerExamples
                 // Success
                 logger()->info('Packaging successful', $result->toArray());
             }
-        } catch (\Foxws\Streamer\Exceptions\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             // Packager command failed
             logger()->error('Packaging failed', [
                 'exception' => $e->getMessage(),

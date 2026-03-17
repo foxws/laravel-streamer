@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Facades;
 
+use Foxws\Streamer\MediaOpener;
 use Illuminate\Support\Facades\Facade;
 
 /**
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Foxws\Streamer\Http\DynamicHLSPlaylist dynamicHLSPlaylist(?string $disk = null)
  * @method static \Foxws\Streamer\Http\DynamicDASHManifest dynamicDASHManifest(?string $disk = null)
  *
- * @see \Foxws\Streamer\MediaOpener
+ * @see MediaOpener
  */
 class Streamer extends Facade
 {

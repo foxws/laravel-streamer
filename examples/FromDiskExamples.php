@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Examples;
 
+use Foxws\Streamer\Exceptions\RuntimeException;
+
 /**
  * Examples demonstrating fromDisk usage with the fluent API
  */
@@ -201,7 +203,7 @@ class FromDiskExamples
                 ->export();
 
             logger()->info('Packaging successful from S3', $result->toArray());
-        } catch (\Foxws\Streamer\Exceptions\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             logger()->error('Packaging failed', ['error' => $e->getMessage()]);
         } catch (\InvalidArgumentException $e) {
             logger()->error('Invalid disk or path', ['error' => $e->getMessage()]);

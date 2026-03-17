@@ -9,6 +9,7 @@ use Foxws\Streamer\Events\StreamingFailed;
 use Foxws\Streamer\Events\StreamingStarted;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -144,11 +145,11 @@ class Streamer
     /**
      * Create streams from the media collection
      *
-     * @return \Illuminate\Support\Collection<int, Stream>
+     * @return Collection<int, Stream>
      */
-    public function streams(): \Illuminate\Support\Collection
+    public function streams(): Collection
     {
-        $streams = new \Illuminate\Support\Collection;
+        $streams = new Collection;
 
         foreach ($this->mediaCollection->collection() as $media) {
             // You can create multiple streams per media (video, audio, etc.)

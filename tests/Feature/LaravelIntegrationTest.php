@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\Facades\Streamer;
 use Foxws\Streamer\MediaOpener;
+use Foxws\Streamer\StreamerServiceProvider;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -12,7 +14,7 @@ beforeEach(function () {
 });
 
 it('service provider is registered', function () {
-    expect(app()->getProviders(\Foxws\Streamer\StreamerServiceProvider::class))->not->toBeEmpty();
+    expect(app()->getProviders(StreamerServiceProvider::class))->not->toBeEmpty();
 });
 
 it('registers media opener in service container', function () {
@@ -81,5 +83,5 @@ it('can export from facade chain', function () {
 
     $exporter = Streamer::open('video.mp4')->export();
 
-    expect($exporter)->toBeInstanceOf(\Foxws\Streamer\Exporters\MediaExporter::class);
+    expect($exporter)->toBeInstanceOf(MediaExporter::class);
 });

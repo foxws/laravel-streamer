@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Facades\Storage;
 
 class EncryptionKeyGenerator
@@ -57,7 +58,7 @@ class EncryptionKeyGenerator
      */
     public static function writeKeyToTemporary(string $key, string $filename = 'encryption.key'): string
     {
-        $tempDirs = app(\Foxws\Streamer\Filesystem\TemporaryDirectories::class);
+        $tempDirs = app(TemporaryDirectories::class);
 
         $directory = $tempDirs->hasCacheStorage()
             ? $tempDirs->createCache()
