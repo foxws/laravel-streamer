@@ -149,16 +149,9 @@ class Streamer
      */
     public function streams(): Collection
     {
-        $streams = new Collection;
-
-        foreach ($this->mediaCollection->collection() as $media) {
-            // You can create multiple streams per media (video, audio, etc.)
-            $streams->push(Stream::video($media));
-            $streams->push(Stream::audio($media));
-            $streams->push(Stream::text($media));
-        }
-
-        return $streams;
+        return $this->mediaCollection->collection()->flatMap(
+            fn ($media) => [Stream::video($media), Stream::audio($media), Stream::text($media)]
+        );
     }
 
     /**

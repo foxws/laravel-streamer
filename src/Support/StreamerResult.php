@@ -101,18 +101,10 @@ class StreamerResult
      */
     protected function buildFileOperations(array $files, ?string $targetDirectory, string $sourceBasePath): array
     {
-        $ops = [];
-
-        foreach ($files as $relativePath) {
-            $absolutePath = $sourceBasePath.DIRECTORY_SEPARATOR.$relativePath;
-
-            $ops[] = [
-                'absolutePath' => $absolutePath,
-                'targetPath' => $targetDirectory ? $targetDirectory.$relativePath : $relativePath,
-            ];
-        }
-
-        return $ops;
+        return array_map(fn (string $relativePath) => [
+            'absolutePath' => $sourceBasePath.DIRECTORY_SEPARATOR.$relativePath,
+            'targetPath' => $targetDirectory ? $targetDirectory.$relativePath : $relativePath,
+        ], $files);
     }
 
     /**

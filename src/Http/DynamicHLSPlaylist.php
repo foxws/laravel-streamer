@@ -10,7 +10,6 @@ use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Str;
 
 class DynamicHLSPlaylist implements Responsable
 {
@@ -219,7 +218,7 @@ class DynamicHLSPlaylist implements Responsable
      */
     protected static function extractPlaylistFromExtMediaLine(string $line): ?string
     {
-        if (! Str::startsWith($line, '#EXT-X-MEDIA:')) {
+        if (! str_starts_with($line, '#EXT-X-MEDIA:')) {
             return null;
         }
 
@@ -233,7 +232,7 @@ class DynamicHLSPlaylist implements Responsable
      */
     protected static function extractMediaFromExtMapLine(string $line): ?string
     {
-        if (! Str::startsWith($line, '#EXT-X-MAP:')) {
+        if (! str_starts_with($line, '#EXT-X-MAP:')) {
             return null;
         }
 
@@ -262,11 +261,9 @@ class DynamicHLSPlaylist implements Responsable
     {
         return static::parseLines(
             $this->disk->get($this->media->getPath())
-        )->filter(function ($line) {
-            return static::lineHasMediaFilename($line);
-        })->mapWithKeys(function ($segmentPlaylist) {
-            return [$segmentPlaylist => $this->getProcessedPlaylist($segmentPlaylist)];
-        })->prepend(
+        )->filter(static fn ($line) => static::lineHasMediaFilename($line)
+        )->mapWithKeys(fn ($segmentPlaylist) => [$segmentPlaylist => $this->getProcessedPlaylist($segmentPlaylist)]
+        )->prepend(
             $this->getProcessedPlaylist($this->media->getPath()),
             $this->media->getPath()
         );
@@ -280,7 +277,7 @@ class DynamicHLSPlaylist implements Responsable
         return static::parseLines($this->disk->get($playlistPath))->map(function (string $line) {
             if (static::lineHasMediaFilename($line)) {
                 // Use playlist resolver for .m3u8 files, media resolver for everything else
-                return Str::endsWith($line, '.m3u8')
+                return str_ends_with($line, '.m3u8')
                     ? $this->resolvePlaylistUrl($line)
                     : $this->resolveMediaUrl($line);
             }
