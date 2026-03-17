@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 1.6.0 - 2026-03-17
+
+### What's Changed
+
+* refactor: update Laravel version requirements in composer.json by @francoism90 in https://github.com/foxws/laravel-streamer/pull/10
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/1.5.0...1.6.0
+
 ## 1.5.0 - 2026-02-26
 
 **Full Changelog**: https://github.com/foxws/laravel-streamer/compare/1.4.0...1.5.0
