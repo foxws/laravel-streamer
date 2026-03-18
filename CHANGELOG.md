@@ -2,6 +2,10 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 1.7.0 - 2026-03-18
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/v1.7.0...1.7.0
+
 ## v1.7.0 - 2026-03-18
 
 **Full Changelog**: https://github.com/foxws/laravel-streamer/compare/1.6.0...v1.7.0
