@@ -2,6 +2,15 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 1.8.0 - 2026-04-26
+
+### What's Changed
+
+* build(deps): bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/11
+* build(deps): bump dependabot/fetch-metadata from 3.0.0 to 3.1.0 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/12
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/1.7.0...1.8.0
+
 ## 1.7.0 - 2026-03-18
 
 **Full Changelog**: https://github.com/foxws/laravel-streamer/compare/v1.7.0...1.7.0
