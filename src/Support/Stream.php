@@ -13,10 +13,13 @@ use Illuminate\Contracts\Support\Arrayable;
  *
  * Immutable: mutator methods return a new instance rather than modifying the
  * current one, so a Stream can be safely shared and reused as a template.
+ *
+ * @phpstan-consistent-constructor Subclasses must keep this constructor's
+ * signature: mutators use `new static(...)` so a subclass survives with*() calls.
  */
 class Stream implements Arrayable
 {
-    private function __construct(
+    protected function __construct(
         protected ?Media $media,
         protected ?string $input,
         protected string $type,
@@ -26,22 +29,22 @@ class Stream implements Arrayable
 
     public static function make(Media $media, string $type = 'video'): self
     {
-        return new self($media, null, $type);
+        return new static($media, null, $type);
     }
 
     public static function video(Media $media): self
     {
-        return new self($media, null, 'video');
+        return new static($media, null, 'video');
     }
 
     public static function audio(Media $media): self
     {
-        return new self($media, null, 'audio');
+        return new static($media, null, 'audio');
     }
 
     public static function text(Media $media): self
     {
-        return new self($media, null, 'text');
+        return new static($media, null, 'text');
     }
 
     /**
@@ -67,7 +70,7 @@ class Stream implements Arrayable
         $output = $stream['output'] ?? null;
         $options = array_diff_key($stream, array_flip(['in', 'stream', 'output']));
 
-        return new self(null, $input, $type, $output, $options);
+        return new static(null, $input, $type, $output, $options);
     }
 
     public function getMedia(): ?Media
@@ -91,7 +94,7 @@ class Stream implements Arrayable
 
     public function setOutput(string $output): self
     {
-        return new self($this->media, $this->input, $this->type, $output, $this->options);
+        return new static($this->media, $this->input, $this->type, $output, $this->options);
     }
 
     public function getOutput(): ?string
@@ -101,12 +104,12 @@ class Stream implements Arrayable
 
     public function setOptions(array $options): self
     {
-        return new self($this->media, $this->input, $this->type, $this->output, $options);
+        return new static($this->media, $this->input, $this->type, $this->output, $options);
     }
 
     public function addOption(string $key, mixed $value): self
     {
-        return new self($this->media, $this->input, $this->type, $this->output, [...$this->options, $key => $value]);
+        return new static($this->media, $this->input, $this->type, $this->output, [...$this->options, $key => $value]);
     }
 
     public function getOptions(): array

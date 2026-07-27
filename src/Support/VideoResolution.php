@@ -40,9 +40,21 @@ class VideoResolution implements Arrayable
             ->values();
     }
 
+    /**
+     * The lowest standard tier at or below this resolution's height.
+     */
     public function first(): ?string
     {
         return $this->all()->first();
+    }
+
+    /**
+     * The highest standard tier at or below this resolution's height,
+     * i.e. its native/closest-matching rendition.
+     */
+    public function last(): ?string
+    {
+        return $this->all()->last();
     }
 
     public function toArray(): array
