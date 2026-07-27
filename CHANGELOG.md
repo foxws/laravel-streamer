@@ -2,6 +2,16 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.0.0 - 2026-07-27
+
+### What's Changed
+
+* Refactor file operations, enhance encryption handling, and improve validation by @francoism90 in https://github.com/foxws/laravel-streamer/pull/15
+* build(deps): bump actions/checkout from 6 to 7 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/13
+* build(deps): bump actions/setup-python from 6 to 7 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/14
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/1.8.0...2.0.0
+
 ## 1.8.0 - 2026-04-26
 
 ### What's Changed
