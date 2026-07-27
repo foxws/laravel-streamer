@@ -7,6 +7,7 @@ namespace Foxws\Streamer\Exporters;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
 use Foxws\Streamer\MediaOpener;
+use Foxws\Streamer\Support\CopyFailure;
 use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\StreamerResult;
 use Illuminate\Support\Traits\ForwardsCalls;
@@ -160,7 +161,7 @@ class MediaExporter
     /**
      * Get all files that failed to copy during the last toDisk() operation.
      *
-     * @return array<int, array{source: string, target: string, error: string}>
+     * @return array<int, CopyFailure>
      */
     public function getFailedFiles(): array
     {

@@ -28,12 +28,9 @@ class EncryptionKeyGenerator
     /**
      * Generate both key and key ID
      */
-    public static function generate(): array
+    public static function generate(): EncryptionKey
     {
-        return [
-            'key_id' => self::generateKeyId(),
-            'key' => self::generateKey(),
-        ];
+        return EncryptionKey::generate();
     }
 
     /**
@@ -72,18 +69,9 @@ class EncryptionKeyGenerator
 
     /**
      * Generate encryption key and write it to cache storage.
-     * Returns array with key, key_id, and file path.
      */
-    public static function generateAndWrite(string $filename = 'encryption.key'): array
+    public static function generateAndWrite(string $filename = 'encryption.key'): EncryptionKey
     {
-        $key = self::generateKey();
-        $keyId = self::generateKeyId();
-        $filePath = self::writeKeyToTemporary($key, $filename);
-
-        return [
-            'key' => $key,
-            'key_id' => $keyId,
-            'file_path' => $filePath,
-        ];
+        return EncryptionKey::generateAndWrite($filename);
     }
 }

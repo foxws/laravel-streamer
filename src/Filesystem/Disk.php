@@ -36,6 +36,10 @@ class Disk
 
     protected ?FilesystemAdapter $filesystemAdapter = null;
 
+    protected ?PathPrefixer $s3PathPrefixer = null;
+
+    protected ?array $s3UploadOptions = null;
+
     public function __construct(Filesystem|string $disk)
     {
         $this->disk = $disk;
@@ -161,15 +165,24 @@ class Disk
     /**
      * Applies the Flysystem path prefix (if any) to a relative path,
      * producing the exact S3 object key that Flysystem would use.
+     *
+     * Called once per uploaded file, so the reflected prefixer is cached
+     * to avoid re-reflecting the adapter for every file in the batch.
      */
     public function prefixS3Path(string $path): string
     {
+        return $this->getS3PathPrefixer()->prefixPath($path);
+    }
+
+    protected function getS3PathPrefixer(): PathPrefixer
+    {
+        if ($this->s3PathPrefixer) {
+            return $this->s3PathPrefixer;
+        }
+
         $prop = new ReflectionProperty($this->getFlysystemAdapter(), 'prefixer');
 
-        /** @var PathPrefixer $prefixer */
-        $prefixer = $prop->getValue($this->getFlysystemAdapter());
-
-        return $prefixer->prefixPath($path);
+        return $this->s3PathPrefixer = $prop->getValue($this->getFlysystemAdapter());
     }
 
     /**
@@ -180,9 +193,13 @@ class Disk
      */
     public function getS3UploadOptions(): array
     {
+        if ($this->s3UploadOptions !== null) {
+            return $this->s3UploadOptions;
+        }
+
         $prop = new ReflectionProperty($this->getFlysystemAdapter(), 'options');
 
-        return (array) $prop->getValue($this->getFlysystemAdapter());
+        return $this->s3UploadOptions = (array) $prop->getValue($this->getFlysystemAdapter());
     }
 
     /**
