@@ -15,7 +15,7 @@ $streamer = Streamer::create();
 $streamer->open(MediaCollection::make([$media]));
 
 // Enable encryption (uses cbc1 by default)
-$keyData = $streamer->withAESEncryption();
+$encryptionKey = $streamer->withAESEncryption();
 
 // Add your streams
 $streamer->addStream([
@@ -25,6 +25,8 @@ $streamer->addStream([
 ]);
 ```
 
+`withAESEncryption()` returns an `EncryptionKey` value object with `key`, `keyId`, and `filePath` properties.
+
 ## Codec-Specific Examples
 
 ### H.264/AVC Encryption
@@ -33,21 +35,21 @@ H.264 is the most widely supported codec. Use `cbc1` for maximum compatibility:
 
 ```php
 $media = Media::make('videos', 'h264_video.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // Generate encryption key
-$keyData = $packager->withAESEncryption('h264.key', 'cbc1');
+$encryptionKey = $streamer->withAESEncryption('h264.key', 'cbc1');
 
 // Add video stream
-$packager->addStream([
+$streamer->addStream([
     'in' => $media->getLocalPath(),
     'stream' => 'video',
     'output' => 'h264_encrypted.mp4',
 ]);
 
-// The key is now at: $keyData['file_path']
-// Key: $keyData['key']
-// Key ID: $keyData['key_id']
+// The key is now at: $encryptionKey->filePath
+// Key: $encryptionKey->key
+// Key ID: $encryptionKey->keyId
 ```
 
 ## Key Rotation
@@ -56,16 +58,16 @@ Automatic key rotation enhances security by periodically generating new encrypti
 
 ```php
 $media = Media::make('videos', 'input.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // Enable encryption with key rotation every 5 minutes
 // Base name 'key' becomes: key_0.key, key_1.key, key_2.key, etc.
-$keyData = $packager->withAESEncryption(); // Uses default 'key' base name
-$packager->withKeyRotationDuration(60); // 60 seconds for balanced security
+$encryptionKey = $streamer->withAESEncryption(); // Uses default 'key' base name
+$streamer->withKeyRotationDuration(60); // 60 seconds for balanced security
 
-$packager->addVideoStream('input.mp4', 'video.mp4');
-$packager->withHlsMasterPlaylist('master.m3u8');
-$result = $packager->export();
+$streamer->addVideoStream('input.mp4', 'video.mp4');
+$streamer->withMpdOutput('manifest.mpd');
+$result = $streamer->export();
 ```
 
 ### Common Rotation Intervals
@@ -86,7 +88,7 @@ $result = $packager->export();
 
 ### How It Works
 
-Shaka Packager automatically:
+Shaka Streamer's underlying Shaka Packager stage automatically:
 
 1. Generates a new key at each rotation interval
 2. Embeds key URIs in the manifest (#EXT-X-KEY tags for HLS)
@@ -96,26 +98,26 @@ Players automatically fetch the correct key for each segment.
 
 ### Collecting Rotated Keys
 
-After packaging with key rotation, the keys are automatically tracked when uploading:
+After streaming with key rotation, the keys are automatically tracked when uploading:
 
 ```php
-$packager->withAESEncryption(); // Default: key_0.key, key_1.key, key_2.key...
-$packager->withKeyRotationDuration(300);
-$packager->addVideoStream('input.mp4', 'video.mp4');
-$packager->withHlsMasterPlaylist('master.m3u8');
-$result = $packager->export();
+$streamer->withAESEncryption(); // Default: key_0.key, key_1.key, key_2.key...
+$streamer->withKeyRotationDuration(300);
+$streamer->addVideoStream('input.mp4', 'video.mp4');
+$streamer->withMpdOutput('manifest.mpd');
+$result = $streamer->export();
 
 // Upload everything (segments + keys) to S3 private bucket
 $result->toDisk('s3', 'videos');
 
 // Get all keys that were uploaded - store metadata in database
-$uploadedKeys = $result->getUploadedEncryptionKeys();
+$uploadedKeys = $result->getEncryptionKeys();
 
 foreach ($uploadedKeys as $key) {
     EncryptionKey::create([
-        'filename' => $key['filename'],    // e.g., "key_0.key", "key_1.key"
-        'path' => $key['path'],            // S3 path: "videos/key_0.key"
-        'key' => $key['content'],          // Hex-encoded key content
+        'filename' => $key->filename,    // e.g., "key_0.key", "key_1.key"
+        'path' => $key->path,            // S3 path: "videos/key_0.key"
+        'key' => $key->content,          // Hex-encoded key content
         'video_id' => $video->id,
     ]);
 }
@@ -156,24 +158,18 @@ public function playlist(Video $video)
 
 ## Codec-Specific Examples (continued)
 
-### H.264/AVC Encryption (continued)
-
-```php
-
-```
-
 ### HEVC/H.265 Encryption
 
 HEVC offers better compression. Use `cbcs` for modern devices:
 
 ```php
 $media = Media::make('videos', 'hevc_video.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // Use cbcs for HEVC (better for newer devices)
-$keyData = $packager->withAESEncryption('hevc.key', 'cbcs');
+$encryptionKey = $streamer->withAESEncryption('hevc.key', 'cbcs');
 
-$packager->addStream([
+$streamer->addStream([
     'in' => $media->getLocalPath(),
     'stream' => 'video',
     'output' => 'hevc_encrypted.mp4',
@@ -186,12 +182,12 @@ AV1 is a modern, royalty-free codec with excellent compression:
 
 ```php
 $media = Media::make('videos', 'av1_video.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // AV1 works with all protection schemes
-$keyData = $packager->withAESEncryption('av1.key', 'cenc');
+$encryptionKey = $streamer->withAESEncryption('av1.key', 'cenc');
 
-$packager->addStream([
+$streamer->addStream([
     'in' => $media->getLocalPath(),
     'stream' => 'video',
     'output' => 'av1_encrypted.mp4',
@@ -205,7 +201,7 @@ $packager->addStream([
 Best for HLS and maximum browser compatibility:
 
 ```php
-$keyData = $packager->withAESEncryption('encryption.key', 'cbc1');
+$encryptionKey = $streamer->withAESEncryption('encryption.key', 'cbc1');
 // Compatible with: Safari, Chrome, Firefox, Edge, iOS, Android
 ```
 
@@ -214,7 +210,7 @@ $keyData = $packager->withAESEncryption('encryption.key', 'cbc1');
 For newer platforms with better performance:
 
 ```php
-$keyData = $packager->withAESEncryption('encryption.key', 'cbcs');
+$encryptionKey = $streamer->withAESEncryption('encryption.key', 'cbcs');
 // Compatible with: iOS 10+, Android 7+, modern browsers
 ```
 
@@ -223,7 +219,7 @@ $keyData = $packager->withAESEncryption('encryption.key', 'cbcs');
 DASH standard, widely supported:
 
 ```php
-$keyData = $packager->withAESEncryption('encryption.key', 'cenc');
+$encryptionKey = $streamer->withAESEncryption('encryption.key', 'cenc');
 // Compatible with: Most DASH players, EME-enabled browsers
 ```
 
@@ -232,9 +228,13 @@ $keyData = $packager->withAESEncryption('encryption.key', 'cenc');
 For HLS without a protection scheme:
 
 ```php
-$keyData = $packager->withAESEncryption('hls.key', null);
+$encryptionKey = $streamer->withAESEncryption('hls.key', null);
 // Compatible with: HLS players, Apple devices
 ```
+
+Every method above also accepts a `Foxws\Streamer\Support\ProtectionScheme` enum
+case (`ProtectionScheme::Cbc1`, `::Cbcs`, `::Cenc`, `::Cens`) instead of a raw
+string, if you'd rather not deal with typos in the scheme name.
 
 ## Multi-Codec Packaging
 
@@ -246,32 +246,32 @@ $hevc = Media::make('videos', 'hevc.mp4');
 $av1 = Media::make('videos', 'av1.mp4');
 
 $collection = MediaCollection::make([$h264, $hevc, $av1]);
-$packager->open($collection);
+$streamer->open($collection);
 
 // One key for all codecs (with optional label for organization)
-$keyData = $packager->withAESEncryption('master.key', 'cbc1', 'multi');
+$encryptionKey = $streamer->withAESEncryption('master.key', 'cbc1', 'multi');
 
 // Add streams for each codec
-$packager->addStream([
+$streamer->addStream([
     'in' => $h264->getLocalPath(),
     'stream' => 'video',
     'output' => 'h264_1080p.mp4',
 ]);
 
-$packager->addStream([
+$streamer->addStream([
     'in' => $hevc->getLocalPath(),
     'stream' => 'video',
     'output' => 'hevc_1080p.mp4',
 ]);
 
-$packager->addStream([
+$streamer->addStream([
     'in' => $av1->getLocalPath(),
     'stream' => 'video',
     'output' => 'av1_1080p.mp4',
 ]);
 
 // All streams will be encrypted with the same key
-$result = $packager->package();
+$result = $streamer->export();
 ```
 
 ## Separate Keys Per Codec
@@ -280,19 +280,19 @@ For advanced scenarios, use different keys for each codec:
 
 ```php
 // H.264 with its own key
-$packagerH264 = Packager::create();
-$packagerH264->open(MediaCollection::make([Media::make('videos', 'h264.mp4')]));
-$keyH264 = $packagerH264->withAESEncryption('h264.key');
+$streamerH264 = Streamer::create();
+$streamerH264->open(MediaCollection::make([Media::make('videos', 'h264.mp4')]));
+$keyH264 = $streamerH264->withAESEncryption('h264.key');
 
 // HEVC with its own key
-$packagerHevc = Packager::create();
-$packagerHevc->open(MediaCollection::make([Media::make('videos', 'hevc.mp4')]));
-$keyHevc = $packagerHevc->withAESEncryption('hevc.key');
+$streamerHevc = Streamer::create();
+$streamerHevc->open(MediaCollection::make([Media::make('videos', 'hevc.mp4')]));
+$keyHevc = $streamerHevc->withAESEncryption('hevc.key');
 
 // AV1 with its own key
-$packagerAv1 = Packager::create();
-$packagerAv1->open(MediaCollection::make([Media::make('videos', 'av1.mp4')]));
-$keyAv1 = $packagerAv1->withAESEncryption('av1.key');
+$streamerAv1 = Streamer::create();
+$streamerAv1->open(MediaCollection::make([Media::make('videos', 'av1.mp4')]));
+$keyAv1 = $streamerAv1->withAESEncryption('av1.key');
 
 // Each codec has unique encryption keys
 ```
@@ -303,19 +303,19 @@ Complete HLS packaging with encryption:
 
 ```php
 $media = Media::make('videos', 'video.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // Generate encryption key
-$keyData = $packager->withAESEncryption('encryption.key', 'cbc1');
+$encryptionKey = $streamer->withAESEncryption('encryption.key', 'cbc1');
 
 // Add video variants
-$packager->builder()
-    ->addVideoStream($media->getLocalPath(), 'video_1080p.m3u8', ['bandwidth' => '5000000'])
-    ->addVideoStream($media->getLocalPath(), 'video_720p.m3u8', ['bandwidth' => '3000000'])
-    ->addAudioStream($media->getLocalPath(), 'audio.m3u8', ['language' => 'en'])
+$streamer
+    ->addVideoStream($media->getLocalPath(), 'video_1080p.mp4', ['bandwidth' => '5000000'])
+    ->addVideoStream($media->getLocalPath(), 'video_720p.mp4', ['bandwidth' => '3000000'])
+    ->addAudioStream($media->getLocalPath(), 'audio.mp4', ['language' => 'en'])
     ->withHlsMasterPlaylist('master.m3u8');
 
-$result = $packager->package();
+$result = $streamer->export();
 
 // The encryption key will be referenced in the HLS playlist
 // Player will fetch 'encryption.key' to decrypt segments
@@ -327,18 +327,18 @@ Complete DASH packaging with encryption:
 
 ```php
 $media = Media::make('videos', 'video.mp4');
-$packager->open(MediaCollection::make([$media]));
+$streamer->open(MediaCollection::make([$media]));
 
 // Use cenc for DASH
-$keyData = $packager->withAESEncryption('encryption.key', 'cenc');
+$encryptionKey = $streamer->withAESEncryption('encryption.key', 'cenc');
 
-$packager->builder()
+$streamer
     ->addVideoStream($media->getLocalPath(), 'video_1080p.mp4', ['bandwidth' => '5000000'])
     ->addVideoStream($media->getLocalPath(), 'video_720p.mp4', ['bandwidth' => '3000000'])
     ->addAudioStream($media->getLocalPath(), 'audio.mp4', ['language' => 'en'])
     ->withMpdOutput('manifest.mpd');
 
-$result = $packager->package();
+$result = $streamer->export();
 ```
 
 ## Key Storage
@@ -347,22 +347,22 @@ The encryption key is stored in two locations:
 
 1. **Cache storage** (RAM disk if available): Fast temporary storage for key generation
     - Default: `/dev/shm` (Linux) or system temp directory
-    - Configure via: `PACKAGER_CACHE_FILES_ROOT` environment variable
+    - Configure via: `STREAMER_CACHE_FILES_ROOT` environment variable
 
-2. **Export directory**: Copied to packaging output for cloud storage upload
+2. **Export directory**: Copied to streaming output for cloud storage upload
     - Automatically included when exporting to S3 or other storage
     - Key file name is customizable via the `$keyFilename` parameter
 
 ```php
-$keyData = $packager->withAESEncryption('my-custom-key.bin');
+$encryptionKey = $streamer->withAESEncryption('my-custom-key.bin');
 
 // Key is in cache: /dev/shm/random-hash/my-custom-key.bin
-// Key is in export: /tmp/packager-temp/random-hash/my-custom-key.bin
+// Key is in export: /tmp/streamer-temp/random-hash/my-custom-key.bin
 // Both contain identical key data
 
-echo $keyData['file_path']; // Cache path
-echo $keyData['key'];       // Hex-encoded 128-bit key
-echo $keyData['key_id'];    // Hex-encoded key ID
+echo $encryptionKey->filePath; // Cache path
+echo $encryptionKey->key;      // Hex-encoded 128-bit key
+echo $encryptionKey->keyId;    // Hex-encoded key ID
 ```
 
 ### Secure Storage with Signed URLs
@@ -433,7 +433,7 @@ Ensure the key file is copied to your export directory:
 
 ```php
 // The package automatically copies the key for you
-$keyData = $packager->withAESEncryption('encryption.key');
+$encryptionKey = $streamer->withAESEncryption('encryption.key');
 
 // Key is now in both cache and export temp directories
 // When you export/upload, the key file will be included
@@ -449,15 +449,14 @@ $keyData = $packager->withAESEncryption('encryption.key');
  * (e.g., 'key' becomes 'key_0.key', 'key_1.key', 'key_2.key', etc.).
  *
  * @param string $keyFilename Base name for key file (default: 'key')
- * @param string|null $protectionScheme 'cbc1', 'cbcs', 'cenc', or null for SAMPLE-AES
+ * @param ProtectionScheme|string|null $protectionScheme 'cbc1', 'cbcs', 'cenc', 'cens', or null for SAMPLE-AES
  * @param string|null $label Optional label for multi-key scenarios
- * @return array{key: string, key_id: string, file_path: string}
  */
 public function withAESEncryption(
     string $keyFilename = 'key',
-    ?string $protectionScheme = 'cbc1',
+    ProtectionScheme|string|null $protectionScheme = 'cbc1',
     ?string $label = null
-): array
+): EncryptionKey
 
 /**
  * Enable key rotation for encryption.
@@ -468,7 +467,22 @@ public function withAESEncryption(
 public function withKeyRotationDuration(int $seconds): self
 ```
 
+`EncryptionKey` is a readonly value object with three properties:
+
+```php
+final readonly class EncryptionKey
+{
+    public string $key;
+    public string $keyId;
+    public ?string $filePath;
+}
+```
+
+`StreamerResult::getEncryptionKeys()` returns an array of
+`Foxws\Streamer\Support\EncryptionKeyFile` value objects, each with `path`,
+`filename`, and `content` (hex-encoded) properties.
+
 ## Related Documentation
 
 - [Configuration Guide](../docs/CONFIGURATION.md)
-- [Shaka Packager Encryption Docs](https://shaka-project.github.io/shaka-packager/html/tutorials/raw_key.html)
+- [Shaka Streamer Docs](https://shaka-project.github.io/shaka-streamer/)

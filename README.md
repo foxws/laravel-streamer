@@ -97,26 +97,30 @@ Streamer::fromDisk('s3')
 
 ### Encryption
 
+`withAESEncryption()` returns an `EncryptionKey` value object (not `$this`), so
+it breaks the fluent chain — call it on its own line:
+
 ```php
 // AES-128 encryption with auto-generated key
-Streamer::open('input.mp4')
+$streamer = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withAESEncryption()
-    ->export()
-    ->save();
+    ->withHlsMasterPlaylist('master.m3u8');
+
+$encryptionKey = $streamer->withAESEncryption();
+
+$streamer->export()->save();
 
 // With key rotation (rotates every 60 seconds)
-Streamer::open('input.mp4')
+$streamer = Streamer::open('input.mp4')
     ->addVideoStream('input.mp4', 'video.mp4')
     ->addAudioStream('input.mp4', 'audio.mp4')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withAESEncryption('key', 'cenc')
-    ->withKeyRotationDuration(60)
-    ->export()
-    ->toDisk('s3')
-    ->save();
+    ->withHlsMasterPlaylist('master.m3u8');
+
+$encryptionKey = $streamer->withAESEncryption('key', 'cenc');
+$streamer->withKeyRotationDuration(60);
+
+$streamer->export()->toDisk('s3')->save();
 ```
 
 See the [AES Encryption Guide](docs/AES_ENCRYPTION.md) for protection schemes, codec-specific examples, and key management.
@@ -222,7 +226,7 @@ $exporter->toDisk('s3')->save();
 | `addVideoStream($input, $output, $options)`        | Add a video stream                                              |
 | `addAudioStream($input, $output, $options)`        | Add an audio stream                                             |
 | `addTextStream($input, $output, $options)`         | Add a text/subtitle stream                                      |
-| `addStream(array $stream)`                         | Add a raw Shaka stream descriptor (`in`, `stream`, `output`, …) |
+| `addStream(Stream\|array $stream)`                 | Add a `Stream` value object or raw stream descriptor (`in`, `stream`, `output`, …) |
 | `withHlsMasterPlaylist($path)`                     | Set HLS output                                                  |
 | `withMpdOutput($path)`                             | Set DASH/MPD output                                             |
 | `withSegmentDuration(int $seconds)`                | Set segment duration                                            |
@@ -234,7 +238,7 @@ $exporter->toDisk('s3')->save();
 | `withLowLatencyDashMode(bool $enabled)`            | Enable low-latency DASH                                         |
 | `withStreamingMode(string $mode)`                  | Set mode (`'vod'` or `'live'`)                                  |
 | `withEncryption(array $config)`                    | Set raw encryption config                                       |
-| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key                                |
+| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key, returns `EncryptionKey` (not `$this`) |
 | `withKeyRotationDuration(int $seconds)`            | Enable key rotation (requires `'cenc'` or `'cbcs'`)             |
 | `withOption($key, $value)`                         | Set a custom pipeline option                                    |
 | `withOptions(array $options)`                      | Set multiple custom pipeline options                            |

@@ -91,26 +91,23 @@ class CommandBuilder
     }
 
     /**
-     * Add a raw Shaka Packager stream descriptor.
-     *
-     * Accepts the Shaka format (in, stream, output) and normalises it
-     * to the internal format used by the builder.
+     * Add a stream from a Stream value object or a raw Shaka Packager
+     * stream descriptor (in, stream, output), normalising it to the
+     * internal format used by the builder.
      *
      * @throws InvalidStreamConfigurationException
      */
-    public function addStream(array $stream): self
+    public function addStream(Stream|array $stream): self
     {
+        $stream = is_array($stream) ? Stream::fromArray($stream) : $stream;
+
         StreamValidator::validate($stream);
 
-        // Extract known Shaka keys; everything else becomes options
-        $reserved = ['in', 'stream', 'output'];
-        $options = array_diff_key($stream, array_flip($reserved));
-
         $this->streams->push([
-            'type' => $stream['stream'],
-            'input' => $stream['in'],
-            'output' => $stream['output'],
-            'options' => $options,
+            'type' => $stream->getType(),
+            'input' => $stream->getInput(),
+            'output' => $stream->getOutput(),
+            'options' => $stream->getOptions(),
         ]);
 
         return $this;
