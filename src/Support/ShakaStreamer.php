@@ -156,6 +156,27 @@ class ShakaStreamer
     }
 
     /**
+     * Get the installed Shaka Streamer version by actually invoking the
+     * binary (--version), proving it can run rather than just resolving
+     * from PATH.
+     *
+     * @throws \RuntimeException
+     */
+    public function getVersion(): string
+    {
+        $result = Process::timeout(10)->run([$this->streamerBinary, '--version']);
+
+        if ($result->failed()) {
+            throw new \RuntimeException(
+                'Shaka Streamer is not installed or not accessible. '.
+                'Install with: pip install shaka-streamer'
+            );
+        }
+
+        return trim($result->output()) ?: trim($result->errorOutput());
+    }
+
+    /**
      * Verify Shaka Streamer is installed and accessible
      *
      * @throws \RuntimeException

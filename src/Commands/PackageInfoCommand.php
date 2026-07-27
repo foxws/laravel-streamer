@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Commands;
 
 use Composer\InstalledVersions;
-use Foxws\Streamer\Exceptions\ExecutableNotFoundException;
 use Foxws\Streamer\Support\ShakaStreamer;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Config;
+use Illuminate\Contracts\Config\Repository;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -21,35 +20,34 @@ class PackageInfoCommand extends Command
 
     protected $description = 'Display package information and verify Shaka Streamer installation';
 
-    public function handle(): int
+    public function handle(Repository $config, ShakaStreamer $streamer): int
     {
         info('Laravel Shaka Streamer - Information & Verification');
 
-        $streamerBinary = Config::get('streamer.streamer.streamer_binary', 'shaka-streamer');
-        $tempDir = Config::get('streamer.temporary_files_root', storage_path('app/streamer/temp'));
-        $timeout = Config::get('streamer.timeout');
-        $logChannel = Config::get('streamer.log_channel');
-        $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: Config::get('logging.default', 'Default'));
+        $tempDir = $config->get('streamer.temporary_files_root', storage_path('app/streamer/temp'));
+        $logChannel = $config->get('streamer.log_channel');
+        $logStatus = $logChannel === false ? 'Disabled' : ($logChannel ?: $config->get('logging.default', 'Default'));
 
-        $driverInitialized = false;
+        // Actually invoke the binary (--version) so this reflects whether Shaka
+        // Streamer can really run, not just whether the config resolved.
+        $binaryVersion = null;
+
         try {
-            ShakaStreamer::create();
-            $driverInitialized = true;
-        } catch (ExecutableNotFoundException $e) {
-            error('✗ Cannot initialize Streamer driver: '.$e->getMessage());
-        } catch (\Exception $e) {
-            error('✗ Error initializing Streamer driver: '.$e->getMessage());
+            $binaryVersion = $streamer->getVersion();
+        } catch (\RuntimeException $e) {
+            error("✗ Cannot execute Shaka Streamer binary: {$e->getMessage()}");
         }
 
         table(
             ['Setting', 'Value', 'Status'],
             [
                 ['Package Version', InstalledVersions::getPrettyVersion('foxws/laravel-streamer') ?? 'dev-main', '✓'],
-                ['Streamer Binary', $streamerBinary, $driverInitialized ? '✓' : '✗'],
-                ['Timeout', "{$timeout}s", '✓'],
+                ['Streamer Binary', $streamer->getStreamerBinary(), $binaryVersion ? '✓' : '✗'],
+                ['Binary Version', $binaryVersion ?? 'Unknown', $binaryVersion ? '✓' : '✗'],
+                ['Timeout', "{$streamer->getTimeout()}s", '✓'],
                 ['Temp Directory', $tempDir, $this->getTempDirStatus($tempDir)],
                 ['Logging', $logStatus, '✓'],
-                ['Force Generic Input', Config::get('streamer.force_generic_input') ? 'Enabled' : 'Disabled', '✓'],
+                ['Force Generic Input', $config->get('streamer.force_generic_input') ? 'Enabled' : 'Disabled', '✓'],
             ]
         );
 
@@ -63,7 +61,7 @@ class PackageInfoCommand extends Command
             warning('⚠ Temporary directory does not exist (will be created automatically)');
         }
 
-        if (! $driverInitialized) {
+        if (! $binaryVersion) {
             error('✗ Shaka Streamer is not properly configured. Please check the errors above.');
 
             return self::FAILURE;

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
+use Foxws\Streamer\Support\EncryptionKey;
 use Foxws\Streamer\Support\EncryptionKeyGenerator;
 use Illuminate\Support\Facades\Storage;
 
@@ -29,12 +30,11 @@ it('generates a 128-bit key ID', function () {
 it('generates both key and key ID', function () {
     $data = EncryptionKeyGenerator::generate();
 
-    expect($data)->toBeArray()
-        ->toHaveKeys(['key_id', 'key'])
-        ->and($data['key'])->toBeString()
-        ->and($data['key_id'])->toBeString()
-        ->and(strlen($data['key']))->toBe(32)
-        ->and(strlen($data['key_id']))->toBe(32);
+    expect($data)->toBeInstanceOf(EncryptionKey::class)
+        ->and($data->key)->toBeString()
+        ->and($data->keyId)->toBeString()
+        ->and(strlen($data->key))->toBe(32)
+        ->and(strlen($data->keyId))->toBe(32);
 });
 
 it('formats encryption config for Shaka Packager', function () {
@@ -104,16 +104,15 @@ it('generates and writes key in one call', function () {
 
     $keyData = EncryptionKeyGenerator::generateAndWrite('my-key.key');
 
-    expect($keyData)->toBeArray()
-        ->toHaveKeys(['key', 'key_id', 'file_path'])
-        ->and($keyData['key'])->toBeString()
-        ->and($keyData['key_id'])->toBeString()
-        ->and($keyData['file_path'])->toBeString()
-        ->and(file_exists($keyData['file_path']))->toBeTrue();
+    expect($keyData)->toBeInstanceOf(EncryptionKey::class)
+        ->and($keyData->key)->toBeString()
+        ->and($keyData->keyId)->toBeString()
+        ->and($keyData->filePath)->toBeString()
+        ->and(file_exists($keyData->filePath))->toBeTrue();
 
     // Verify file content
-    $fileContent = file_get_contents($keyData['file_path']);
-    expect($fileContent)->toBe(hex2bin($keyData['key']));
+    $fileContent = file_get_contents($keyData->filePath);
+    expect($fileContent)->toBe(hex2bin($keyData->key));
 
     // Cleanup
     $tempDirs->deleteAll();
