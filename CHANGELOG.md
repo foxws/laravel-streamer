@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.1.0 - 2026-08-09
+
+### What's Changed
+
+* feat: guard temporary and cache roots against running out of space by @francoism90 in https://github.com/foxws/laravel-streamer/pull/16
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/2.0.0...2.1.0
+
 ## 2.0.0 - 2026-07-27
 
 ### What's Changed
