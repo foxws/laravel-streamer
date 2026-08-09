@@ -137,6 +137,56 @@ STREAMER_CACHE_FILES_ROOT=/dev/shm
 
 **Note:** Using `/dev/shm` (RAM disk) provides better performance for small files but requires sufficient RAM.
 
+### Storage Space Guards
+
+Fail fast with a clear exception instead of a job dying mid-streaming when a
+storage-constrained root runs low on space.
+
+```php
+'temporary_files_min_free' => env('STREAMER_TEMPORARY_MIN_FREE', 0),
+'cache_files_min_free' => env('STREAMER_CACHE_MIN_FREE', 0),
+```
+
+**Environment Variables:**
+
+```env
+STREAMER_TEMPORARY_MIN_FREE=1073741824   # 1 GiB floor on temporary_files_root
+STREAMER_CACHE_MIN_FREE=10485760         # 10 MiB floor on cache_files_root
+```
+
+Both are disabled by default (`0`), and kept independent of each other on
+purpose: `cache_files_root` is often a much smaller mount (e.g. `/dev/shm`)
+than `temporary_files_root`, so a single shared floor can't meaningfully
+protect both at once. Both throw `Foxws\Streamer\Exceptions\InsufficientStorageException`.
+
+Unlike `laravel-shaka`'s packager (which repackages already-encoded input),
+Streamer actually transcodes via ffmpeg - output size does **not** track
+input size closely, since encoding down to delivery bitrates can shrink a
+source dramatically. There is no job-size-aware check here for that reason;
+`temporary_files_min_free` is a flat safety net, not a per-job estimate.
+
+#### Example: Podman tmpfs for `cache_files_root`
+
+Because Streamer's `temporary_files_root` footprint isn't predictable from
+the input file size (see above), putting it on a size-limited tmpfs is
+riskier than in `laravel-shaka` - prefer a regular disk-backed volume there,
+per the note under [Temporary Files](#temporary-files) above.
+
+`cache_files_root` (manifests/keys) is a safer fit for a RAM disk, since it
+only holds small files. If you're running queue workers in Podman:
+
+```ini
+# horizon.container (podman quadlet)
+[Container]
+...
+ShmSize=128m
+```
+
+```env
+STREAMER_CACHE_FILES_ROOT=/dev/shm
+STREAMER_CACHE_MIN_FREE=10485760   # 10 MiB - keep this well under ShmSize
+```
+
 ## Complete Configuration Example
 
 ```php
@@ -211,6 +261,20 @@ return [
     */
 
     'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage Space Guards
+    |--------------------------------------------------------------------------
+    |
+    | Fail fast with a clear exception instead of a job dying mid-streaming
+    | when a storage-constrained root runs low on space. Set to 0 to
+    | disable a given check.
+    |
+    */
+
+    'temporary_files_min_free' => env('STREAMER_TEMPORARY_MIN_FREE', 0),
+    'cache_files_min_free' => env('STREAMER_CACHE_MIN_FREE', 0),
 ];
 ```
 
@@ -227,6 +291,8 @@ STREAMER_LOG_CHANNEL=streamer
 STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
 STREAMER_CACHE_FILES_ROOT=/dev/shm
 STREAMER_FORCE_GENERIC_INPUT=true
+STREAMER_TEMPORARY_MIN_FREE=1073741824
+STREAMER_CACHE_MIN_FREE=10485760
 ```
 
 ## Verification

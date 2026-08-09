@@ -64,6 +64,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Minimum Free Space
+    |--------------------------------------------------------------------------
+    |
+    | Minimum free space (in bytes) required in temporary_files_root before
+    | a new streaming job is allowed to start. Useful when this root is
+    | backed by a size-limited mount (e.g. a tmpfs RAM disk), so a job
+    | fails fast with a clear error instead of partway through streaming.
+    |
+    | This does NOT apply to cache_files_root - see cache_files_min_free
+    | below, since that root is often sized very differently.
+    |
+    | Set to 0 to disable this check.
+    |
+    */
+
+    'temporary_files_min_free' => (int) env('STREAMER_TEMPORARY_MIN_FREE', 0),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Files Root
     |--------------------------------------------------------------------------
     |
@@ -76,6 +95,23 @@ return [
     */
 
     'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Minimum Free Space
+    |--------------------------------------------------------------------------
+    |
+    | Minimum free space (in bytes) required in cache_files_root before a
+    | new cache directory is created there. Kept separate from
+    | temporary_files_min_free because cache_files_root is often a much
+    | smaller mount than temporary_files_root (e.g. a size-limited
+    | /dev/shm), so the same floor rarely makes sense for both.
+    |
+    | Set to 0 to disable this check.
+    |
+    */
+
+    'cache_files_min_free' => (int) env('STREAMER_CACHE_MIN_FREE', 0),
 
     /*
     |--------------------------------------------------------------------------

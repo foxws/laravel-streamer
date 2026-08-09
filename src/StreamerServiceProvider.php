@@ -51,6 +51,8 @@ class StreamerServiceProvider extends PackageServiceProvider
             return new TemporaryDirectories(
                 Config::string('streamer.temporary_files_root', sys_get_temp_dir()),
                 Config::string('streamer.cache_files_root', '') ?: null,
+                Config::integer('streamer.temporary_files_min_free', 0),
+                Config::integer('streamer.cache_files_min_free', 0),
             );
         });
 

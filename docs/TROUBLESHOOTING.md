@@ -124,6 +124,29 @@ No space left on device
     STREAMER_TEMPORARY_FILES_ROOT=/mnt/alternate-disk/streamer-temp
     ```
 
+### Insufficient Storage Space (pre-flight check)
+
+**Error:**
+
+```
+InsufficientStorageException: Insufficient storage space in [/dev/shm]: 31457280 bytes free, 1073741824 bytes required.
+```
+
+Unlike "No Space Left on Device" above, this is thrown *before* streaming
+starts by a deliberate pre-flight check (see [Storage Space
+Guards](CONFIGURATION.md#storage-space-guards)) - nothing ran, so there's
+nothing to clean up.
+
+**Solution:**
+
+1. If `temporary_files_root` or `cache_files_root` is a size-limited mount
+   (e.g. a tmpfs), free up space or increase its size.
+2. If this happens routinely under concurrent load, lower your queue's
+   concurrency rather than raising the floor further - the floor is a
+   safety net, not capacity planning.
+3. Tune or disable the checks via `STREAMER_TEMPORARY_MIN_FREE` /
+   `STREAMER_CACHE_MIN_FREE` (bytes, `0` disables).
+
 ## Timeout Issues
 
 ### Operation Timed Out
