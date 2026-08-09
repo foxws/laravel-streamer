@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Filesystem;
 
+use Foxws\Streamer\Exceptions\InsufficientStorageException;
 use Illuminate\Filesystem\Filesystem;
 
 class TemporaryDirectories
@@ -19,6 +20,21 @@ class TemporaryDirectories
     protected ?string $cacheRoot = null;
 
     /**
+     * Minimum free space (in bytes) required in the main root before a new
+     * directory is created there. A value of zero or less disables the check.
+     */
+    protected int $minFreeBytes = 0;
+
+    /**
+     * Minimum free space (in bytes) required in the cache root before a new
+     * cache directory is created there. Kept separate from minFreeBytes
+     * since the cache root is often a much smaller mount than the main
+     * root (e.g. a small /dev/shm vs a multi-GB tmpfs). A value of zero
+     * or less disables the check.
+     */
+    protected int $cacheMinFreeBytes = 0;
+
+    /**
      * Array of all directories
      */
     protected array $directories = [];
@@ -26,10 +42,16 @@ class TemporaryDirectories
     /**
      * Sets the root and removes the trailing slash.
      */
-    public function __construct(string $root, ?string $cacheRoot = null)
-    {
+    public function __construct(
+        string $root,
+        ?string $cacheRoot = null,
+        int $minFreeBytes = 0,
+        int $cacheMinFreeBytes = 0
+    ) {
         $this->root = rtrim($root, '/');
         $this->cacheRoot = $cacheRoot ? rtrim($cacheRoot, '/') : null;
+        $this->minFreeBytes = $minFreeBytes;
+        $this->cacheMinFreeBytes = $cacheMinFreeBytes;
     }
 
     /**
@@ -37,6 +59,8 @@ class TemporaryDirectories
      */
     public function create(): string
     {
+        $this->ensureSufficientSpace($this->root, $this->minFreeBytes);
+
         $directory = $this->root.'/'.bin2hex(random_bytes(8));
 
         mkdir($directory, 0777, true);
@@ -51,11 +75,38 @@ class TemporaryDirectories
     public function createCache(): string
     {
         $root = $this->cacheRoot ?? $this->root;
+
+        $this->ensureSufficientSpace($root, $this->cacheMinFreeBytes);
+
         $directory = $root.'/'.bin2hex(random_bytes(8));
 
         mkdir($directory, 0777, true);
 
         return $this->directories[] = $directory;
+    }
+
+    /**
+     * Guards against starting work in a root that doesn't have enough
+     * free space left, e.g. a size-limited tmpfs mount. Fails fast instead
+     * of letting the streamer run and error out partway through.
+     */
+    protected function ensureSufficientSpace(string $path, int $floorBytes): void
+    {
+        if ($floorBytes <= 0) {
+            return;
+        }
+
+        $free = @disk_free_space($path);
+
+        if ($free === false) {
+            return;
+        }
+
+        if ($free < $floorBytes) {
+            throw new InsufficientStorageException(
+                sprintf('Insufficient storage space in [%s]: %d bytes free, %d bytes required.', $path, $free, $floorBytes)
+            );
+        }
     }
 
     /**
