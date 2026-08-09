@@ -96,7 +96,12 @@ class TemporaryDirectories
             return;
         }
 
-        $free = @disk_free_space($path);
+        // The target directory itself may not exist yet (e.g. the first
+        // job after a fresh tmpfs mount) - disk_free_space() returns false
+        // for a path that doesn't exist, which would otherwise silently
+        // skip the check. Walk up to the nearest existing ancestor, which
+        // is on the same filesystem in all realistic setups.
+        $free = @disk_free_space($this->nearestExistingPath($path));
 
         if ($free === false) {
             return;
@@ -107,6 +112,18 @@ class TemporaryDirectories
                 sprintf('Insufficient storage space in [%s]: %d bytes free, %d bytes required.', $path, $free, $floorBytes)
             );
         }
+    }
+
+    /**
+     * Walks up from $path until it finds a directory that actually exists.
+     */
+    protected function nearestExistingPath(string $path): string
+    {
+        while ($path !== '' && $path !== DIRECTORY_SEPARATOR && ! is_dir($path)) {
+            $path = dirname($path);
+        }
+
+        return $path === '' ? DIRECTORY_SEPARATOR : $path;
     }
 
     /**
