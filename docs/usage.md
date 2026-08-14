@@ -1,67 +1,10 @@
-# Laravel Shaka Streamer
+---
+sidebar_position: 3
+---
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/foxws/laravel-streamer/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/foxws/laravel-streamer/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/foxws/laravel-streamer.svg?style=flat-square)](https://packagist.org/packages/foxws/laravel-streamer)
+# Usage
 
-A Laravel integration for [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer), enabling you to package adaptive streaming content (HLS, DASH) with a fluent, Laravel-style API.
-
-```php
-use Foxws\Streamer\Facades\Streamer;
-
-Streamer::fromDisk('s3')
-    ->open('videos/input.mp4')
-    ->addVideoStream('videos/input.mp4', 'video.mp4')
-    ->addAudioStream('videos/input.mp4', 'audio.mp4')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withSegmentDuration(6)
-    ->export()
-    ->toDisk('export')
-    ->save();
-```
-
-## Features
-
-- 🎬 **Fluent API** — Laravel-style chainable methods for packaging media
-- 📁 **Filesystem Integration** — Read from and write to any Laravel disk (local, S3, etc.)
-- 🎯 **Adaptive Bitrate** — Create multi-quality HLS & DASH streams
-- 🔒 **AES Encryption** — Built-in content protection with optional key rotation
-- 📺 **Dynamic Manifests** — Rewrite HLS playlists and DASH MPDs with signed URLs at serve-time
-- 📡 **Events** — Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed`
-- 📝 **PHP 8.3+** — Strict types, readonly properties, and modern PHP throughout
-
-## Documentation
-
-See the [full documentation](https://foxws.github.io/laravel-streamer/) (or browse [`docs/`](docs) directly): [Installation](docs/installation.md), [Usage](docs/usage.md), [Quick Reference](docs/quick-reference.md), [Configuration](docs/configuration.md), [AES Encryption](docs/aes-encryption.md), [URL Resolvers](docs/url-resolvers.md), [Queue Integration](docs/queue-integration.md), [Troubleshooting](docs/troubleshooting.md).
-
-## Requirements
-
-- PHP 8.3+
-- Laravel 12 or 13
-- [Shaka Streamer](https://github.com/shaka-project/shaka-streamer) binary (`pip install shaka-streamer`)
-
-## Installation
-
-```bash
-composer require foxws/laravel-streamer
-```
-
-Publish the configuration file:
-
-```bash
-php artisan vendor:publish --tag="streamer-config"
-```
-
-Verify the binary is accessible:
-
-```bash
-php artisan streamer:info
-```
-
-## Quick Start
-
-### Basic Packaging
+## Basic Packaging
 
 ```php
 use Foxws\Streamer\Facades\Streamer;
@@ -74,7 +17,7 @@ Streamer::open('input.mp4')
     ->save();
 ```
 
-### Cross-Disk Workflows
+## Cross-Disk Workflows
 
 Read from one disk, write to another:
 
@@ -91,7 +34,7 @@ Streamer::fromDisk('s3')
     ->save();
 ```
 
-### Encryption
+## Encryption
 
 `withAESEncryption()` returns an `EncryptionKey` value object (not `$this`), so
 it breaks the fluent chain — call it on its own line:
@@ -119,9 +62,9 @@ $streamer->withKeyRotationDuration(60);
 $streamer->export()->toDisk('s3')->save();
 ```
 
-See the [AES Encryption Guide](docs/aes-encryption.md) for protection schemes, codec-specific examples, and key management.
+See the [AES Encryption Guide](./aes-encryption.md) for protection schemes, codec-specific examples, and key management.
 
-### Dynamic URL Resolvers
+## Dynamic URL Resolvers
 
 Serve HLS and DASH content with signed URLs — useful for S3, CDNs, or multi-tenant apps.
 
@@ -167,19 +110,19 @@ return (new DynamicDASHManifest('s3'))
     ->toResponse(request());
 ```
 
-See [URL Resolvers](docs/url-resolvers.md) for more details.
+See [URL Resolvers](./url-resolvers.md) for more details.
 
-### Events
+## Events
 
 Listen to streaming lifecycle events:
 
 | Event                | Payload                                              |
-| -------------------- | ---------------------------------------------------- |
+| --------------------- | ---------------------------------------------------- |
 | `StreamingStarted`   | `MediaCollection $mediaCollection`, `array $options` |
 | `StreamingCompleted` | `StreamerResult $result`, `float $executionTime`     |
 | `StreamingFailed`    | `Exception $exception`, `float $executionTime`       |
 
-### Post-Export Inspection
+## Post-Export Inspection
 
 After saving, you can inspect the result:
 
@@ -217,33 +160,33 @@ $exporter->toDisk('s3')->save();
 
 ### Stream Configuration (via `MediaOpener` → `Streamer`)
 
-| Method                                             | Description                                                     |
-| -------------------------------------------------- | --------------------------------------------------------------- |
-| `addVideoStream($input, $output, $options)`        | Add a video stream                                              |
-| `addAudioStream($input, $output, $options)`        | Add an audio stream                                             |
-| `addTextStream($input, $output, $options)`         | Add a text/subtitle stream                                      |
+| Method                                             | Description                                                                        |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `addVideoStream($input, $output, $options)`        | Add a video stream                                                                 |
+| `addAudioStream($input, $output, $options)`        | Add an audio stream                                                                |
+| `addTextStream($input, $output, $options)`         | Add a text/subtitle stream                                                        |
 | `addStream(Stream\|array $stream)`                 | Add a `Stream` value object or raw stream descriptor (`in`, `stream`, `output`, …) |
-| `withHlsMasterPlaylist($path)`                     | Set HLS output                                                  |
-| `withMpdOutput($path)`                             | Set DASH/MPD output                                             |
-| `withSegmentDuration(int $seconds)`                | Set segment duration                                            |
-| `withManifestFormat(array $formats)`               | Set manifest formats (e.g. `['dash', 'hls']`)                   |
-| `withResolutions(array $resolutions)`              | Set encoding resolutions                                        |
-| `withVideoCodecs(array $codecs)`                   | Set video codecs (e.g. `['h264', 'hw:vp9']`)                    |
-| `withAudioCodecs(array $codecs)`                   | Set audio codecs (e.g. `['aac', 'opus']`)                       |
-| `withSegmentPerFile(bool $enabled)`                | Enable segment-per-file output                                  |
-| `withLowLatencyDashMode(bool $enabled)`            | Enable low-latency DASH                                         |
-| `withStreamingMode(string $mode)`                  | Set mode (`'vod'` or `'live'`)                                  |
-| `withEncryption(array $config)`                    | Set raw encryption config                                       |
-| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key, returns `EncryptionKey` (not `$this`) |
-| `withKeyRotationDuration(int $seconds)`            | Enable key rotation (requires `'cenc'` or `'cbcs'`)             |
-| `withOption($key, $value)`                         | Set a custom pipeline option                                    |
-| `withOptions(array $options)`                      | Set multiple custom pipeline options                            |
-| `getCommand()`                                     | Get the built config array (for debugging)                      |
+| `withHlsMasterPlaylist($path)`                     | Set HLS output                                                                     |
+| `withMpdOutput($path)`                             | Set DASH/MPD output                                                               |
+| `withSegmentDuration(int $seconds)`                | Set segment duration                                                              |
+| `withManifestFormat(array $formats)`               | Set manifest formats (e.g. `['dash', 'hls']`)                                     |
+| `withResolutions(array $resolutions)`              | Set encoding resolutions                                                          |
+| `withVideoCodecs(array $codecs)`                   | Set video codecs (e.g. `['h264', 'hw:vp9']`)                                      |
+| `withAudioCodecs(array $codecs)`                   | Set audio codecs (e.g. `['aac', 'opus']`)                                         |
+| `withSegmentPerFile(bool $enabled)`                | Enable segment-per-file output                                                    |
+| `withLowLatencyDashMode(bool $enabled)`            | Enable low-latency DASH                                                           |
+| `withStreamingMode(string $mode)`                  | Set mode (`'vod'` or `'live'`)                                                    |
+| `withEncryption(array $config)`                    | Set raw encryption config                                                         |
+| `withAESEncryption($keyFilename, $scheme, $label)` | Auto-generate AES encryption key, returns `EncryptionKey` (not `$this`)           |
+| `withKeyRotationDuration(int $seconds)`            | Enable key rotation (requires `'cenc'` or `'cbcs'`)                               |
+| `withOption($key, $value)`                         | Set a custom pipeline option                                                      |
+| `withOptions(array $options)`                      | Set multiple custom pipeline options                                              |
+| `getCommand()`                                     | Get the built config array (for debugging)                                       |
 
 ### `MediaExporter` (returned by `export()`)
 
 | Method                               | Description                                   |
-| ------------------------------------ | --------------------------------------------- |
+| ------------------------------------- | ---------------------------------------------- |
 | `toDisk($disk)`                      | Set target disk for output                    |
 | `toPath(string $path)`               | Set target subdirectory                       |
 | `withVisibility(string $visibility)` | Set file visibility (`'public'`, `'private'`) |
@@ -259,7 +202,7 @@ $exporter->toDisk('s3')->save();
 ### `DynamicHLSPlaylist`
 
 | Method                             | Description                                        |
-| ---------------------------------- | -------------------------------------------------- |
+| ------------------------------------ | --------------------------------------------------- |
 | `open(string $path)`               | Open a playlist file                               |
 | `setKeyUrlResolver(callable)`      | Resolve encryption key URLs                        |
 | `setMediaUrlResolver(callable)`    | Resolve media segment URLs                         |
@@ -271,7 +214,7 @@ $exporter->toDisk('s3')->save();
 ### `DynamicDASHManifest`
 
 | Method                          | Description                               |
-| ------------------------------- | ----------------------------------------- |
+| --------------------------------- | ------------------------------------------ |
 | `open(string $path)`            | Open a manifest file                      |
 | `setMediaUrlResolver(callable)` | Resolve media segment URLs                |
 | `setInitUrlResolver(callable)`  | Resolve initialization segment URLs       |
@@ -283,36 +226,11 @@ $exporter->toDisk('s3')->save();
 Key options in `config/streamer.php`:
 
 | Option                     | Default                             | Description                                    |
-| -------------------------- | ----------------------------------- | ---------------------------------------------- |
+| ---------------------------- | -------------------------------------- | ------------------------------------------------- |
 | `streamer.streamer_binary` | `'shaka-streamer'`                  | Path to the Shaka Streamer binary              |
 | `timeout`                  | `14400` (4h)                        | Process timeout in seconds                     |
 | `temporary_files_root`     | `storage_path('app/streamer/temp')` | Directory for temporary files                  |
 | `cache_files_root`         | `'/dev/shm'`                        | Fast storage for small files (keys, manifests) |
 | `log_channel`              | `null`                              | Log channel for streamer output                |
 
-See [Configuration](docs/configuration.md) for all options and environment variables.
-
-## Testing
-
-```bash
-composer test
-```
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security
-
-If you discover a security vulnerability, please report it via a private channel (e.g. email or GitHub Security Advisories) rather than publicly disclosing it.
-
-## Acknowledgments
-
-This package was inspired by and learned from:
-
-- [Laravel FFmpeg](https://github.com/protonemedia/laravel-ffmpeg) — Architecture patterns and Laravel integration approach
-- [quasarstream/shaka-php](https://github.com/quasarstream/shaka-php) — Shaka Packager wrapper and command building patterns
-
-## License
-
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+See [Configuration](./configuration.md) for all options and environment variables.

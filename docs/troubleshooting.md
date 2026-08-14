@@ -1,47 +1,19 @@
-# Troubleshooting Guide
+---
+sidebar_position: 9
+---
+
+# Troubleshooting
 
 Common issues and their solutions when using Laravel Shaka Streamer.
 
-## Python & Shaka Streamer Issues
-
-### Python Binary Not Found
-
-**Error:**
-
-```
-Error: Python 3 not found or not in PATH
-```
-
-**Solution:**
-
-1. Install Python 3:
-
-    ```bash
-    # Ubuntu/Debian
-    sudo apt-get install python3
-
-    # macOS
-    brew install python3
-    ```
-
-2. Verify installation:
-
-    ```bash
-    python3 --version
-    ```
-
-3. Configure in `.env`:
-
-    ```env
-    STREAMER_PYTHON_BINARY=/usr/bin/python3.11
-    ```
+## Shaka Streamer Issues
 
 ### Shaka Streamer Not Installed
 
 **Error:**
 
 ```
-Error: shaka-streamer module not found
+Error: shaka-streamer binary not found
 ```
 
 **Solution:**
@@ -61,7 +33,6 @@ Error: shaka-streamer module not found
 3. Configure in `.env`:
 
     ```env
-    STREAMER_PYTHON_BINARY=python3
     STREAMER_BINARY=shaka-streamer
     ```
 
@@ -134,7 +105,7 @@ InsufficientStorageException: Insufficient storage space in [/dev/shm]: 31457280
 
 Unlike "No Space Left on Device" above, this is thrown *before* streaming
 starts by a deliberate pre-flight check (see [Storage Space
-Guards](CONFIGURATION.md#storage-space-guards)) - nothing ran, so there's
+Guards](./configuration.md#storage-space-guards)) - nothing ran, so there's
 nothing to clean up.
 
 **Solution:**
@@ -221,7 +192,7 @@ Log channel not working
 Verify configuration is correct:
 
 ```bash
-php artisan streamer:verify
+php artisan streamer:info
 ```
 
 ### Enable Debug Logging

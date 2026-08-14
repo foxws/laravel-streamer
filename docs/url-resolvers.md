@@ -1,4 +1,8 @@
-# Dynamic URL Resolvers
+---
+sidebar_position: 7
+---
+
+# URL Resolvers
 
 Dynamic URL Resolvers provide a flexible way to customize how URLs are generated for your streaming content. Inspired by Laravel FFMpeg, this package provides two dedicated classes for handling HLS and DASH manifests.
 
@@ -283,32 +287,6 @@ $manifest = (new DynamicDASHManifest('videos'))
     ->open('manifest.mpd');
 ```
 
-## Comparison with Laravel FFMpeg
-
-This implementation follows Laravel FFMpeg's pattern:
-
-**Laravel FFMpeg:**
-```php
-$playlist = (new DynamicHLSPlaylist('videos'))
-    ->open('master.m3u8')
-    ->setMediaUrlResolver(fn ($file) => route('media', ['file' => $file]))
-    ->setKeyUrlResolver(fn ($key) => route('key', ['key' => $key]));
-
-return $playlist->toResponse($request);
-```
-
-**Laravel Shaka (this package):**
-```php
-$playlist = (new DynamicHLSPlaylist('videos'))
-    ->open('master.m3u8')
-    ->setMediaUrlResolver(fn ($file) => route('media', ['file' => $file]))
-    ->setKeyUrlResolver(fn ($key) => route('key', ['key' => $key]));
-
-return $playlist->toResponse($request);
-```
-
-Additionally, this package provides `DynamicDASHManifest` for DASH content.
-
 ## Best Practices
 
 1. **Use Laravel helpers** - Leverage `route()`, `url()`, and `Storage::url()` for consistency
@@ -320,4 +298,4 @@ Additionally, this package provides `DynamicDASHManifest` for DASH content.
 
 ## Examples
 
-For comprehensive examples, see [UrlResolverExamples.php](../examples/UrlResolverExamples.php).
+For comprehensive examples, see [UrlResolverExamples.php](https://github.com/foxws/laravel-streamer/blob/main/examples/UrlResolverExamples.php).

@@ -1,4 +1,8 @@
-# Queue Integration Guide
+---
+sidebar_position: 8
+---
+
+# Queue Integration
 
 This guide explains how to integrate Laravel Shaka Streamer with Laravel's queue system for processing media in the background.
 
@@ -11,7 +15,7 @@ Create a job to handle media packaging:
 
 namespace App\Jobs;
 
-use Foxws\Streamer\Facades\Shaka;
+use Foxws\Streamer\Facades\Streamer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,7 +71,7 @@ PackageMediaJob::dispatch('videos/input.mp4', 'processed/')
 
 namespace App\Jobs;
 
-use Foxws\Streamer\Facades\Shaka;
+use Foxws\Streamer\Facades\Streamer;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
