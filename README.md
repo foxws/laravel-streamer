@@ -33,13 +33,7 @@ Streamer::fromDisk('s3')
 
 ## Documentation
 
-Full documentation is available at [foxws.github.io/laravel-streamer](https://foxws.github.io/laravel-streamer/).
-
-- [Quick Reference](https://foxws.github.io/laravel-streamer/docs/quick-reference) — Complete API at a glance
-- [Configuration](https://foxws.github.io/laravel-streamer/docs/configuration) — Environment variables and config options
-- [AES Encryption](https://foxws.github.io/laravel-streamer/docs/aes-encryption) — Encryption with key rotation
-- [URL Resolvers](https://foxws.github.io/laravel-streamer/docs/url-resolvers) — Signed URLs for HLS & DASH
-- [Troubleshooting](https://foxws.github.io/laravel-streamer/docs/troubleshooting) — Common issues and solutions
+See the [full documentation](https://foxws.github.io/laravel-streamer/) (or browse [`docs/`](docs) directly): [Installation](docs/installation.md), [Usage](docs/usage.md), [Quick Reference](docs/quick-reference.md), [Configuration](docs/configuration.md), [AES Encryption](docs/aes-encryption.md), [URL Resolvers](docs/url-resolvers.md), [Queue Integration](docs/queue-integration.md), [Troubleshooting](docs/troubleshooting.md).
 
 ## Requirements
 
@@ -125,7 +119,7 @@ $streamer->withKeyRotationDuration(60);
 $streamer->export()->toDisk('s3')->save();
 ```
 
-See the [AES Encryption Guide](https://foxws.github.io/laravel-streamer/docs/aes-encryption) for protection schemes, codec-specific examples, and key management.
+See the [AES Encryption Guide](docs/aes-encryption.md) for protection schemes, codec-specific examples, and key management.
 
 ### Dynamic URL Resolvers
 
@@ -173,7 +167,7 @@ return (new DynamicDASHManifest('s3'))
     ->toResponse(request());
 ```
 
-See [URL Resolvers](https://foxws.github.io/laravel-streamer/docs/url-resolvers) for more details.
+See [URL Resolvers](docs/url-resolvers.md) for more details.
 
 ### Events
 
@@ -296,7 +290,7 @@ Key options in `config/streamer.php`:
 | `cache_files_root`         | `'/dev/shm'`                        | Fast storage for small files (keys, manifests) |
 | `log_channel`              | `null`                              | Log channel for streamer output                |
 
-See [Configuration](https://foxws.github.io/laravel-streamer/docs/configuration) for all options and environment variables.
+See [Configuration](docs/configuration.md) for all options and environment variables.
 
 ## Testing
 

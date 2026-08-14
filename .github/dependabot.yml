@@ -19,7 +19,7 @@ updates:
       - "dependencies"
 
   - package-ecosystem: "npm"
-    directory: "/docs"
+    directory: "/website"
     schedule:
       interval: "weekly"
     labels:
