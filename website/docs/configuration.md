@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Configuration
 
 Laravel Shaka Streamer can be configured via the `config/streamer.php` file.
@@ -7,26 +11,24 @@ Laravel Shaka Streamer can be configured via the `config/streamer.php` file.
 Publish the configuration file:
 
 ```bash
-php artisan vendor:publish --tag="shaka-config"
+php artisan vendor:publish --tag="streamer-config"
 ```
 
 ## Configuration Options
 
-### Streamer Configuration
+### Streamer Binary
 
-Configure the Shaka Streamer Python package and binary:
+Configure the Shaka Streamer binary:
 
 ```php
 'streamer' => [
-    'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
     'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
 ],
 ```
 
-**Environment Variables:**
+**Environment Variable:**
 
 ```env
-STREAMER_PYTHON_BINARY=/usr/bin/python3.11
 STREAMER_BINARY=shaka-streamer
 ```
 
@@ -70,15 +72,12 @@ STREAMER_TIMEOUT=14400
 Enable logging to track streaming operations:
 
 ```php
-'log_channel' => env('STREAMER_LOG_CHANNEL', null),
+'log_channel' => env('STREAMER_LOG_CHANNEL', env('LOG_CHANNEL', 'stack')),
 ```
 
 **Environment Variables:**
 
 ```env
-# Disable logging (default)
-STREAMER_LOG_CHANNEL=null
-
 # Use default log channel
 STREAMER_LOG_CHANNEL=stack
 
@@ -159,18 +158,17 @@ purpose: `cache_files_root` is often a much smaller mount (e.g. `/dev/shm`)
 than `temporary_files_root`, so a single shared floor can't meaningfully
 protect both at once. Both throw `Foxws\Streamer\Exceptions\InsufficientStorageException`.
 
-Unlike `laravel-shaka`'s packager (which repackages already-encoded input),
-Streamer actually transcodes via ffmpeg - output size does **not** track
-input size closely, since encoding down to delivery bitrates can shrink a
-source dramatically. There is no job-size-aware check here for that reason;
+Streamer transcodes via ffmpeg, so output size does **not** track input size
+closely — encoding down to delivery bitrates can shrink a source
+dramatically. There is no job-size-aware check here for that reason;
 `temporary_files_min_free` is a flat safety net, not a per-job estimate.
 
 #### Example: Podman tmpfs for `cache_files_root`
 
 Because Streamer's `temporary_files_root` footprint isn't predictable from
 the input file size (see above), putting it on a size-limited tmpfs is
-riskier than in `laravel-shaka` - prefer a regular disk-backed volume there,
-per the note under [Temporary Files](#temporary-files) above.
+riskier than putting it on a regular disk-backed volume — prefer disk for
+`temporary_files_root`, per the note under [Temporary Files](#temporary-files) above.
 
 `cache_files_root` (manifests/keys) is a safer fit for a RAM disk, since it
 only holds small files. If you're running queue workers in Podman:
@@ -187,95 +185,71 @@ STREAMER_CACHE_FILES_ROOT=/dev/shm
 STREAMER_CACHE_MIN_FREE=10485760   # 10 MiB - keep this well under ShmSize
 ```
 
-## Complete Configuration Example
+### Codecs & Segment Duration
+
+Default audio/video codecs and segment duration, overridable per-stream when
+adding streams:
 
 ```php
-<?php
+'audio_codecs' => env('STREAMER_AUDIO_CODECS', 'aac'),
+'video_codecs' => env('STREAMER_VIDEO_CODECS', 'h264'),
+'segment_duration' => env('STREAMER_SEGMENT_DURATION', 6),
+```
 
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Streamer Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Configure Python binary and Shaka Streamer executable paths.
-    |
-    */
+**Environment Variables:**
 
-    'streamer' => [
-        'python_binary' => env('STREAMER_PYTHON_BINARY', 'python3'),
-        'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
-    ],
+```env
+STREAMER_AUDIO_CODECS=aac,opus
+STREAMER_VIDEO_CODECS=hw:h264,hw:vp9
+STREAMER_SEGMENT_DURATION=6
+```
 
-    /*
-    |--------------------------------------------------------------------------
-    | Force Generic Input
-    |--------------------------------------------------------------------------
-    |
-    | Use generic input paths instead of absolute paths.
-    |
-    */
+Prefix a video codec with `hw:` for hardware-accelerated encoding (e.g.
+`hw:h264`).
 
-    'force_generic_input' => env('STREAMER_FORCE_GENERIC_INPUT', true),
+### Hardware Acceleration
 
-    /*
-    |--------------------------------------------------------------------------
-    | Timeout
-    |--------------------------------------------------------------------------
-    |
-    | Maximum execution time in seconds for streaming operations.
-    |
-    */
+Set a hardware acceleration API for video encoding (`vaapi`, `nvenc`,
+`videotoolbox`, `qsv`). Leave unset for software encoding.
 
-    'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4),
+```php
+'hwaccel_api' => env('STREAMER_HWACCEL_API', null),
+```
 
-    /*
-    |--------------------------------------------------------------------------
-    | Logging
-    |--------------------------------------------------------------------------
-    |
-    | Log channel for streaming operations. Set to false to disable logging.
-    |
-    */
+```env
+STREAMER_HWACCEL_API=vaapi
+```
 
-    'log_channel' => env('STREAMER_LOG_CHANNEL', null),
+### Extra Input Arguments
 
-    /*
-    |--------------------------------------------------------------------------
-    | Temporary Files
-    |--------------------------------------------------------------------------
-    |
-    | Root directory for temporary files during streaming operations.
-    |
-    */
+Additional raw arguments passed directly to the packager's input, useful for
+advanced scenarios such as custom demuxer flags.
 
-    'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
+```php
+'extra_input_args' => env('STREAMER_EXTRA_INPUT_ARGS', null),
+```
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Files Root
-    |--------------------------------------------------------------------------
-    |
-    | Directory for cache files (encryption keys, manifests, etc.).
-    |
-    */
+### Streamer Options
 
-    'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
+Additional configuration merged into the Shaka Streamer pipeline config —
+see the [Shaka Streamer configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html).
 
-    /*
-    |--------------------------------------------------------------------------
-    | Storage Space Guards
-    |--------------------------------------------------------------------------
-    |
-    | Fail fast with a clear exception instead of a job dying mid-streaming
-    | when a storage-constrained root runs low on space. Set to 0 to
-    | disable a given check.
-    |
-    */
+```php
+'streamer_options' => [],
+```
 
-    'temporary_files_min_free' => env('STREAMER_TEMPORARY_MIN_FREE', 0),
-    'cache_files_min_free' => env('STREAMER_CACHE_MIN_FREE', 0),
-];
+### Concurrency Workers
+
+Maximum number of concurrent S3 uploads when copying streamed files to an
+S3-backed disk (ignored for local disks). Each in-flight upload holds an open
+file stream, so memory usage scales with this value.
+
+```php
+'concurrency_workers' => env('STREAMER_CONCURRENCY_WORKERS', 30),
+```
+
+```env
+STREAMER_CONCURRENCY_WORKERS=30
 ```
 
 ## Environment Configuration
@@ -283,8 +257,6 @@ return [
 Example `.env` configuration:
 
 ```env
-# Shaka Streamer Configuration
-STREAMER_PYTHON_BINARY=python3
 STREAMER_BINARY=shaka-streamer
 STREAMER_TIMEOUT=14400
 STREAMER_LOG_CHANNEL=streamer
@@ -300,12 +272,12 @@ STREAMER_CACHE_MIN_FREE=10485760
 After configuration, verify your setup:
 
 ```bash
-php artisan streamer:verify
+php artisan streamer:info
 ```
 
 This command checks:
 
-- Python binary is available
-- Shaka Streamer executable is callable
-- Configuration is properly loaded
-- Logger is properly set up
+- Binary exists and is executable
+- Can retrieve version information
+- Configuration is properly set up
+- Logger status

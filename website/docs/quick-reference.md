@@ -1,11 +1,15 @@
-# Shaka Streamer - Quick Reference Guide
+---
+sidebar_position: 4
+---
+
+# Quick Reference
 
 ## Fluent API with fromDisk Support
 
 ### Basic Usage
 
 ```php
-use Foxws\Streamer\Facades\Shaka;
+use Foxws\Streamer\Facades\Streamer;
 
 // Default disk
 $result = Streamer::open('input.mp4')
@@ -182,24 +186,13 @@ try {
 
 ## Configuration
 
-### config/shaka.php
-
-```php
-return [
-    'streamer' => [
-        'binaries' => env('STREAMER_PATH', '/usr/local/bin/streamer'),
-    ],
-    'timeout' => 60 * 60 * 4, // 4 hours
-    'log_channel' => env('STREAMER_LOG_CHANNEL', false),
-    'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
-];
-```
+See the [Configuration](./configuration.md) page for the full list of options and environment variables.
 
 ## Artisan Commands
 
 ```bash
-# Verify streamer installation
-php artisan streamer:verify
+# Show binary and configuration status
+php artisan streamer:info
 ```
 
 ## Direct Driver Usage

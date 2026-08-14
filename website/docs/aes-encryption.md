@@ -1,4 +1,8 @@
-# AES Encryption with Different Codecs
+---
+sidebar_position: 6
+---
+
+# AES Encryption
 
 This guide demonstrates how to use the `withAESEncryption()` method with various video codecs.
 
@@ -484,5 +488,4 @@ final readonly class EncryptionKey
 
 ## Related Documentation
 
-- [Configuration Guide](../docs/CONFIGURATION.md)
-- [Shaka Streamer Docs](https://shaka-project.github.io/shaka-streamer/)
+- [Configuration Guide](./configuration.md)
