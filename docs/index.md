@@ -28,6 +28,7 @@ Streamer::fromDisk('s3')
 - **Fluent API** — Laravel-style chainable methods for packaging media
 - **Filesystem Integration** — Read from and write to any Laravel disk (local, S3, etc.)
 - **Adaptive Bitrate** — Create multi-quality HLS & DASH streams
+- **CMAF by Default** — DASH and HLS manifests generated from the same fragmented-MP4 segments in a single pipeline run
 - **AES Encryption** — Built-in content protection with optional key rotation
 - **Dynamic Manifests** — Rewrite HLS playlists and DASH MPDs with signed URLs at serve-time
 - **Events** — Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed`
