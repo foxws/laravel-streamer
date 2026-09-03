@@ -26,6 +26,7 @@ Streamer::fromDisk('s3')
 - 🎬 **Fluent API** — Laravel-style chainable methods for packaging media
 - 📁 **Filesystem Integration** — Read from and write to any Laravel disk (local, S3, etc.)
 - 🎯 **Adaptive Bitrate** — Create multi-quality HLS & DASH streams
+- 🎞️ **CMAF by Default** — DASH and HLS manifests generated from the same fragmented-MP4 segments in a single pipeline run
 - 🔒 **AES Encryption** — Built-in content protection with optional key rotation
 - 📺 **Dynamic Manifests** — Rewrite HLS playlists and DASH MPDs with signed URLs at serve-time
 - 📡 **Events** — Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed`
@@ -73,6 +74,28 @@ Streamer::open('input.mp4')
     ->export()
     ->save();
 ```
+
+### Dual DASH + HLS Output (CMAF)
+
+Shaka Streamer packages video/audio as CMAF (fragmented MP4) by default, so the
+same segments can be described by both a DASH manifest and an HLS master
+playlist. Setting both `withMpdOutput()` and `withHlsMasterPlaylist()` packages
+both from a single pipeline run — no extra transcoding, just an additional
+manifest:
+
+```php
+Streamer::open('input.mp4')
+    ->addVideoStream('input.mp4', 'video.mp4')
+    ->addAudioStream('input.mp4', 'audio.mp4')
+    ->withMpdOutput('manifest.mpd')
+    ->withHlsMasterPlaylist('master.m3u8')
+    ->export()
+    ->save();
+```
+
+`withManifestFormat(['dash', 'hls'])` is inferred automatically from whichever
+outputs are set, but you can call it explicitly to be specific about which
+manifest(s) get generated.
 
 ### Cross-Disk Workflows
 
