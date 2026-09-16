@@ -2,6 +2,22 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.1.1 - 2026-09-16
+
+### What's Changed
+
+* build(deps): bump pnpm/action-setup from 4 to 6 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/22
+* build(deps): bump actions/upload-pages-artifact from 3 to 5 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/21
+* build(deps): bump actions/setup-node from 4 to 7 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/20
+* build(deps): bump actions/deploy-pages from 4 to 5 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/18
+* build(deps): bump actions/checkout from 4 to 7 by @dependabot[bot] in https://github.com/foxws/laravel-streamer/pull/19
+* docs: document CMAF-based dual DASH + HLS output by @francoism90 in https://github.com/foxws/laravel-streamer/pull/24
+* Update docs front matter for laravel-docs and simplify prose by @francoism90 in https://github.com/foxws/laravel-streamer/pull/25
+* Remove old Docusaurus website and deploy-docs workflow by @francoism90 in https://github.com/foxws/laravel-streamer/pull/26
+* Allow guzzlehttp/promises ^3.0 alongside ^2.0 by @francoism90 in https://github.com/foxws/laravel-streamer/pull/27
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/2.1.0...2.1.1
+
 ## 2.1.0 - 2026-08-09
 
 ### What's Changed
