@@ -1,13 +1,17 @@
 ---
-slug: /
-sidebar_position: 1
+title: Introduction
+metadata:
+  role: Media
+  eyebrow: "Video · HLS/DASH · Shaka Streamer"
+  desc: "Package adaptive streaming video with Google's Shaka Streamer, Laravel-style."
+  requires: "PHP ^8.3"
+  laravel: "12.x / 13.x"
+  licence: MIT
 ---
 
 # Introduction
 
-A Laravel integration for [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer),
-enabling you to package adaptive streaming content (HLS, DASH) with a
-fluent, Laravel-style API.
+This package connects Laravel to [Google's Shaka Streamer](https://github.com/shaka-project/shaka-streamer). Shaka Streamer takes a video file and packages it for adaptive streaming — HLS, DASH, or both. This package wraps that tool in a fluent, chainable API that feels like the rest of Laravel.
 
 ```php
 use Foxws\Streamer\Facades\Streamer;
@@ -23,18 +27,20 @@ Streamer::fromDisk('s3')
     ->save();
 ```
 
-## Features
+## What it does
 
-- **Fluent API** — Laravel-style chainable methods for packaging media
-- **Filesystem Integration** — Read from and write to any Laravel disk (local, S3, etc.)
-- **Adaptive Bitrate** — Create multi-quality HLS & DASH streams
-- **CMAF by Default** — DASH and HLS manifests generated from the same fragmented-MP4 segments in a single pipeline run
-- **AES Encryption** — Built-in content protection with optional key rotation
-- **Dynamic Manifests** — Rewrite HLS playlists and DASH MPDs with signed URLs at serve-time
-- **Events** — Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed`
-- **PHP 8.3+** — Strict types, readonly properties, and modern PHP throughout
+| Feature | What it means |
+| --- | --- |
+| Fluent API | Chainable, Laravel-style methods for packaging media |
+| Filesystem integration | Read from and write to any Laravel disk (local, S3, and so on) |
+| Adaptive bitrate | Create multi-quality HLS and DASH streams |
+| CMAF by default | DASH and HLS are generated from the same fragmented-MP4 segments in one run |
+| AES encryption | Built-in content protection, with optional key rotation |
+| Dynamic manifests | Rewrite HLS playlists and DASH manifests with signed URLs when serving them |
+| Events | Hooks for `StreamingStarted`, `StreamingCompleted`, and `StreamingFailed` |
+| Modern PHP | Built for PHP 8.3+, using strict types and readonly properties |
 
-## See also
+## Where to go next
 
 - [Installation](./installation.md) — requirements and setup
 - [Usage](./usage.md) — the main API walkthrough
@@ -45,4 +51,4 @@ Streamer::fromDisk('s3')
 - [Queue Integration](./queue-integration.md) — processing media in background jobs
 - [Troubleshooting](./troubleshooting.md) — common issues and solutions
 
-Continue to [Installation](./installation.md) to get started.
+Start with [Installation](./installation.md).

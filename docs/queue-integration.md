@@ -1,14 +1,15 @@
 ---
-sidebar_position: 8
+section: Usage
+order: 3
 ---
 
 # Queue Integration
 
-This guide explains how to integrate Laravel Shaka Streamer with Laravel's queue system for processing media in the background.
+Packaging media takes time, so it's usually best done in the background rather than during a web request. This guide shows how to run this package's work through Laravel's queue system.
 
-## Basic Queue Job
+## A basic queue job
 
-Create a job to handle media packaging:
+Here's a job that handles media packaging:
 
 ```php
 <?php
@@ -47,7 +48,7 @@ class PackageMediaJob implements ShouldQueue
 }
 ```
 
-## Dispatching the Job
+## Dispatching the job
 
 ```php
 use App\Jobs\PackageMediaJob;
@@ -64,7 +65,7 @@ PackageMediaJob::dispatch('videos/input.mp4', 'processed/')
     ->delay(now()->addMinutes(5));
 ```
 
-## Job with Progress Tracking
+## A job with progress tracking
 
 ```php
 <?php
@@ -129,9 +130,9 @@ class PackageMediaWithProgressJob implements ShouldQueue
 }
 ```
 
-## Batch Processing
+## Batch processing
 
-Process multiple files in a batch:
+To process several files together as one batch:
 
 ```php
 use App\Jobs\PackageMediaJob;
@@ -158,11 +159,11 @@ $batch = Bus::batch($jobs)
     ->dispatch();
 ```
 
-## Configuration Recommendations
+## Configuration recommendations
 
-### Queue Configuration
+### Queue configuration
 
-Update `config/queue.php`:
+Add a dedicated connection in `config/queue.php`:
 
 ```php
 'connections' => [
@@ -176,9 +177,9 @@ Update `config/queue.php`:
 ],
 ```
 
-### Horizon Configuration (Optional)
+### Horizon configuration (optional)
 
-If using Laravel Horizon, add to `config/horizon.php`:
+If you use Laravel Horizon, add this to `config/horizon.php`:
 
 ```php
 'environments' => [
@@ -198,17 +199,19 @@ If using Laravel Horizon, add to `config/horizon.php`:
 ],
 ```
 
-## Best Practices
+## Best practices
 
-1. **Set Appropriate Timeouts**: Media packaging can take time, set realistic timeouts
-2. **Limit Concurrent Jobs**: Packaging is resource-intensive, limit concurrent processes
-3. **Monitor Memory**: Use memory limits to prevent server issues
-4. **Implement Retries**: Network issues with remote storage may require retries
-5. **Use Job Chaining**: Chain cleanup jobs after packaging
-6. **Track Progress**: Use events or database updates to track progress
-7. **Clean Up Temporary Files**: Always clean up after success or failure
+| Practice | Why |
+| --- | --- |
+| Set realistic timeouts | Packaging can take a long time, especially for longer or higher-resolution videos |
+| Limit concurrent jobs | Packaging is resource-intensive, so too many at once can overload the server |
+| Monitor memory | Set memory limits to avoid running out of resources |
+| Implement retries | Remote storage can have transient network issues worth retrying |
+| Chain cleanup jobs | Run cleanup after packaging finishes, as part of the same chain |
+| Track progress | Use events or database updates so users can see how far along a job is |
+| Clean up temporary files | Do this on both success and failure, not just on success |
 
-## Example with Cleanup
+## Example with cleanup
 
 ```php
 public function handle(): void

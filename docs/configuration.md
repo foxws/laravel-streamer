@@ -1,24 +1,25 @@
 ---
-sidebar_position: 5
+section: Reference
+order: 2
 ---
 
 # Configuration
 
-Laravel Shaka Streamer can be configured via the `config/streamer.php` file.
+You configure this package through the `config/streamer.php` file.
 
-## Publishing Configuration
+## Publishing the configuration file
 
-Publish the configuration file:
+Publish it with:
 
 ```bash
 php artisan vendor:publish --tag="streamer-config"
 ```
 
-## Configuration Options
+## Configuration options
 
-### Streamer Binary
+### Streamer binary
 
-Configure the Shaka Streamer binary:
+Set the path to the Shaka Streamer binary:
 
 ```php
 'streamer' => [
@@ -32,7 +33,7 @@ Configure the Shaka Streamer binary:
 STREAMER_BINARY=shaka-streamer
 ```
 
-### Force Generic Input
+### Force generic input
 
 Use generic input paths instead of absolute paths:
 
@@ -60,12 +61,12 @@ Set the maximum execution time for streaming operations:
 STREAMER_TIMEOUT=14400
 ```
 
-**Considerations:**
+**Things that affect how long packaging takes:**
 
-- Longer videos require more time
-- 4K content takes significantly longer than 1080p
-- Multiple quality variants multiply processing time
-- Consider your server's PHP `max_execution_time` setting
+- Longer videos need more time
+- 4K content takes much longer than 1080p
+- Each extra quality variant adds to the processing time
+- Your server's PHP `max_execution_time` setting also matters
 
 ### Logging
 
@@ -85,7 +86,7 @@ STREAMER_LOG_CHANNEL=stack
 STREAMER_LOG_CHANNEL=streamer
 ```
 
-**Custom Log Channel:**
+**Custom log channel:**
 Define a custom channel in `config/logging.php`:
 
 ```php
@@ -99,9 +100,9 @@ Define a custom channel in `config/logging.php`:
 ],
 ```
 
-### Temporary Files
+### Temporary files
 
-Configure where temporary files are stored:
+Set where temporary files are stored:
 
 ```php
 'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
@@ -113,16 +114,16 @@ Configure where temporary files are stored:
 STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
 ```
 
-**Considerations:**
+**Notes:**
 
-- Remote files (S3, etc.) are copied here before processing
-- Ensure sufficient disk space
-- Clean up regularly
-- Use standard disk (not RAM) to avoid consuming memory
+- Remote files (from S3 and similar) are copied here before processing
+- Make sure there's enough disk space
+- Clean this directory up regularly
+- Use a regular disk here, not RAM, so you don't eat into memory
 
-### Cache Files
+### Cache files
 
-Configure location for cache files (encryption keys, manifests, etc.):
+Set where cache files (encryption keys, manifests, and so on) are stored:
 
 ```php
 'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
@@ -134,12 +135,12 @@ Configure location for cache files (encryption keys, manifests, etc.):
 STREAMER_CACHE_FILES_ROOT=/dev/shm
 ```
 
-**Note:** Using `/dev/shm` (RAM disk) provides better performance for small files but requires sufficient RAM.
+**Note:** `/dev/shm` (a RAM disk) is faster for small files, but it needs enough RAM available to hold them.
 
-### Storage Space Guards
+### Storage space guards
 
-Fail fast with a clear exception instead of a job dying mid-streaming when a
-storage-constrained root runs low on space.
+These settings let you fail fast with a clear error instead of having a job
+die partway through because a storage location ran out of space.
 
 ```php
 'temporary_files_min_free' => env('STREAMER_TEMPORARY_MIN_FREE', 0),
@@ -153,25 +154,27 @@ STREAMER_TEMPORARY_MIN_FREE=1073741824   # 1 GiB floor on temporary_files_root
 STREAMER_CACHE_MIN_FREE=10485760         # 10 MiB floor on cache_files_root
 ```
 
-Both are disabled by default (`0`), and kept independent of each other on
-purpose: `cache_files_root` is often a much smaller mount (e.g. `/dev/shm`)
-than `temporary_files_root`, so a single shared floor can't meaningfully
-protect both at once. Both throw `Foxws\Streamer\Exceptions\InsufficientStorageException`.
+Both are off by default (`0`), and they're kept independent on purpose:
+`cache_files_root` is often a much smaller mount (e.g. `/dev/shm`) than
+`temporary_files_root`, so one shared floor couldn't protect both properly.
+Both throw `Foxws\Streamer\Exceptions\InsufficientStorageException` when
+triggered.
 
-Streamer transcodes via ffmpeg, so output size does **not** track input size
-closely — encoding down to delivery bitrates can shrink a source
-dramatically. There is no job-size-aware check here for that reason;
-`temporary_files_min_free` is a flat safety net, not a per-job estimate.
+Streamer encodes via ffmpeg, so the output size doesn't closely track the
+input size — encoding down to delivery bitrates can shrink a file a lot.
+Because of that, there's no check here that estimates space needed per job;
+`temporary_files_min_free` is just a flat safety net, not a per-job estimate.
 
 #### Example: Podman tmpfs for `cache_files_root`
 
-Because Streamer's `temporary_files_root` footprint isn't predictable from
-the input file size (see above), putting it on a size-limited tmpfs is
-riskier than putting it on a regular disk-backed volume — prefer disk for
-`temporary_files_root`, per the note under [Temporary Files](#temporary-files) above.
+Since `temporary_files_root`'s space usage isn't predictable from the input
+file size (see above), putting it on a size-limited tmpfs is riskier than
+putting it on a regular disk-backed volume — prefer disk for
+`temporary_files_root`, as noted under [Temporary files](#temporary-files) above.
 
-`cache_files_root` (manifests/keys) is a safer fit for a RAM disk, since it
-only holds small files. If you're running queue workers in Podman:
+`cache_files_root` (which only holds manifests and keys) is a safer fit for
+a RAM disk, since those files are small. If you're running queue workers in
+Podman:
 
 ```ini
 # horizon.container (podman quadlet)
@@ -185,10 +188,10 @@ STREAMER_CACHE_FILES_ROOT=/dev/shm
 STREAMER_CACHE_MIN_FREE=10485760   # 10 MiB - keep this well under ShmSize
 ```
 
-### Codecs & Segment Duration
+### Codecs & segment duration
 
-Default audio/video codecs and segment duration, overridable per-stream when
-adding streams:
+These set the default audio/video codecs and segment duration. You can
+override any of them for an individual stream when you add it:
 
 ```php
 'audio_codecs' => env('STREAMER_AUDIO_CODECS', 'aac'),
@@ -204,13 +207,14 @@ STREAMER_VIDEO_CODECS=hw:h264,hw:vp9
 STREAMER_SEGMENT_DURATION=6
 ```
 
-Prefix a video codec with `hw:` for hardware-accelerated encoding (e.g.
+Prefix a video codec with `hw:` to use hardware-accelerated encoding (e.g.
 `hw:h264`).
 
-### Hardware Acceleration
+### Hardware acceleration
 
-Set a hardware acceleration API for video encoding (`vaapi`, `nvenc`,
-`videotoolbox`, `qsv`). Leave unset for software encoding.
+Set which hardware acceleration API to use for video encoding — `vaapi`,
+`nvenc`, `videotoolbox`, or `qsv`. Leave it unset to use software encoding
+instead.
 
 ```php
 'hwaccel_api' => env('STREAMER_HWACCEL_API', null),
@@ -220,29 +224,30 @@ Set a hardware acceleration API for video encoding (`vaapi`, `nvenc`,
 STREAMER_HWACCEL_API=vaapi
 ```
 
-### Extra Input Arguments
+### Extra input arguments
 
-Additional raw arguments passed directly to the packager's input, useful for
-advanced scenarios such as custom demuxer flags.
+Raw arguments passed directly to the packager's input. Useful for advanced
+scenarios, such as custom demuxer flags.
 
 ```php
 'extra_input_args' => env('STREAMER_EXTRA_INPUT_ARGS', null),
 ```
 
-### Streamer Options
+### Streamer options
 
-Additional configuration merged into the Shaka Streamer pipeline config —
-see the [Shaka Streamer configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html).
+Extra configuration merged directly into the Shaka Streamer pipeline config —
+see the [Shaka Streamer configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html)
+for what's available.
 
 ```php
 'streamer_options' => [],
 ```
 
-### Concurrency Workers
+### Concurrency workers
 
-Maximum number of concurrent S3 uploads when copying streamed files to an
-S3-backed disk (ignored for local disks). Each in-flight upload holds an open
-file stream, so memory usage scales with this value.
+The maximum number of S3 uploads that can run at once when copying packaged
+files to an S3-backed disk (this is ignored for local disks). Each upload in
+progress holds an open file stream, so memory usage grows with this value.
 
 ```php
 'concurrency_workers' => env('STREAMER_CONCURRENCY_WORKERS', 30),
@@ -252,9 +257,9 @@ file stream, so memory usage scales with this value.
 STREAMER_CONCURRENCY_WORKERS=30
 ```
 
-## Environment Configuration
+## Environment configuration
 
-Example `.env` configuration:
+An example `.env` configuration:
 
 ```env
 STREAMER_BINARY=shaka-streamer
@@ -269,15 +274,15 @@ STREAMER_CACHE_MIN_FREE=10485760
 
 ## Verification
 
-After configuration, verify your setup:
+After configuring the package, check that everything works:
 
 ```bash
 php artisan streamer:info
 ```
 
-This command checks:
+This command checks that:
 
-- Binary exists and is executable
-- Can retrieve version information
-- Configuration is properly set up
-- Logger status
+- The binary exists and is executable
+- Version information can be retrieved
+- The configuration is set up correctly
+- The logger is working

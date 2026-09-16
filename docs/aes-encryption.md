@@ -1,12 +1,13 @@
 ---
-sidebar_position: 6
+section: Advanced
+order: 1
 ---
 
 # AES Encryption
 
-This guide demonstrates how to use the `withAESEncryption()` method with various video codecs.
+This guide shows how to use the `withAESEncryption()` method with various video codecs.
 
-## Quick Start
+## Quick start
 
 ```php
 use Foxws\Streamer\Filesystem\Media;
@@ -29,13 +30,13 @@ $streamer->addStream([
 ]);
 ```
 
-`withAESEncryption()` returns an `EncryptionKey` value object with `key`, `keyId`, and `filePath` properties.
+`withAESEncryption()` returns an `EncryptionKey` object with `key`, `keyId`, and `filePath` properties.
 
-## Codec-Specific Examples
+## Codec-specific examples
 
-### H.264/AVC Encryption
+### H.264/AVC encryption
 
-H.264 is the most widely supported codec. Use `cbc1` for maximum compatibility:
+H.264 is the most widely supported codec. Use `cbc1` for the best compatibility:
 
 ```php
 $media = Media::make('videos', 'h264_video.mp4');
@@ -56,9 +57,9 @@ $streamer->addStream([
 // Key ID: $encryptionKey->keyId
 ```
 
-## Key Rotation
+## Key rotation
 
-Automatic key rotation enhances security by periodically generating new encryption keys:
+Key rotation improves security by periodically generating new encryption keys automatically:
 
 ```php
 $media = Media::make('videos', 'input.mp4');
@@ -74,35 +75,28 @@ $streamer->withMpdOutput('manifest.mpd');
 $result = $streamer->export();
 ```
 
-### Common Rotation Intervals
+### Common rotation intervals
 
-```php
-// 30 seconds - high security (Apple HLS recommendation)
-->withKeyRotationDuration(30)
+| Interval | Use case |
+| --- | --- |
+| `->withKeyRotationDuration(30)` | 30 seconds — high security (Apple's HLS recommendation) |
+| `->withKeyRotationDuration(60)` | 60 seconds — balanced security |
+| `->withKeyRotationDuration(300)` | 5 minutes — lower overhead, still secure |
+| `->withKeyRotationDuration(900)` | 15 minutes — minimal rotation, for low-risk content |
 
-// 60 seconds - balanced security
-->withKeyRotationDuration(60)
-
-// 5 minutes - lower overhead, still secure
-->withKeyRotationDuration(300)
-
-// 15 minutes - minimal rotation for low-risk content
-->withKeyRotationDuration(900)
-```
-
-### How It Works
+### How it works
 
 Shaka Streamer's underlying Shaka Packager stage automatically:
 
 1. Generates a new key at each rotation interval
-2. Embeds key URIs in the manifest (#EXT-X-KEY tags for HLS)
-3. Encrypts segments with the appropriate key based on timing
+2. Embeds key URIs in the manifest (`#EXT-X-KEY` tags for HLS)
+3. Encrypts each segment with the correct key for its timing
 
-Players automatically fetch the correct key for each segment.
+Players fetch the right key for each segment automatically — you don't need to do anything extra on the playback side.
 
-### Collecting Rotated Keys
+### Collecting rotated keys
 
-After streaming with key rotation, the keys are automatically tracked when uploading:
+When you package with key rotation, the keys are tracked automatically as they're uploaded:
 
 ```php
 $streamer->withAESEncryption(); // Default: key_0.key, key_1.key, key_2.key...
@@ -127,11 +121,11 @@ foreach ($uploadedKeys as $key) {
 }
 ```
 
-That's it! `toDisk()` automatically uploads both segments and encryption keys to your **private S3 bucket**.
+That's it — `toDisk()` automatically uploads both the segments and the encryption keys to your **private S3 bucket**.
 
-### Serving Keys with Dynamic URLs
+### Serving keys with dynamic URLs
 
-Use `setKeyUrlResolver()` to generate signed temporary URLs dynamically when serving playlists:
+Use `setKeyUrlResolver()` to generate signed, temporary URLs on the fly when serving playlists:
 
 ```php
 use Foxws\Streamer\Http\DynamicHLSPlaylist;
@@ -156,13 +150,13 @@ public function playlist(Video $video)
 **Benefits:**
 
 - URLs are generated fresh on every request
-- No need to store/track expiration times
-- Keys remain in private S3 bucket
-- Players fetch keys transparently
+- No need to store or track expiration times yourself
+- Keys stay in the private S3 bucket
+- Players fetch keys transparently, with no extra work needed
 
-## Codec-Specific Examples (continued)
+## Codec-specific examples (continued)
 
-### HEVC/H.265 Encryption
+### HEVC/H.265 encryption
 
 HEVC offers better compression. Use `cbcs` for modern devices:
 
@@ -180,7 +174,7 @@ $streamer->addStream([
 ]);
 ```
 
-### AV1 Encryption
+### AV1 encryption
 
 AV1 is a modern, royalty-free codec with excellent compression:
 
@@ -198,51 +192,36 @@ $streamer->addStream([
 ]);
 ```
 
-## Protection Schemes
+## Protection schemes
 
-### cbc1 (Default - Most Compatible)
-
-Best for HLS and maximum browser compatibility:
+| Scheme | Best for | Compatible with |
+| --- | --- | --- |
+| `cbc1` (default) | HLS, maximum compatibility | Safari, Chrome, Firefox, Edge, iOS, Android |
+| `cbcs` | Modern devices, better performance | iOS 10+, Android 7+, modern browsers |
+| `cenc` | DASH (the standard scheme) | Most DASH players, EME-enabled browsers |
+| `null` (SAMPLE-AES) | HLS without a protection scheme | HLS players, Apple devices |
 
 ```php
+// cbc1 - default, most compatible
 $encryptionKey = $streamer->withAESEncryption('encryption.key', 'cbc1');
-// Compatible with: Safari, Chrome, Firefox, Edge, iOS, Android
-```
 
-### cbcs (Modern Devices)
-
-For newer platforms with better performance:
-
-```php
+// cbcs - modern devices
 $encryptionKey = $streamer->withAESEncryption('encryption.key', 'cbcs');
-// Compatible with: iOS 10+, Android 7+, modern browsers
-```
 
-### cenc (Common Encryption)
-
-DASH standard, widely supported:
-
-```php
+// cenc - common encryption, for DASH
 $encryptionKey = $streamer->withAESEncryption('encryption.key', 'cenc');
-// Compatible with: Most DASH players, EME-enabled browsers
-```
 
-### SAMPLE-AES (HLS-Specific)
-
-For HLS without a protection scheme:
-
-```php
+// null - SAMPLE-AES, HLS-specific
 $encryptionKey = $streamer->withAESEncryption('hls.key', null);
-// Compatible with: HLS players, Apple devices
 ```
 
 Every method above also accepts a `Foxws\Streamer\Support\ProtectionScheme` enum
 case (`ProtectionScheme::Cbc1`, `::Cbcs`, `::Cenc`, `::Cens`) instead of a raw
-string, if you'd rather not deal with typos in the scheme name.
+string, if you'd rather avoid typos in the scheme name.
 
-## Multi-Codec Packaging
+## Multi-codec packaging
 
-Package multiple codecs with a single encryption key:
+You can package multiple codecs under a single encryption key:
 
 ```php
 $h264 = Media::make('videos', 'h264.mp4');
@@ -278,9 +257,9 @@ $streamer->addStream([
 $result = $streamer->export();
 ```
 
-## Separate Keys Per Codec
+## Separate keys per codec
 
-For advanced scenarios, use different keys for each codec:
+For advanced scenarios, you can use a different key for each codec:
 
 ```php
 // H.264 with its own key
@@ -301,9 +280,9 @@ $keyAv1 = $streamerAv1->withAESEncryption('av1.key');
 // Each codec has unique encryption keys
 ```
 
-## HLS with Encryption
+## HLS with encryption
 
-Complete HLS packaging with encryption:
+A complete example of HLS packaging with encryption:
 
 ```php
 $media = Media::make('videos', 'video.mp4');
@@ -325,9 +304,9 @@ $result = $streamer->export();
 // Player will fetch 'encryption.key' to decrypt segments
 ```
 
-## DASH with Encryption
+## DASH with encryption
 
-Complete DASH packaging with encryption:
+A complete example of DASH packaging with encryption:
 
 ```php
 $media = Media::make('videos', 'video.mp4');
@@ -345,17 +324,14 @@ $streamer
 $result = $streamer->export();
 ```
 
-## Key Storage
+## Key storage
 
-The encryption key is stored in two locations:
+The encryption key is stored in two places:
 
-1. **Cache storage** (RAM disk if available): Fast temporary storage for key generation
-    - Default: `/dev/shm` (Linux) or system temp directory
-    - Configure via: `STREAMER_CACHE_FILES_ROOT` environment variable
-
-2. **Export directory**: Copied to streaming output for cloud storage upload
-    - Automatically included when exporting to S3 or other storage
-    - Key file name is customizable via the `$keyFilename` parameter
+| Location | Purpose | Configure via |
+| --- | --- | --- |
+| Cache storage (RAM disk if available) | Fast temporary storage during key generation. Defaults to `/dev/shm` on Linux, or the system temp directory otherwise | `STREAMER_CACHE_FILES_ROOT` |
+| Export directory | Copied here alongside the packaged output, so it's included automatically when exporting to S3 or elsewhere | The `$keyFilename` parameter sets the file name |
 
 ```php
 $encryptionKey = $streamer->withAESEncryption('my-custom-key.bin');
@@ -369,9 +345,9 @@ echo $encryptionKey->key;      // Hex-encoded 128-bit key
 echo $encryptionKey->keyId;    // Hex-encoded key ID
 ```
 
-### Secure Storage with Signed URLs
+### Secure storage with signed URLs
 
-For production use, store keys in a **private S3 bucket** and use `setKeyUrlResolver()` to generate signed URLs dynamically:
+In production, store keys in a **private S3 bucket** and use `setKeyUrlResolver()` to generate signed URLs on the fly:
 
 ```php
 use Foxws\Streamer\Http\DynamicHLSPlaylist;
@@ -406,34 +382,36 @@ public function streamVideo(Video $video)
 **Benefits:**
 
 - Keys are never publicly accessible
-- URLs generated fresh on each request
-- No need to track expiration times
+- URLs are generated fresh on every request
+- No need to track expiration times yourself
 - Players fetch keys and segments transparently
-- Revoke access via authorization checks
+- You can revoke access at any time via your authorization checks
 
 ## Troubleshooting
 
-### Codec Not Supported
+### Codec not supported
 
-Ensure your input video is actually encoded with the expected codec:
+Check that your input video is actually encoded with the codec you expect:
 
 ```bash
 ffmpeg -i video.mp4
 # Look for "Video: h264" or "Video: hevc" or "Video: av1"
 ```
 
-### Protection Scheme Issues
+### Protection scheme issues
 
 Different devices support different protection schemes:
 
-- **Safari/iOS**: Use `cbc1` or null (SAMPLE-AES)
-- **Chrome/Android**: Use `cbc1`, `cbcs`, or `cenc`
-- **DASH Players**: Use `cenc`
-- **HLS Players**: Use `cbc1` or null
+| Platform | Use |
+| --- | --- |
+| Safari/iOS | `cbc1` or `null` (SAMPLE-AES) |
+| Chrome/Android | `cbc1`, `cbcs`, or `cenc` |
+| DASH players | `cenc` |
+| HLS players | `cbc1` or `null` |
 
-### Key File Not Found
+### Key file not found
 
-Ensure the key file is copied to your export directory:
+Check that the key file was copied to your export directory:
 
 ```php
 // The package automatically copies the key for you
@@ -443,7 +421,7 @@ $encryptionKey = $streamer->withAESEncryption('encryption.key');
 // When you export/upload, the key file will be included
 ```
 
-## API Reference
+## API reference
 
 ```php
 /**
@@ -486,6 +464,6 @@ final readonly class EncryptionKey
 `Foxws\Streamer\Support\EncryptionKeyFile` value objects, each with `path`,
 `filename`, and `content` (hex-encoded) properties.
 
-## Related Documentation
+## Related documentation
 
 - [Configuration Guide](./configuration.md)

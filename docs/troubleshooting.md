@@ -1,14 +1,15 @@
 ---
-sidebar_position: 9
+section: Advanced
+order: 2
 ---
 
 # Troubleshooting
 
-Common issues and their solutions when using Laravel Shaka Streamer.
+Common issues you might run into with this package, and how to fix them.
 
-## Shaka Streamer Issues
+## Shaka Streamer issues
 
-### Shaka Streamer Not Installed
+### Shaka Streamer not installed
 
 **Error:**
 
@@ -36,9 +37,9 @@ Error: shaka-streamer binary not found
     STREAMER_BINARY=shaka-streamer
     ```
 
-## Temporary Directory Issues
+## Temporary directory issues
 
-### Permission Denied
+### Permission denied
 
 **Error:**
 
@@ -67,7 +68,7 @@ Permission denied: /var/www/html/storage/app/streamer/temp
     'temporary_files_root' => storage_path('app/streamer/temp'),
     ```
 
-### No Space Left on Device
+### No space left on device
 
 **Error:**
 
@@ -95,7 +96,7 @@ No space left on device
     STREAMER_TEMPORARY_FILES_ROOT=/mnt/alternate-disk/streamer-temp
     ```
 
-### Insufficient Storage Space (pre-flight check)
+### Insufficient storage space (pre-flight check)
 
 **Error:**
 
@@ -103,24 +104,24 @@ No space left on device
 InsufficientStorageException: Insufficient storage space in [/dev/shm]: 31457280 bytes free, 1073741824 bytes required.
 ```
 
-Unlike "No Space Left on Device" above, this is thrown *before* streaming
-starts by a deliberate pre-flight check (see [Storage Space
-Guards](./configuration.md#storage-space-guards)) - nothing ran, so there's
-nothing to clean up.
+Unlike "No space left on device" above, this error is thrown *before*
+packaging starts, by a deliberate pre-flight check (see [Storage space
+guards](./configuration.md#storage-space-guards)). Nothing ran yet, so
+there's nothing to clean up.
 
 **Solution:**
 
 1. If `temporary_files_root` or `cache_files_root` is a size-limited mount
-   (e.g. a tmpfs), free up space or increase its size.
-2. If this happens routinely under concurrent load, lower your queue's
-   concurrency rather than raising the floor further - the floor is a
-   safety net, not capacity planning.
+   (e.g. a tmpfs), free up space or make it bigger.
+2. If this happens often under concurrent load, lower your queue's
+   concurrency instead of raising the floor further — the floor is a safety
+   net, not a capacity plan.
 3. Tune or disable the checks via `STREAMER_TEMPORARY_MIN_FREE` /
-   `STREAMER_CACHE_MIN_FREE` (bytes, `0` disables).
+   `STREAMER_CACHE_MIN_FREE` (in bytes; `0` disables the check).
 
-## Timeout Issues
+## Timeout issues
 
-### Operation Timed Out
+### Operation timed out
 
 **Error:**
 
@@ -148,9 +149,9 @@ The process timed out
     set_time_limit(0); // Unlimited for CLI
     ```
 
-## Logging Issues
+## Logging issues
 
-### Logs Not Being Written
+### Logs not being written
 
 **Error:**
 
@@ -185,17 +186,17 @@ Log channel not working
     chmod 755 storage/logs
     ```
 
-## General Troubleshooting
+## General troubleshooting
 
-### Configuration Check
+### Configuration check
 
-Verify configuration is correct:
+Check that your configuration is correct:
 
 ```bash
 php artisan streamer:info
 ```
 
-### Enable Debug Logging
+### Enable debug logging
 
 For more detailed information:
 
@@ -204,18 +205,18 @@ STREAMER_LOG_CHANNEL=streamer
 APP_DEBUG=true
 ```
 
-### Clear Cache
+### Clear cache
 
-Reset configuration cache:
+Reset the configuration cache:
 
 ```bash
 php artisan config:clear
 php artisan cache:clear
 ```
 
-### Test Command Execution
+### Test command execution
 
-Test if streamer can execute:
+Check that the streamer binary can actually run:
 
 ```php
 use Foxws\Streamer\Support\ShakaStreamer;
@@ -225,14 +226,14 @@ $version = $driver->getVersion();
 echo "Streamer Version: {$version}";
 ```
 
-## Getting Help
+## Getting help
 
-If issues persist:
+If the problem doesn't go away:
 
-1. Check application logs: `storage/logs/streamer.log`
-2. Review debug output: `php artisan tinker`
+1. Check the application logs: `storage/logs/streamer.log`
+2. Review debug output with `php artisan tinker`
 3. File an issue on GitHub with:
-    - Complete error message
-    - Configuration (without sensitive data)
-    - PHP and OS versions
-    - Steps to reproduce
+    - The complete error message
+    - Your configuration (with any sensitive data removed)
+    - Your PHP and OS versions
+    - Steps to reproduce the problem
