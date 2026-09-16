@@ -1,29 +1,26 @@
 ---
-sidebar_position: 7
+section: Usage
+order: 2
 ---
 
 # URL Resolvers
 
-Dynamic URL Resolvers provide a flexible way to customize how URLs are generated for your streaming content. Inspired by Laravel FFMpeg, this package provides two dedicated classes for handling HLS and DASH manifests.
+Dynamic URL resolvers let you control how URLs are generated for your streaming content when it's served. This is useful whenever segments, keys, or playlists live somewhere that needs a custom or signed URL, such as S3 or a CDN. Inspired by Laravel FFMpeg, this package provides two dedicated classes: one for HLS playlists and one for DASH manifests.
 
 ## Overview
 
-When serving adaptive streaming content (DASH/HLS), you often need to customize URLs for:
+When serving adaptive streaming content, you'll often want to customize the URLs for:
 
-- **HLS**:
-  - Encryption Keys - DRM keys for encrypted segments
-  - Media Segments - `.ts` video/audio chunks
-  - Playlists - `.m3u8` playlist files
-
-- **DASH**:
-  - Media Segments - Video/audio segments
-  - Initialization Segments - Init segments for each representation
+| Format | What can be customized |
+| --- | --- |
+| HLS | Encryption keys (DRM keys for encrypted segments), media segments (`.ts` chunks), and playlists (`.m3u8` files) |
+| DASH | Media segments and initialization segments (the setup segment for each representation) |
 
 ## Classes
 
 ### DynamicHLSPlaylist
 
-Process and customize HLS playlists (`.m3u8` files).
+Processes and customizes HLS playlists (`.m3u8` files).
 
 ```php
 use Foxws\Streamer\Http\DynamicHLSPlaylist;
@@ -33,7 +30,7 @@ $playlist = new DynamicHLSPlaylist('disk-name');
 
 ### DynamicDASHManifest
 
-Process and customize DASH manifests (`.mpd` files).
+Processes and customizes DASH manifests (`.mpd` files).
 
 ```php
 use Foxws\Streamer\Http\DynamicDASHManifest;
@@ -41,9 +38,9 @@ use Foxws\Streamer\Http\DynamicDASHManifest;
 $manifest = new DynamicDASHManifest('disk-name');
 ```
 
-## HLS Usage
+## HLS usage
 
-### Basic Example
+### Basic example
 
 ```php
 use Foxws\Streamer\Http\DynamicHLSPlaylist;
@@ -68,11 +65,11 @@ $content = $playlist->get();
 return $playlist->toResponse($request);
 ```
 
-### HLS Methods
+### HLS methods
 
 #### `setKeyUrlResolver(callable $resolver): self`
 
-Set resolver for encryption key URLs in `#EXT-X-KEY` tags.
+Sets the resolver used for encryption key URLs, in `#EXT-X-KEY` tags.
 
 ```php
 $playlist->setKeyUrlResolver(function (string $key) {
@@ -82,7 +79,7 @@ $playlist->setKeyUrlResolver(function (string $key) {
 
 #### `setMediaUrlResolver(callable $resolver): self`
 
-Set resolver for media segment URLs (`.ts` files).
+Sets the resolver used for media segment URLs (`.ts` files).
 
 ```php
 $playlist->setMediaUrlResolver(function (string $filename) {
@@ -92,7 +89,7 @@ $playlist->setMediaUrlResolver(function (string $filename) {
 
 #### `setPlaylistUrlResolver(callable $resolver): self`
 
-Set resolver for sub-playlist URLs (`.m3u8` files).
+Sets the resolver used for sub-playlist URLs (`.m3u8` files).
 
 ```php
 $playlist->setPlaylistUrlResolver(function (string $filename) {
@@ -110,7 +107,7 @@ $content = $playlist->get();
 
 #### `all(): Collection`
 
-Returns a collection of all processed playlists (master + variants).
+Returns a collection with every processed playlist (the master playlist plus its variants).
 
 ```php
 $allPlaylists = $playlist->all();
@@ -128,9 +125,9 @@ Returns an HTTP response with correct content type (`application/vnd.apple.mpegu
 return $playlist->toResponse($request);
 ```
 
-## DASH Usage
+## DASH usage
 
-### Basic Example
+### Basic example
 
 ```php
 use Foxws\Streamer\Http\DynamicDASHManifest;
@@ -152,11 +149,11 @@ $content = $manifest->get();
 return $manifest->toResponse($request);
 ```
 
-### DASH Methods
+### DASH methods
 
 #### `setMediaUrlResolver(callable $resolver): self`
 
-Set resolver for media segment URLs and `BaseURL` elements.
+Sets the resolver used for media segment URLs and `BaseURL` elements.
 
 ```php
 $manifest->setMediaUrlResolver(function (string $filename) {
@@ -166,7 +163,7 @@ $manifest->setMediaUrlResolver(function (string $filename) {
 
 #### `setInitUrlResolver(callable $resolver): self`
 
-Set resolver for initialization segment URLs.
+Sets the resolver used for initialization segment URLs.
 
 ```php
 $manifest->setInitUrlResolver(function (string $filename) {
@@ -192,7 +189,7 @@ return $manifest->toResponse($request);
 
 ## Performance
 
-Both classes automatically cache resolved URLs for optimal performance. Each unique filename is only resolved once per instance.
+Both classes cache resolved URLs automatically. Each unique filename is only resolved once per instance, so the same file won't trigger the resolver twice.
 
 ```php
 // First call - resolver is executed
@@ -201,11 +198,11 @@ $playlist->setMediaUrlResolver(fn ($file) => "https://cdn.example.com/{$file}");
 // Subsequent calls for the same file use cached result
 ```
 
-Cache is automatically cleared when you set a new resolver.
+The cache is cleared automatically whenever you set a new resolver.
 
-## Use Cases
+## Use cases
 
-### 1. CDN Integration
+### 1. CDN integration
 
 ```php
 $playlist = (new DynamicHLSPlaylist('videos'))
@@ -215,7 +212,7 @@ $playlist = (new DynamicHLSPlaylist('videos'))
     ->open('master.m3u8');
 ```
 
-### 2. Signed URLs for Security
+### 2. Signed URLs for security
 
 ```php
 $playlist = (new DynamicHLSPlaylist('private'))
@@ -228,7 +225,7 @@ $playlist = (new DynamicHLSPlaylist('private'))
     ->open('master.m3u8');
 ```
 
-### 3. Multi-tenant Applications
+### 3. Multi-tenant applications
 
 ```php
 $tenantId = auth()->user()->tenant_id;
@@ -240,7 +237,7 @@ $playlist = (new DynamicHLSPlaylist('tenants'))
     ->open("tenant-{$tenantId}/master.m3u8");
 ```
 
-### 4. Controller Integration
+### 4. Controller integration
 
 ```php
 namespace App\Http\Controllers;
@@ -273,7 +270,7 @@ class VideoController extends Controller
 }
 ```
 
-### 5. DASH with Multiple CDNs
+### 5. DASH with multiple CDNs
 
 ```php
 $manifest = (new DynamicDASHManifest('videos'))
@@ -287,14 +284,16 @@ $manifest = (new DynamicDASHManifest('videos'))
     ->open('manifest.mpd');
 ```
 
-## Best Practices
+## Best practices
 
-1. **Use Laravel helpers** - Leverage `route()`, `url()`, and `Storage::url()` for consistency
-2. **Implement authorization** - Always check user permissions when serving media
-3. **Use signed URLs for sensitive content** - Implement time-limited access with `temporaryUrl()`
-4. **Handle errors gracefully** - Consider what happens if a resolver fails
-5. **Test your resolvers** - Unit test your URL generation logic
-6. **Cache appropriately** - URL resolution is automatically cached per instance
+| Practice | Why |
+| --- | --- |
+| Use Laravel helpers | `route()`, `url()`, and `Storage::url()` keep URL generation consistent |
+| Check authorization | Always verify the user is allowed to see the media before serving it |
+| Sign URLs for sensitive content | Use `temporaryUrl()` for time-limited access |
+| Handle resolver errors | Decide what should happen if a resolver fails |
+| Test your resolvers | Unit test the URL generation logic on its own |
+| Don't worry about caching it yourself | URL resolution is already cached per instance |
 
 ## Examples
 

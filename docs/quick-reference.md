@@ -1,12 +1,13 @@
 ---
-sidebar_position: 4
+section: Reference
+order: 1
 ---
 
 # Quick Reference
 
-## Fluent API with fromDisk Support
+## Fluent API with fromDisk support
 
-### Basic Usage
+### Basic usage
 
 ```php
 use Foxws\Streamer\Facades\Streamer;
@@ -19,7 +20,7 @@ $result = Streamer::open('input.mp4')
     ->export();
 ```
 
-### Using Different Disks
+### Using different disks
 
 ```php
 // From S3, save to a different disk (e.g., local, s3, etc.)
@@ -39,70 +40,84 @@ $result = Streamer::openFromDisk('s3', 'videos/input.mp4')
     ->save();
 ```
 
-## Available Methods
+## Available methods
 
-### Disk Management
+### Disk management
 
-- `fromDisk(string $disk)` - Set the disk to use
-- `openFromDisk(string $disk, $paths)` - Set disk and open files in one call
-- `getDisk()` - Get current disk instance
+| Method | Description |
+| --- | --- |
+| `fromDisk(string $disk)` | Set the disk to use |
+| `openFromDisk(string $disk, $paths)` | Set disk and open files in one call |
+| `getDisk()` | Get current disk instance |
 
-### Media Management
+### Media management
 
-- `open($paths)` - Open one or more media files
-- `get()` - Get the MediaCollection
-- `streams()` - Get auto-generated Stream objects
+| Method | Description |
+| --- | --- |
+| `open($paths)` | Open one or more media files |
+| `get()` | Get the MediaCollection |
+| `streams()` | Get auto-generated Stream objects |
 
-### Stream Configuration
+### Stream configuration
 
-- `addVideoStream(string $input, string $output, array $options = [])` - Add video stream
-- `addAudioStream(string $input, string $output, array $options = [])` - Add audio stream
-- `addTextStream(string $input, string $output, array $options = [])` - Add text/caption/subtitle stream
-- `addStream(array $stream)` - Add custom stream with full control
+| Method | Description |
+| --- | --- |
+| `addVideoStream(string $input, string $output, array $options = [])` | Add a video stream |
+| `addAudioStream(string $input, string $output, array $options = [])` | Add an audio stream |
+| `addTextStream(string $input, string $output, array $options = [])` | Add a text/caption/subtitle stream |
+| `addStream(array $stream)` | Add a custom stream with full control |
 
-### Output Configuration
+### Output configuration
 
-- `withMpdOutput(string $path)` - Set DASH manifest output
-- `withHlsMasterPlaylist(string $path)` - Set HLS master playlist output
-- `withSegmentDuration(int $seconds)` - Set segment duration
-- `withEncryption(array $config)` - Enable encryption
-- `toDisk(string $disk)` - Set the target disk for output
-- `toPath(string $path)` - Set the target output path (subdirectory)
-- `withVisibility(string $visibility)` - Set file visibility (e.g., 'public', 'private')
+| Method | Description |
+| --- | --- |
+| `withMpdOutput(string $path)` | Set DASH manifest output |
+| `withHlsMasterPlaylist(string $path)` | Set HLS master playlist output |
+| `withSegmentDuration(int $seconds)` | Set segment duration |
+| `withEncryption(array $config)` | Enable encryption |
+| `toDisk(string $disk)` | Set the target disk for output |
+| `toPath(string $path)` | Set the target output path (subdirectory) |
+| `withVisibility(string $visibility)` | Set file visibility (e.g. `'public'`, `'private'`) |
 
-### Execution & Utilities
+### Execution & utilities
 
-- `export()` - Export the packaging operation (returns result object)
-- `save(?string $path = null)` - Save outputs to disk (optionally to a specific path)
-- `getCommand()` - Get the final command string (for debugging)
-- `dd()` - Dump the final command and end the script
-- `afterSaving(callable $callback)` - Register a callback to run after saving
+| Method | Description |
+| --- | --- |
+| `export()` | Export the packaging operation (returns a result object) |
+| `save(?string $path = null)` | Save outputs to disk (optionally to a specific path) |
+| `getCommand()` | Get the final command string (for debugging) |
+| `dd()` | Dump the final command and stop the script |
+| `afterSaving(callable $callback)` | Register a callback to run after saving |
 
-### Dynamic URL Resolvers
+### Dynamic URL resolvers
 
 **DynamicHLSPlaylist:**
 
-- `new DynamicHLSPlaylist(?string $disk)` - Create HLS playlist processor
-- `open(string $path)` - Open a playlist file
-- `setKeyUrlResolver(callable $resolver)` - Set resolver for encryption key URLs
-- `setMediaUrlResolver(callable $resolver)` - Set resolver for media segment URLs
-- `setPlaylistUrlResolver(callable $resolver)` - Set resolver for sub-playlist URLs
-- `get()` - Get processed playlist content
-- `all()` - Get all processed playlists (master + segments)
-- `toResponse($request)` - Return as HTTP response
+| Method | Description |
+| --- | --- |
+| `new DynamicHLSPlaylist(?string $disk)` | Create an HLS playlist processor |
+| `open(string $path)` | Open a playlist file |
+| `setKeyUrlResolver(callable $resolver)` | Set the resolver for encryption key URLs |
+| `setMediaUrlResolver(callable $resolver)` | Set the resolver for media segment URLs |
+| `setPlaylistUrlResolver(callable $resolver)` | Set the resolver for sub-playlist URLs |
+| `get()` | Get processed playlist content |
+| `all()` | Get all processed playlists (master + segments) |
+| `toResponse($request)` | Return as an HTTP response |
 
 **DynamicDASHManifest:**
 
-- `new DynamicDASHManifest(?string $disk)` - Create DASH manifest processor
-- `open(string $path)` - Open a manifest file
-- `setMediaUrlResolver(callable $resolver)` - Set resolver for media segment URLs
-- `setInitUrlResolver(callable $resolver)` - Set resolver for initialization segment URLs
-- `get()` - Get processed manifest content
-- `toResponse($request)` - Return as HTTP response
+| Method | Description |
+| --- | --- |
+| `new DynamicDASHManifest(?string $disk)` | Create a DASH manifest processor |
+| `open(string $path)` | Open a manifest file |
+| `setMediaUrlResolver(callable $resolver)` | Set the resolver for media segment URLs |
+| `setInitUrlResolver(callable $resolver)` | Set the resolver for initialization segment URLs |
+| `get()` | Get processed manifest content |
+| `toResponse($request)` | Return as an HTTP response |
 
-## Common Patterns
+## Common patterns
 
-### Adding Captions/Subtitles (WebVTT)
+### Adding captions/subtitles (WebVTT)
 
 ```php
 Streamer::fromDisk('s3')
@@ -119,7 +134,7 @@ Streamer::fromDisk('s3')
     ->export();
 ```
 
-### Adaptive Bitrate Streaming
+### Adaptive bitrate streaming
 
 ```php
 Streamer::fromDisk('s3')
@@ -139,7 +154,7 @@ Streamer::fromDisk('s3')
     ->export();
 ```
 
-### HLS with Encryption
+### HLS with encryption
 
 ```php
 Streamer::fromDisk('s3')
@@ -154,7 +169,7 @@ Streamer::fromDisk('s3')
     ->export();
 ```
 
-### Multiple Files
+### Multiple files
 
 ```php
 Streamer::fromDisk('videos')
@@ -166,7 +181,7 @@ Streamer::fromDisk('videos')
     ->export();
 ```
 
-### Error Handling
+### Error handling
 
 ```php
 try {
@@ -188,14 +203,14 @@ try {
 
 See the [Configuration](./configuration.md) page for the full list of options and environment variables.
 
-## Artisan Commands
+## Artisan commands
 
 ```bash
 # Show binary and configuration status
 php artisan streamer:info
 ```
 
-## Direct Driver Usage
+## Direct driver usage
 
 ```php
 use Foxws\Streamer\Support\ShakaStreamer;
@@ -205,7 +220,7 @@ $version = $driver->getVersion();
 $driver->setTimeout(7200);
 ```
 
-## CommandBuilder Direct Usage
+## CommandBuilder direct usage
 
 ```php
 use Foxws\Streamer\Support\CommandBuilder;
@@ -219,7 +234,7 @@ $streamer = app(Streamer::class);
 $result = $streamer->streamWithBuilder($builder);
 ```
 
-## Stream Objects
+## Stream objects
 
 ```php
 use Foxws\Streamer\Support\Stream;
@@ -237,7 +252,7 @@ $audioStream = Stream::audio($media)
 $commandString = $videoStream->toCommandString();
 ```
 
-## Examples Location
+## Examples location
 
 - Basic examples: `examples/StreamerExamples.php`
 - Fluent API examples: `examples/FluentBuilderExamples.php`

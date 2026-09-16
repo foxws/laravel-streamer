@@ -1,10 +1,11 @@
 ---
-sidebar_position: 3
+section: Usage
+order: 1
 ---
 
 # Usage
 
-## Basic Packaging
+## Basic packaging
 
 ```php
 use Foxws\Streamer\Facades\Streamer;
@@ -17,13 +18,13 @@ Streamer::open('input.mp4')
     ->save();
 ```
 
-## Dual DASH + HLS Output (CMAF)
+## Dual DASH + HLS output (CMAF)
 
-Shaka Streamer packages video/audio as CMAF (fragmented MP4) by default, so the
-same segments can be described by both a DASH manifest and an HLS master
-playlist. Setting both `withMpdOutput()` and `withHlsMasterPlaylist()` packages
-both from a single pipeline run — no extra transcoding, just an additional
-manifest:
+By default, Shaka Streamer packages video and audio as CMAF (fragmented MP4).
+Because both DASH and HLS can describe the same CMAF segments, you can produce
+both manifests from a single run. Set `withMpdOutput()` and
+`withHlsMasterPlaylist()` together and you get both — no extra transcoding,
+just one more manifest file:
 
 ```php
 Streamer::open('input.mp4')
@@ -35,13 +36,14 @@ Streamer::open('input.mp4')
     ->save();
 ```
 
-`withManifestFormat(['dash', 'hls'])` is inferred automatically from whichever
-outputs are set, but you can call it explicitly to be specific about which
-manifest(s) get generated.
+You don't need to call `withManifestFormat(['dash', 'hls'])` yourself — it's
+worked out automatically from whichever outputs you set. Call it explicitly
+only if you want to be specific about which manifest(s) get generated.
 
-## Cross-Disk Workflows
+## Cross-disk workflows
 
-Read from one disk, write to another:
+You can read the source file from one disk and write the packaged output to
+another:
 
 ```php
 Streamer::fromDisk('s3')
@@ -58,8 +60,9 @@ Streamer::fromDisk('s3')
 
 ## Encryption
 
-`withAESEncryption()` returns an `EncryptionKey` value object (not `$this`), so
-it breaks the fluent chain — call it on its own line:
+`withAESEncryption()` doesn't return `$this` — it returns an `EncryptionKey`
+object instead. That means it breaks the fluent chain, so call it on its own
+line rather than in the middle of a chain:
 
 ```php
 // AES-128 encryption with auto-generated key
@@ -86,9 +89,9 @@ $streamer->export()->toDisk('s3')->save();
 
 See the [AES Encryption Guide](./aes-encryption.md) for protection schemes, codec-specific examples, and key management.
 
-## Dynamic URL Resolvers
+## Dynamic URL resolvers
 
-Serve HLS and DASH content with signed URLs — useful for S3, CDNs, or multi-tenant apps.
+You can serve HLS and DASH content with signed URLs — handy for S3, CDNs, or apps with multiple tenants.
 
 **HLS:**
 
@@ -136,7 +139,7 @@ See [URL Resolvers](./url-resolvers.md) for more details.
 
 ## Events
 
-Listen to streaming lifecycle events:
+You can listen for these streaming lifecycle events:
 
 | Event                | Payload                                              |
 | --------------------- | ---------------------------------------------------- |
@@ -144,9 +147,9 @@ Listen to streaming lifecycle events:
 | `StreamingCompleted` | `StreamerResult $result`, `float $executionTime`     |
 | `StreamingFailed`    | `Exception $exception`, `float $executionTime`       |
 
-## Post-Export Inspection
+## Post-export inspection
 
-After saving, you can inspect the result:
+After saving, you can inspect what happened:
 
 ```php
 $exporter = Streamer::open('input.mp4')
@@ -165,9 +168,9 @@ $exporter->afterSaving(function ($exporter, $result) {
 $exporter->toDisk('s3')->save();
 ```
 
-## API Reference
+## API reference
 
-### `Streamer` Facade → `MediaOpener`
+### `Streamer` facade → `MediaOpener`
 
 | Method                               | Description                                      |
 | ------------------------------------ | ------------------------------------------------ |
@@ -180,7 +183,7 @@ $exporter->toDisk('s3')->save();
 | `dynamicDASHManifest(?string $disk)` | Create a `DynamicDASHManifest` instance          |
 | `cleanupTemporaryFiles()`            | Delete all temporary directories                 |
 
-### Stream Configuration (via `MediaOpener` → `Streamer`)
+### Stream configuration (via `MediaOpener` → `Streamer`)
 
 | Method                                             | Description                                                                        |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -245,7 +248,7 @@ $exporter->toDisk('s3')->save();
 
 ## Configuration
 
-Key options in `config/streamer.php`:
+Some of the key options in `config/streamer.php`:
 
 | Option                     | Default                             | Description                                    |
 | ---------------------------- | -------------------------------------- | ------------------------------------------------- |

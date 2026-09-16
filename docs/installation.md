@@ -1,14 +1,17 @@
 ---
-sidebar_position: 2
+section: Getting Started
+order: 1
 ---
 
 # Installation
 
 ## Requirements
 
-- PHP 8.3+
-- Laravel 12 or 13
-- [Shaka Streamer](https://github.com/shaka-project/shaka-streamer) binary (`pip install shaka-streamer`)
+| Requirement | Notes |
+| --- | --- |
+| PHP | 8.3 or newer |
+| Laravel | 12 or 13 |
+| Shaka Streamer | The [binary](https://github.com/shaka-project/shaka-streamer) must be installed separately (`pip install shaka-streamer`) |
 
 ## Install the package
 
