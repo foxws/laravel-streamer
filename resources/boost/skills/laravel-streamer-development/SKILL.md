@@ -49,19 +49,12 @@ try {
 ```php
 $key = $streamer->withAESEncryption('key', 'cbcs');
 
-// The package doesn't set hls_key_uri yet; set it so HLS playlists point at the uploaded key file.
-$streamer->withEncryption([
-    ...$streamer->getBuilder()->getOptions()->get('encryption'),
-    'hls_key_uri' => 'key',
-]);
-
 // Store $key->keyId and $key->key (hex) to serve the key later.
 ```
 
-- Shaka Streamer only accepts `cenc` (its default) and `cbcs`. Use `cbcs` to cover Safari and other browsers with one set of segments.
-- Don't call `withKeyRotationDuration()`: Shaka Streamer has no rotation field, and the job fails with `Invalid Shaka Streamer configuration`.
-- Leave `extra_input_args` empty for the same reason.
-- The key file is written to `cache_files_root` and uploaded next to the segments. Serve it only through an authorized route or a short-lived signed URL. DASH players need the key themselves, such as Shaka Player's `drm.clearKeys`.
+- Shaka Streamer only supports `cenc` (its default) and `cbcs`; other schemes throw `InvalidStreamConfigurationException`. Use `cbcs` to cover Safari and other browsers with one set of segments.
+- Shaka Streamer has no key rotation: `withKeyRotationDuration()` throws. Use foxws/laravel-shaka for rotation.
+- The key file is written to `cache_files_root`, uploaded next to the segments, and referenced by name in HLS playlists (`hls_key_uri`). Serve it only through an authorized route or a short-lived signed URL. DASH players need the key themselves, such as Shaka Player's `drm.clearKeys`.
 
 ## Serving manifests with signed URLs
 
@@ -86,7 +79,7 @@ Publish with `php artisan vendor:publish --tag=streamer-config`. Check the insta
 | `streamer.streamer_binary` | Path to `shaka-streamer` (`pip install shaka-streamer`) |
 | `video_codecs`, `audio_codecs` | Default codecs, e.g. `h264`, `av1`, `aac`, `opus` |
 | `hwaccel_api` | Hardware encoding, e.g. `vaapi`, `nvenc` |
-| `segment_duration`, `streamer_options` | Pipeline defaults (`extra_input_args` must stay empty) |
+| `segment_duration`, `streamer_options`, `extra_input_args` | Pipeline defaults; `extra_input_args` is added to every input |
 | `temporary_files_root` | Where output is written before upload; needs room for every rendition |
 | `cache_files_root` | Small files such as keys (default `/dev/shm`) |
 | `temporary_files_min_free`, `cache_files_min_free` | Fixed free-space floors; throw `InsufficientStorageException` when a root is too full |

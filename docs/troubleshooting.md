@@ -19,10 +19,8 @@ RuntimeException: Shaka Streamer is not installed or not accessible.
 
 Shaka Streamer rejected the config. It stops on any field it doesn't know. Common causes:
 
-- `withKeyRotationDuration()` was called. Shaka Streamer has no key rotation setting.
-- `STREAMER_EXTRA_INPUT_ARGS` is set. Leave it empty.
-- A protection scheme other than `cenc` or `cbcs`.
 - A typo in `withOption()` or `streamer_options`.
+- A stream option that isn't an [input config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html) field, such as Shaka Packager's `bandwidth`.
 
 Check the config with `->getCommand()`, and compare it with the [configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html).
 
@@ -68,7 +66,7 @@ Something isn't calling `cleanupTemporaryFiles()` after a failure. Call it in `f
 
 - **Nothing loads in the browser:** the bucket needs a CORS policy that allows your site.
 - **It stops after a while:** signed URLs in the playlist expired. Give segment URLs a longer lifetime, or reload the playlist.
-- **Encrypted HLS doesn't play:** set `hls_key_uri`, and serve the key. See [Encryption](aes-encryption.md).
+- **Encrypted HLS doesn't play:** the key URL in the playlist must be reachable. Sign it with `setKeyUrlResolver()`. See [Encryption](aes-encryption.md).
 - **Encrypted video doesn't play in Safari:** use the `cbcs` protection scheme.
 
 ## Logs
