@@ -2,6 +2,18 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.3.0 - 2026-09-24
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### Other Changes
+
+* Docs rewrite by @francoism90 in https://github.com/foxws/laravel-streamer/pull/29
+* Send valid configs to Shaka Streamer by @francoism90 in https://github.com/foxws/laravel-streamer/pull/30
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/2.2.0...2.3.0
+
 ## 2.2.0 - 2026-09-24
 
 ### What's Changed
