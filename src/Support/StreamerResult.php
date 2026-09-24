@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Aws\CommandInterface;
+use Aws\Exception\MultipartUploadException;
+use Aws\S3\MultipartUploader;
+use Aws\S3\S3ClientInterface;
 use Foxws\Streamer\Filesystem\Disk;
 use Generator;
+use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\EachPromise;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use League\MimeTypeDetection\ExtensionMimeTypeDetector;
 use RuntimeException;
@@ -61,7 +67,7 @@ class StreamerResult
             'Streamer produced no output files. Verify that the input media contains valid video or audio streams.'
         );
 
-        $this->copyFilesConcurrently($fileOps, $targetDisk, $visibility);
+        $this->copyFilesConcurrently($fileOps, $targetDisk, $visibility, move: $cleanup);
 
         if ($cleanup) {
             if ($tempDisk && is_dir($this->temporaryDirectory)) {
@@ -106,15 +112,22 @@ class StreamerResult
     }
 
     /**
-     * Upload files to the target disk, using async S3 promises when the disk
-     * is S3-backed, and a sequential loop for local/other disks.
+     * Copy files to the target disk: async (multipart for large files) for
+     * S3-backed disks, a rename when moving onto a local disk, and a
+     * sequential stream copy for anything else.
      *
      * @param  array<int, FileOperation>  $fileOps
      */
-    protected function copyFilesConcurrently(array $fileOps, Disk $disk, ?string $visibility): void
+    protected function copyFilesConcurrently(array $fileOps, Disk $disk, ?string $visibility, bool $move = false): void
     {
         if ($disk->isS3Disk()) {
             $this->uploadFilesViaS3Async($fileOps, $disk, $visibility);
+
+            return;
+        }
+
+        if ($move && $disk->isLocalDisk()) {
+            $this->moveFilesLocally($fileOps, $disk, $visibility);
 
             return;
         }
@@ -123,7 +136,18 @@ class StreamerResult
     }
 
     /**
-     * Upload files concurrently to S3 using the AWS SDK's putObjectAsync.
+     * Upload files concurrently to S3 using the AWS SDK's async operations.
+     *
+     * Dispatches up to `streamer.concurrency_workers` uploads at a time
+     * via Guzzle promises. This is I/O-overlap concurrency within a single
+     * process — no forking, no process spawning, no shared-state corruption.
+     *
+     * Files at or above `streamer.multipart_threshold` are sent as a
+     * multipart upload with parallel parts, which is faster for large
+     * single-file outputs and required for objects over 5 GB.
+     *
+     * Adapter-level options (e.g. CacheControl) and the Flysystem path prefix
+     * are preserved so behaviour matches what writeStream would produce.
      *
      * @param  array<int, FileOperation>  $fileOps
      */
@@ -133,7 +157,11 @@ class StreamerResult
         $bucket = $disk->getS3Bucket();
         $adapterOptions = $disk->getS3UploadOptions();
         $concurrency = (int) ($this->configuration['concurrency_workers'] ?? 10);
-        $mimeDetector = new ExtensionMimeTypeDetector;
+        $multipartThreshold = (int) ($this->configuration['multipart_threshold'] ?? 64 * 1024 * 1024);
+        $multipartOptions = [
+            'part_size' => (int) ($this->configuration['multipart_part_size'] ?? 16 * 1024 * 1024),
+            'concurrency' => (int) ($this->configuration['multipart_concurrency'] ?? 5),
+        ];
 
         $acl = match ($visibility) {
             'public' => 'public-read',
@@ -143,7 +171,7 @@ class StreamerResult
 
         $failed = [];
 
-        $generator = (function () use ($fileOps, $client, $bucket, $disk, $adapterOptions, $acl, $mimeDetector, &$failed): Generator {
+        $generator = (function () use ($fileOps, $client, $bucket, $disk, $adapterOptions, $acl, $multipartThreshold, $multipartOptions, &$failed): Generator {
             foreach ($fileOps as $op) {
                 $stream = fopen($op->absolutePath, 'rb');
 
@@ -159,18 +187,21 @@ class StreamerResult
 
                 $key = $disk->prefixS3Path($op->targetPath);
 
-                $params = array_merge($adapterOptions, [
-                    'Bucket' => $bucket,
-                    'Key' => $key,
-                    'Body' => $stream,
-                    'ContentType' => $mimeDetector->detectMimeTypeFromPath($key) ?? 'application/octet-stream',
+                $objectParams = array_merge($adapterOptions, [
+                    'ContentType' => $this->detectContentType($key),
                 ]);
 
-                if ($acl !== null) {
-                    $params['ACL'] = $acl;
-                }
+                $size = filesize($op->absolutePath);
 
-                yield $client->putObjectAsync($params)->then(
+                $promise = $size !== false && $size >= $multipartThreshold
+                    ? $this->multipartUploadAsync($client, $stream, $bucket, $key, $acl, $objectParams, $multipartOptions)
+                    : $client->putObjectAsync(array_merge($objectParams, [
+                        'Bucket' => $bucket,
+                        'Key' => $key,
+                        'Body' => $stream,
+                    ], $acl !== null ? ['ACL' => $acl] : []));
+
+                yield $promise->then(
                     function () use ($stream): void {
                         if (is_resource($stream)) {
                             fclose($stream);
@@ -197,37 +228,125 @@ class StreamerResult
     }
 
     /**
+     * Start a multipart upload, aborting it on failure so orphaned parts
+     * don't keep taking up (billed) storage in the bucket.
+     *
+     * @param  resource  $stream
+     * @param  array<string, mixed>  $objectParams
+     * @param  array{part_size: int, concurrency: int}  $multipartOptions
+     */
+    protected function multipartUploadAsync(S3ClientInterface $client, $stream, string $bucket, string $key, ?string $acl, array $objectParams, array $multipartOptions): PromiseInterface
+    {
+        $uploader = new MultipartUploader($client, $stream, [
+            ...$multipartOptions,
+            'bucket' => $bucket,
+            'key' => $key,
+            'acl' => $acl,
+            'before_initiate' => function (CommandInterface $command) use ($objectParams): void {
+                foreach ($objectParams as $name => $value) {
+                    $command[$name] = $value;
+                }
+            },
+        ]);
+
+        return $uploader->promise()->otherwise(function ($reason) use ($client) {
+            if ($reason instanceof MultipartUploadException && filled($reason->getState()->getId()['UploadId'] ?? null)) {
+                try {
+                    $client->abortMultipartUpload($reason->getState()->getId());
+                } catch (Throwable) {
+                    // The upload already failed; a lifecycle rule can clean up what's left.
+                }
+            }
+
+            return Create::rejectionFor($reason);
+        });
+    }
+
+    /**
+     * Content type for an uploaded object. Encryption keys are raw bytes,
+     * but the extension map would label `.key` files as Keynote documents.
+     */
+    protected function detectContentType(string $path): string
+    {
+        if (pathinfo($path, PATHINFO_EXTENSION) === 'key') {
+            return 'application/octet-stream';
+        }
+
+        return (new ExtensionMimeTypeDetector)->detectMimeTypeFromPath($path) ?? 'application/octet-stream';
+    }
+
+    /**
+     * Move files onto a local disk with rename(), which is near-instant on
+     * the same filesystem (PHP copies across filesystems itself). Falls
+     * back to a stream copy when the rename fails.
+     *
+     * @param  array<int, FileOperation>  $fileOps
+     */
+    protected function moveFilesLocally(array $fileOps, Disk $disk, ?string $visibility): void
+    {
+        foreach ($fileOps as $op) {
+            try {
+                $directory = dirname($op->targetPath);
+
+                if ($directory !== '.') {
+                    $disk->makeDirectory($directory);
+                }
+
+                if (! @rename($op->absolutePath, $disk->path($op->targetPath))) {
+                    $this->writeFile($op, $disk, $visibility);
+
+                    continue;
+                }
+
+                if ($visibility) {
+                    $disk->setVisibility($op->targetPath, $visibility);
+                }
+            } catch (Throwable $e) {
+                $this->failedFiles[] = new CopyFailure(
+                    source: $op->absolutePath,
+                    target: $op->targetPath,
+                    error: $e->getMessage(),
+                );
+            }
+        }
+    }
+
+    /**
      * Upload files sequentially to the target disk.
      *
      * @param  array<int, FileOperation>  $fileOps
      */
     protected function uploadFilesSequentially(array $fileOps, Disk $disk, ?string $visibility): void
     {
-        $options = $visibility ? ['visibility' => $visibility] : [];
-
         foreach ($fileOps as $op) {
             try {
-                $stream = fopen($op->absolutePath, 'rb');
-
-                if ($stream === false) {
-                    throw new RuntimeException("Failed to open file: {$op->absolutePath}");
-                }
-
-                $disk->writeStream($op->targetPath, $stream, $options);
-
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
+                $this->writeFile($op, $disk, $visibility);
             } catch (Throwable $e) {
-                if (isset($stream) && is_resource($stream)) {
-                    fclose($stream);
-                }
-
                 $this->failedFiles[] = new CopyFailure(
                     source: $op->absolutePath,
                     target: $op->targetPath,
                     error: $e->getMessage(),
                 );
+            }
+        }
+    }
+
+    /**
+     * Stream a single file onto the target disk.
+     */
+    protected function writeFile(FileOperation $op, Disk $disk, ?string $visibility): void
+    {
+        $stream = fopen($op->absolutePath, 'rb');
+
+        if ($stream === false) {
+            throw new RuntimeException("Failed to open file: {$op->absolutePath}");
+        }
+
+        try {
+            $disk->writeStream($op->targetPath, $stream, $visibility ? ['visibility' => $visibility] : []);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
             }
         }
     }

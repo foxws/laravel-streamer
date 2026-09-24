@@ -84,3 +84,71 @@ it('uploads files concurrently to an S3-compatible disk via async promises', fun
     rmdir($tempDir);
     $tempDirs->deleteAll();
 });
+
+function makeUploadDirectory(array $files): string
+{
+    $directory = sys_get_temp_dir().'/test-s3-upload-'.bin2hex(random_bytes(4));
+    mkdir($directory, 0777, true);
+
+    foreach ($files as $name => $contents) {
+        file_put_contents("{$directory}/{$name}", $contents);
+    }
+
+    return $directory;
+}
+
+it('uploads files above the multipart threshold as a multipart upload', function () {
+    $commands = [];
+    $filesystem = makeRecordingS3Disk($commands);
+
+    $directory = makeUploadDirectory([
+        'video.mp4' => str_repeat('v', 6 * 1024 * 1024),
+        'index.mpd' => '<MPD/>',
+    ]);
+
+    $result = new StreamerResult('success', null, $directory, null, [
+        'multipart_threshold' => 1024 * 1024,
+        'multipart_part_size' => 5 * 1024 * 1024,
+    ]);
+
+    $result->toDisk($filesystem, 'public');
+
+    $initiate = collect($commands)->firstWhere('name', 'CreateMultipartUpload');
+
+    expect(commandNames($commands))->toEqualCanonicalizing([
+        'PutObject', 'CreateMultipartUpload', 'UploadPart', 'UploadPart', 'CompleteMultipartUpload',
+    ])
+        ->and($initiate['args'])->toMatchArray([
+            'Key' => 'segments/video.mp4',
+            'ContentType' => 'video/mp4',
+            'ACL' => 'public-read',
+        ])
+        ->and(is_dir($directory))->toBeFalse();
+});
+
+it('aborts a failed multipart upload and reports the failure', function () {
+    $commands = [];
+    $filesystem = makeRecordingS3Disk($commands, failOn: 'UploadPart');
+
+    $directory = makeUploadDirectory(['video.mp4' => str_repeat('v', 2 * 1024 * 1024)]);
+
+    $result = new StreamerResult('success', null, $directory, null, ['multipart_threshold' => 1024 * 1024]);
+
+    expect(fn () => $result->toDisk($filesystem))->toThrow(RuntimeException::class, '1 file(s) failed to copy')
+        ->and(commandNames($commands))->toContain('AbortMultipartUpload')
+        ->and(collect($commands)->firstWhere('name', 'AbortMultipartUpload')['args']['UploadId'])->toBe('upload-1');
+});
+
+it('uploads encryption keys as octet-stream instead of a keynote document', function () {
+    $commands = [];
+    $filesystem = makeRecordingS3Disk($commands);
+
+    $directory = makeUploadDirectory(['key.key' => random_bytes(16), 'master.m3u8' => '#EXTM3U']);
+
+    (new StreamerResult('success', null, $directory))->toDisk($filesystem);
+
+    $contentTypes = collect($commands)->pluck('args.ContentType', 'args.Key');
+
+    expect($contentTypes['segments/key.key'])->toBe('application/octet-stream')
+        ->and($contentTypes['segments/master.m3u8'])->toBe('application/vnd.apple.mpegurl');
+});

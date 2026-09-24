@@ -214,4 +214,23 @@ return [
 
     'concurrency_workers' => (int) env('STREAMER_CONCURRENCY_WORKERS', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Multipart Uploads
+    |--------------------------------------------------------------------------
+    |
+    | Files at or above the threshold (in bytes) are uploaded to S3-backed
+    | disks as a multipart upload, sending `multipart_concurrency` parts of
+    | `multipart_part_size` bytes in parallel per file. This speeds up large
+    | single-file outputs and is required for objects over 5 GB. Part size
+    | must be at least 5 MB. Failed multipart uploads are aborted.
+    |
+    */
+
+    'multipart_threshold' => (int) env('STREAMER_MULTIPART_THRESHOLD', 64 * 1024 * 1024),
+
+    'multipart_part_size' => (int) env('STREAMER_MULTIPART_PART_SIZE', 16 * 1024 * 1024),
+
+    'multipart_concurrency' => (int) env('STREAMER_MULTIPART_CONCURRENCY', 5),
+
 ];
