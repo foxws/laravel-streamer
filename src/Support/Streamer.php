@@ -7,6 +7,7 @@ namespace Foxws\Streamer\Support;
 use Foxws\Streamer\Events\StreamingCompleted;
 use Foxws\Streamer\Events\StreamingFailed;
 use Foxws\Streamer\Events\StreamingStarted;
+use Foxws\Streamer\Exceptions\InvalidStreamConfigurationException;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Collection;
@@ -296,18 +297,16 @@ class Streamer
     /**
      * Enable AES-128 encryption with auto-generated keys.
      *
-     * Generates encryption key, writes to cache storage, and configures Shaka Streamer.
-     * When used with withKeyRotationDuration(), the filename becomes a base name
-     * (e.g., 'key' becomes 'key_0', 'key_1', 'key_2', etc. in cache storage).
+     * Generates an encryption key, writes it to cache storage, and configures
+     * Shaka Streamer. The key file is uploaded next to the segments, and HLS
+     * playlists reference it by $keyFilename (hls_key_uri).
      *
-     * Protection schemes:
-     * - 'cenc' (AES-CTR): Recommended for Widevine/PlayReady, supports key rotation
-     * - 'cbcs' (AES-CBC): For FairPlay/Safari
-     * - 'cbc1': Legacy HLS, limited browser support
-     * - null: SAMPLE-AES, widest compatibility but NO key rotation support
+     * Shaka Streamer supports two protection schemes:
+     * - 'cenc' (AES-CTR): its default; Chrome, Firefox, Edge, Android
+     * - 'cbcs' (AES-CBC): Safari/Apple devices and recent browsers
      *
-     * @param  string  $keyFilename  Base name for key file (default: 'key')
-     * @param  ProtectionScheme|string|null  $protectionScheme  Protection scheme ('cenc', 'cbcs', 'cbc1', or null)
+     * @param  string  $keyFilename  Key file name, also used as the HLS key URI (default: 'key')
+     * @param  ProtectionScheme|string|null  $protectionScheme  'cenc' or 'cbcs'; null uses Shaka Streamer's default (cenc)
      * @param  string|null  $label  Optional label for multi-key scenarios
      */
     public function withAESEncryption(string $keyFilename = 'key', ProtectionScheme|string|null $protectionScheme = null, ?string $label = null): EncryptionKey
@@ -324,6 +323,7 @@ class Streamer
             'enable' => true,
             'encryption_mode' => 'raw',
             'clear_lead' => 0,
+            'hls_key_uri' => $keyFilename,
             'keys' => [
                 [
                     'label' => $label ?? '',
@@ -334,9 +334,7 @@ class Streamer
         ];
 
         if (filled($protectionScheme)) {
-            $encryptionConfig['protection_scheme'] = is_string($protectionScheme)
-                ? $protectionScheme
-                : $protectionScheme->value;
+            $encryptionConfig['protection_scheme'] = $protectionScheme;
         }
 
         $this->builder()->withEncryption($encryptionConfig);
@@ -345,25 +343,22 @@ class Streamer
     }
 
     /**
-     * Enable key rotation for encryption.
+     * Key rotation is not supported by Shaka Streamer.
      *
-     * Sets the crypto_period_duration inside the encryption config.
-     * Call after withAESEncryption().
+     * Shaka Streamer's encryption config has no key rotation field, and it
+     * rejects unknown fields, so this used to make every job fail at run
+     * time. It now fails right away instead. Use foxws/laravel-shaka if you
+     * need key rotation.
      *
-     * IMPORTANT: Key rotation requires protection scheme 'cenc' or 'cbcs'.
-     * SAMPLE-AES (null) does not support key rotation.
+     * @deprecated Will be removed in the next major version.
      *
-     * @param  int  $seconds  Duration in seconds before rotating to a new key
+     * @throws InvalidStreamConfigurationException
      */
     public function withKeyRotationDuration(int $seconds): self
     {
-        // Merge crypto_period_duration into the existing encryption config
-        $existingEncryption = $this->builder()->getOptions()->get('encryption', []);
-        $existingEncryption['crypto_period_duration'] = $seconds;
-
-        $this->builder()->withEncryption($existingEncryption);
-
-        return $this;
+        throw new InvalidStreamConfigurationException(
+            'Shaka Streamer does not support key rotation. Use foxws/laravel-shaka to package with key rotation.'
+        );
     }
 
     /**
