@@ -37,7 +37,7 @@ try {
 }
 ```
 
-- The first argument of `add*Stream()` is the path you passed to `open()`. The second is the output filename in the temporary directory.
+- The first argument of `add*Stream()` is the path you passed to `open()`. Shaka Streamer names output files itself, so the second argument is only a label.
 - `useSystemBinaries()` uses the `ffmpeg` and `packager` on `PATH` instead of the ones bundled with Shaka Streamer. It only affects this streamer instance, so call it for every job that needs it.
 - Resolutions: `VideoResolution::make($height)` gives the standard tiers (`144p` … `4k`, `8k`) at or below the source height. Pass the names to `withResolutions()`; don't upscale.
 - Always call `cleanupTemporaryFiles()` in `finally`. Transcoding output is large and workers are long-lived.
@@ -48,12 +48,20 @@ try {
 
 ```php
 $key = $streamer->withAESEncryption('key', 'cbcs');
-$streamer->withKeyRotationDuration(600); // optional; needs cenc or cbcs
+
+// The package doesn't set hls_key_uri yet; set it so HLS playlists point at the uploaded key file.
+$streamer->withEncryption([
+    ...$streamer->getBuilder()->getOptions()->get('encryption'),
+    'hls_key_uri' => 'key',
+]);
 
 // Store $key->keyId and $key->key (hex) to serve the key later.
 ```
 
-Key files are written to `cache_files_root` and uploaded next to the segments. Serve them only through an authorized route or a short-lived signed URL.
+- Shaka Streamer only accepts `cenc` (its default) and `cbcs`. Use `cbcs` to cover Safari and other browsers with one set of segments.
+- Don't call `withKeyRotationDuration()`: Shaka Streamer has no rotation field, and the job fails with `Invalid Shaka Streamer configuration`.
+- Leave `extra_input_args` empty for the same reason.
+- The key file is written to `cache_files_root` and uploaded next to the segments. Serve it only through an authorized route or a short-lived signed URL. DASH players need the key themselves, such as Shaka Player's `drm.clearKeys`.
 
 ## Serving manifests with signed URLs
 
@@ -78,7 +86,7 @@ Publish with `php artisan vendor:publish --tag=streamer-config`. Check the insta
 | `streamer.streamer_binary` | Path to `shaka-streamer` (`pip install shaka-streamer`) |
 | `video_codecs`, `audio_codecs` | Default codecs, e.g. `h264`, `av1`, `aac`, `opus` |
 | `hwaccel_api` | Hardware encoding, e.g. `vaapi`, `nvenc` |
-| `segment_duration`, `streamer_options`, `extra_input_args` | Pipeline defaults |
+| `segment_duration`, `streamer_options` | Pipeline defaults (`extra_input_args` must stay empty) |
 | `temporary_files_root` | Where output is written before upload; needs room for every rendition |
 | `cache_files_root` | Small files such as keys (default `/dev/shm`) |
 | `temporary_files_min_free`, `cache_files_min_free` | Fixed free-space floors; throw `InsufficientStorageException` when a root is too full |

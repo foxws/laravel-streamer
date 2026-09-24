@@ -3,234 +3,106 @@ section: Usage
 order: 3
 ---
 
-# Queue Integration
+# Queues
 
-Packaging media takes time, so it's usually best done in the background rather than during a web request. This guide shows how to run this package's work through Laravel's queue system.
+Encoding takes a long time, often longer than the video itself. Always run it in a queued job.
 
-## A basic queue job
-
-Here's a job that handles media packaging:
+## A streaming job
 
 ```php
-<?php
-
 namespace App\Jobs;
 
+use App\Models\Video;
 use Foxws\Streamer\Facades\Streamer;
-use Illuminate\Bus\Queueable;
+use Foxws\Streamer\Support\VideoResolution;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Foundation\Queue\Queueable;
+use Throwable;
 
-class PackageMediaJob implements ShouldQueue
+class StreamVideo implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Queueable;
 
-    public function __construct(
-        public string $inputPath,
-        public string $outputPath,
-        public string $disk = 's3'
-    ) {}
+    public $timeout = 14400;
+
+    public $tries = 1;
+
+    public function __construct(public Video $video) {}
 
     public function handle(): void
     {
-        Streamer::fromDisk($this->disk)
-            ->open($this->inputPath)
-            ->addVideoStream($this->inputPath, 'video_1080p.mp4', ['bandwidth' => '5000000'])
-            ->addVideoStream($this->inputPath, 'video_720p.mp4', ['bandwidth' => '3000000'])
-            ->addAudioStream($this->inputPath, 'audio.mp4')
-            ->withHlsMasterPlaylist('master.m3u8')
-            ->export()
-            ->toPath($this->outputPath)
-            ->save();
-    }
-}
-```
-
-## Dispatching the job
-
-```php
-use App\Jobs\PackageMediaJob;
-
-// Dispatch to default queue
-PackageMediaJob::dispatch('videos/input.mp4', 'processed/');
-
-// Dispatch to specific queue
-PackageMediaJob::dispatch('videos/input.mp4', 'processed/')
-    ->onQueue('media-processing');
-
-// Dispatch with delay
-PackageMediaJob::dispatch('videos/input.mp4', 'processed/')
-    ->delay(now()->addMinutes(5));
-```
-
-## A job with progress tracking
-
-```php
-<?php
-
-namespace App\Jobs;
-
-use Foxws\Streamer\Facades\Streamer;
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-
-class PackageMediaWithProgressJob implements ShouldQueue
-{
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public int $timeout = 7200; // 2 hours
-    public int $tries = 3;
-
-    public function __construct(
-        public string $inputPath,
-        public string $outputPath,
-        public ?int $userId = null
-    ) {}
-
-    public function handle(): void
-    {
-        if ($this->batch()?->cancelled()) {
-            return;
-        }
+        $streamer = Streamer::fromDisk('media')->open($this->video->path);
 
         try {
-            Streamer::fromDisk('s3')
-                ->open($this->inputPath)
-                ->addVideoStream($this->inputPath, 'video.mp4')
-                ->addAudioStream($this->inputPath, 'audio.mp4')
+            $streamer
+                ->addVideoStream($this->video->path, 'video.mp4')
+                ->addAudioStream($this->video->path, 'audio.mp4')
+                ->withResolutions(VideoResolution::make($this->video->height)->toArray())
+                ->withMpdOutput('index.mpd')
                 ->withHlsMasterPlaylist('master.m3u8')
                 ->export()
-                ->afterSaving(function ($exporter, $result) {
-                    // Notify user of completion
-                    if ($this->userId) {
-                        // Send notification
-                    }
-                })
-                ->toPath($this->outputPath)
+                ->toDisk('s3')
+                ->toPath("streams/{$this->video->id}/")
+                ->afterSaving(fn () => $this->video->markAsReady())
                 ->save();
-        } catch (\Exception $e) {
-            $this->fail($e);
+        } finally {
+            $streamer->cleanupTemporaryFiles();
         }
     }
 
-    public function failed(\Throwable $exception): void
+    public function failed(Throwable $exception): void
     {
-        // Handle job failure
-        \Log::error('Media packaging failed', [
-            'input' => $this->inputPath,
-            'error' => $exception->getMessage(),
-        ]);
+        $this->video->markAsFailed();
     }
 }
 ```
 
-## Batch processing
-
-To process several files together as one batch:
-
 ```php
-use App\Jobs\PackageMediaJob;
-use Illuminate\Bus\Batch;
-use Illuminate\Support\Facades\Bus;
-
-$jobs = [];
-
-foreach ($mediaFiles as $file) {
-    $jobs[] = new PackageMediaJob($file, 'processed/');
-}
-
-$batch = Bus::batch($jobs)
-    ->name('Media Packaging Batch')
-    ->then(function (Batch $batch) {
-        // All jobs completed successfully
-    })
-    ->catch(function (Batch $batch, Throwable $e) {
-        // First batch job failure
-    })
-    ->finally(function (Batch $batch) {
-        // The batch has finished executing
-    })
-    ->dispatch();
+StreamVideo::dispatch($video)->onQueue('encoding');
 ```
 
-## Configuration recommendations
+A retry starts the encode again from the beginning, so keep `$tries` low.
 
-### Queue configuration
+## Timeouts
 
-Add a dedicated connection in `config/queue.php`:
+Three timeouts need to line up:
+
+1. `STREAMER_TIMEOUT` stops the Shaka Streamer process. The default is 14400 seconds (4 hours).
+2. The job's `$timeout` stops the worker. Keep it at or above `STREAMER_TIMEOUT`, or the worker is killed while Shaka Streamer still runs.
+3. The queue connection's `retry_after` must be **longer** than the job's `$timeout`. Otherwise another worker picks up the same job while the first one is still encoding.
 
 ```php
-'connections' => [
-    'media-processing' => [
-        'driver' => 'redis',
-        'connection' => 'default',
-        'queue' => 'media',
-        'retry_after' => 7200, // 2 hours
-        'block_for' => null,
-    ],
+// config/queue.php
+'encoding' => [
+    'driver' => 'redis',
+    'connection' => 'default',
+    'queue' => 'encoding',
+    'retry_after' => 14460,
 ],
 ```
 
-### Horizon configuration (optional)
+## How many at once
 
-If you use Laravel Horizon, add this to `config/horizon.php`:
+FFmpeg already uses every CPU core for one encode. Running several jobs at once rarely finishes the queue faster, and it needs room in `temporary_files_root` for every job. With hardware encoding, the GPU limits how many encodes run well at once. Start with one worker:
 
 ```php
-'environments' => [
-    'production' => [
-        'media-processing' => [
-            'connection' => 'redis',
-            'queue' => ['media'],
-            'balance' => 'auto',
-            'maxProcesses' => 2, // Limit concurrent packaging
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 512,
-            'tries' => 3,
-            'timeout' => 7200,
-        ],
-    ],
+// config/horizon.php
+'supervisor-encoding' => [
+    'connection' => 'encoding',
+    'queue' => ['encoding'],
+    'maxProcesses' => 1,
+    'timeout' => 14400,
+    'tries' => 1,
 ],
 ```
 
-## Best practices
+If `temporary_files_root` is a size-limited mount, set a [storage floor](configuration.md). A job then fails right away instead of halfway through.
 
-| Practice | Why |
-| --- | --- |
-| Set realistic timeouts | Packaging can take a long time, especially for longer or higher-resolution videos |
-| Limit concurrent jobs | Packaging is resource-intensive, so too many at once can overload the server |
-| Monitor memory | Set memory limits to avoid running out of resources |
-| Implement retries | Remote storage can have transient network issues worth retrying |
-| Chain cleanup jobs | Run cleanup after packaging finishes, as part of the same chain |
-| Track progress | Use events or database updates so users can see how far along a job is |
-| Clean up temporary files | Do this on both success and failure, not just on success |
+## Long-running workers
 
-## Example with cleanup
+Queue workers live for many jobs, so:
 
-```php
-public function handle(): void
-{
-    try {
-        Streamer::fromDisk('s3')
-            ->open($this->inputPath)
-            ->addVideoStream($this->inputPath, 'video.mp4')
-            ->withHlsMasterPlaylist('master.m3u8')
-            ->export()
-            ->toPath($this->outputPath)
-            ->save();
-
-        // Clean up temporary files
-        Streamer::cleanupTemporaryFiles();
-    } catch (\Exception $e) {
-        // Clean up on error too
-        Streamer::cleanupTemporaryFiles();
-        throw $e;
-    }
-}
-```
+- Always call `cleanupTemporaryFiles()` in `finally`. A failed job otherwise leaves its files behind.
+- Call `useSystemBinaries()` on every job that needs it. It only applies to that job.
+- Don't change the shared driver with `app(ShakaStreamer::class)->setTimeout()` inside a job. The driver is a singleton, so the change sticks for every later job in that worker.
+- Use `WithoutOverlapping` or `ShouldBeUnique` if the same video can be queued twice.

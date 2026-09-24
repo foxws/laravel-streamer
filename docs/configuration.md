@@ -5,306 +5,69 @@ order: 2
 
 # Configuration
 
-You configure this package through the `config/streamer.php` file.
-
-## Publishing the configuration file
-
-Publish it with:
+Publish the config file to change the defaults:
 
 ```bash
 php artisan vendor:publish --tag="streamer-config"
 ```
 
-## Configuration options
+This creates `config/streamer.php`. Most options can also be set in `.env`.
 
-### Streamer binary
+## Binary and process
 
-Set the path to the Shaka Streamer binary:
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `streamer.streamer_binary` | `STREAMER_BINARY` | `shaka-streamer` | Path to Shaka Streamer, or its name on `PATH`. |
+| `timeout` | `STREAMER_TIMEOUT` | `14400` | Seconds before the process is stopped. See [Queues](queue-integration.md). |
+| `log_channel` | `STREAMER_LOG_CHANNEL` | your `LOG_CHANNEL` | Channel for streamer logs. `false` turns logging off, `null` uses the default channel. Keys are redacted from logs. |
 
-```php
-'streamer' => [
-    'streamer_binary' => env('STREAMER_BINARY', 'shaka-streamer'),
-],
-```
+## Encoding defaults
 
-**Environment Variable:**
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `video_codecs` | `STREAMER_VIDEO_CODECS` | `h264` | Comma-separated video codecs, such as `h264,av1` or `hw:h264`. |
+| `audio_codecs` | `STREAMER_AUDIO_CODECS` | `aac` | Comma-separated audio codecs, such as `aac,opus`. |
+| `segment_duration` | `STREAMER_SEGMENT_DURATION` | `6` | Segment length in seconds. |
+| `hwaccel_api` | `STREAMER_HWACCEL_API` | `null` | Hardware encoding API for `hw:` codecs: `vaapi`, `nvenc` or `videotoolbox`. |
+| `streamer_options` | | `[]` | Extra fields for Shaka Streamer's [pipeline config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html), added to every job. |
+| `force_generic_input` | `STREAMER_FORCE_GENERIC_INPUT` | `true` | Links each input as `input.<ext>` in a temporary folder, so special characters in names can't cause problems. |
+| `extra_input_args` | `STREAMER_EXTRA_INPUT_ARGS` | `null` | Leave this empty. It's added to the pipeline config, but Shaka Streamer only accepts it per input, so any value makes jobs fail. |
 
-```env
-STREAMER_BINARY=shaka-streamer
-```
+A codec with the `hw:` prefix needs `hwaccel_api`, and an FFmpeg build with that encoder. Use your own FFmpeg with [`useSystemBinaries()`](usage.md) if the bundled one doesn't have it.
 
-### Force generic input
+## Temporary files
 
-Use generic input paths instead of absolute paths:
+Shaka Streamer writes its whole output locally before it's uploaded. Inputs from remote disks are downloaded here too.
 
-```php
-'force_generic_input' => env('STREAMER_FORCE_GENERIC_INPUT', true),
-```
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `temporary_files_root` | `STREAMER_TEMPORARY_FILES_ROOT` | `storage/app/streamer/temp` | Where inputs and output are written. Needs room for every quality of every job running at the same time. |
+| `cache_files_root` | `STREAMER_CACHE_FILES_ROOT` | `/dev/shm` | Where encryption keys are written. A RAM disk keeps keys off the physical disk. Set it to an empty string to use `temporary_files_root`. |
 
-**Environment Variable:**
+### Storage guards
 
-```env
-STREAMER_FORCE_GENERIC_INPUT=true
-```
+A job that runs out of space fails halfway, after hours of encoding. These floors stop it before it starts, with a `Foxws\Streamer\Exceptions\InsufficientStorageException`. Both are off by default.
 
-### Timeout
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `temporary_files_min_free` | `STREAMER_TEMPORARY_MIN_FREE` | `0` | Minimum free bytes in `temporary_files_root`. |
+| `cache_files_min_free` | `STREAMER_CACHE_MIN_FREE` | `0` | Minimum free bytes in `cache_files_root`. |
 
-Set the maximum execution time for streaming operations:
+Encoding can make the output much smaller or larger than the input, depending on the qualities and codecs. So unlike Laravel Shaka, there's no check based on the input size, only these fixed floors. Set the floor to the largest output you expect.
 
-```php
-'timeout' => env('STREAMER_TIMEOUT', 60 * 60 * 4), // 4 hours in seconds
-```
+The two roots have separate floors because they're often very different sizes. `/dev/shm` may only have a few dozen MB, while `temporary_files_root` may have many GB.
 
-**Environment Variable:**
+## Uploads
 
-```env
-STREAMER_TIMEOUT=14400
-```
+These apply when the target is an S3 disk. On a local disk, files are moved with `rename()` instead.
 
-**Things that affect how long packaging takes:**
+| Key | Env | Default | Purpose |
+| --- | --- | --- | --- |
+| `concurrency_workers` | `STREAMER_CONCURRENCY_WORKERS` | `30` | How many files upload at the same time. |
+| `multipart_threshold` | `STREAMER_MULTIPART_THRESHOLD` | `67108864` (64 MB) | Files this size or larger use a multipart upload. |
+| `multipart_part_size` | `STREAMER_MULTIPART_PART_SIZE` | `16777216` (16 MB) | Size of each part. At least 5 MB. |
+| `multipart_concurrency` | `STREAMER_MULTIPART_CONCURRENCY` | `5` | Parts uploaded at the same time, per file. |
 
-- Longer videos need more time
-- 4K content takes much longer than 1080p
-- Each extra quality variant adds to the processing time
-- Your server's PHP `max_execution_time` setting also matters
+A single upload is limited to 5 GB, so multipart is needed for larger files. It's also faster for big files, because parts go up in parallel. A failed multipart upload is cancelled, so its parts don't stay in the bucket.
 
-### Logging
-
-Enable logging to track streaming operations:
-
-```php
-'log_channel' => env('STREAMER_LOG_CHANNEL', env('LOG_CHANNEL', 'stack')),
-```
-
-**Environment Variables:**
-
-```env
-# Use default log channel
-STREAMER_LOG_CHANNEL=stack
-
-# Use custom channel
-STREAMER_LOG_CHANNEL=streamer
-```
-
-**Custom log channel:**
-Define a custom channel in `config/logging.php`:
-
-```php
-'channels' => [
-    'streamer' => [
-        'driver' => 'daily',
-        'path' => storage_path('logs/streamer.log'),
-        'level' => 'debug',
-        'days' => 14,
-    ],
-],
-```
-
-### Temporary files
-
-Set where temporary files are stored:
-
-```php
-'temporary_files_root' => env('STREAMER_TEMPORARY_FILES_ROOT', storage_path('app/streamer/temp')),
-```
-
-**Environment Variable:**
-
-```env
-STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
-```
-
-**Notes:**
-
-- Remote files (from S3 and similar) are copied here before processing
-- Make sure there's enough disk space
-- Clean this directory up regularly
-- Use a regular disk here, not RAM, so you don't eat into memory
-
-### Cache files
-
-Set where cache files (encryption keys, manifests, and so on) are stored:
-
-```php
-'cache_files_root' => env('STREAMER_CACHE_FILES_ROOT', '/dev/shm'),
-```
-
-**Environment Variable:**
-
-```env
-STREAMER_CACHE_FILES_ROOT=/dev/shm
-```
-
-**Note:** `/dev/shm` (a RAM disk) is faster for small files, but it needs enough RAM available to hold them.
-
-### Storage space guards
-
-These settings let you fail fast with a clear error instead of having a job
-die partway through because a storage location ran out of space.
-
-```php
-'temporary_files_min_free' => env('STREAMER_TEMPORARY_MIN_FREE', 0),
-'cache_files_min_free' => env('STREAMER_CACHE_MIN_FREE', 0),
-```
-
-**Environment Variables:**
-
-```env
-STREAMER_TEMPORARY_MIN_FREE=1073741824   # 1 GiB floor on temporary_files_root
-STREAMER_CACHE_MIN_FREE=10485760         # 10 MiB floor on cache_files_root
-```
-
-Both are off by default (`0`), and they're kept independent on purpose:
-`cache_files_root` is often a much smaller mount (e.g. `/dev/shm`) than
-`temporary_files_root`, so one shared floor couldn't protect both properly.
-Both throw `Foxws\Streamer\Exceptions\InsufficientStorageException` when
-triggered.
-
-Streamer encodes via ffmpeg, so the output size doesn't closely track the
-input size — encoding down to delivery bitrates can shrink a file a lot.
-Because of that, there's no check here that estimates space needed per job;
-`temporary_files_min_free` is just a flat safety net, not a per-job estimate.
-
-#### Example: Podman tmpfs for `cache_files_root`
-
-Since `temporary_files_root`'s space usage isn't predictable from the input
-file size (see above), putting it on a size-limited tmpfs is riskier than
-putting it on a regular disk-backed volume — prefer disk for
-`temporary_files_root`, as noted under [Temporary files](#temporary-files) above.
-
-`cache_files_root` (which only holds manifests and keys) is a safer fit for
-a RAM disk, since those files are small. If you're running queue workers in
-Podman:
-
-```ini
-# horizon.container (podman quadlet)
-[Container]
-...
-ShmSize=128m
-```
-
-```env
-STREAMER_CACHE_FILES_ROOT=/dev/shm
-STREAMER_CACHE_MIN_FREE=10485760   # 10 MiB - keep this well under ShmSize
-```
-
-### Codecs & segment duration
-
-These set the default audio/video codecs and segment duration. You can
-override any of them for an individual stream when you add it:
-
-```php
-'audio_codecs' => env('STREAMER_AUDIO_CODECS', 'aac'),
-'video_codecs' => env('STREAMER_VIDEO_CODECS', 'h264'),
-'segment_duration' => env('STREAMER_SEGMENT_DURATION', 6),
-```
-
-**Environment Variables:**
-
-```env
-STREAMER_AUDIO_CODECS=aac,opus
-STREAMER_VIDEO_CODECS=hw:h264,hw:vp9
-STREAMER_SEGMENT_DURATION=6
-```
-
-Prefix a video codec with `hw:` to use hardware-accelerated encoding (e.g.
-`hw:h264`).
-
-### Hardware acceleration
-
-Set which hardware acceleration API to use for video encoding — `vaapi`,
-`nvenc`, `videotoolbox`, or `qsv`. Leave it unset to use software encoding
-instead.
-
-```php
-'hwaccel_api' => env('STREAMER_HWACCEL_API', null),
-```
-
-```env
-STREAMER_HWACCEL_API=vaapi
-```
-
-### Extra input arguments
-
-Raw arguments passed directly to the packager's input. Useful for advanced
-scenarios, such as custom demuxer flags.
-
-```php
-'extra_input_args' => env('STREAMER_EXTRA_INPUT_ARGS', null),
-```
-
-### Streamer options
-
-Extra configuration merged directly into the Shaka Streamer pipeline config —
-see the [Shaka Streamer configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html)
-for what's available.
-
-```php
-'streamer_options' => [],
-```
-
-### Concurrency workers
-
-The maximum number of S3 uploads that can run at once when copying packaged
-files to an S3-backed disk (this is ignored for local disks). Each upload in
-progress holds an open file stream, so memory usage grows with this value.
-
-```php
-'concurrency_workers' => env('STREAMER_CONCURRENCY_WORKERS', 30),
-```
-
-```env
-STREAMER_CONCURRENCY_WORKERS=30
-```
-
-### Multipart uploads
-
-Files at or above `multipart_threshold` bytes are uploaded to S3-backed disks
-as a multipart upload, sending `multipart_concurrency` parts of
-`multipart_part_size` bytes in parallel for each file. This speeds up large
-single-file outputs and is required for objects over 5 GB. Part size must be
-at least 5 MB. If a multipart upload fails, it's aborted so its parts don't
-keep taking up storage.
-
-```php
-'multipart_threshold' => env('STREAMER_MULTIPART_THRESHOLD', 64 * 1024 * 1024),
-'multipart_part_size' => env('STREAMER_MULTIPART_PART_SIZE', 16 * 1024 * 1024),
-'multipart_concurrency' => env('STREAMER_MULTIPART_CONCURRENCY', 5),
-```
-
-A file with a large multipart upload can have up to `concurrency_workers x
-multipart_concurrency` requests in flight at once.
-
-When the target is a local disk, output files are moved with `rename()` instead
-of being copied, which is near-instant when the temporary directory is on the
-same filesystem.
-
-## Environment configuration
-
-An example `.env` configuration:
-
-```env
-STREAMER_BINARY=shaka-streamer
-STREAMER_TIMEOUT=14400
-STREAMER_LOG_CHANNEL=streamer
-STREAMER_TEMPORARY_FILES_ROOT=/tmp/streamer
-STREAMER_CACHE_FILES_ROOT=/dev/shm
-STREAMER_FORCE_GENERIC_INPUT=true
-STREAMER_TEMPORARY_MIN_FREE=1073741824
-STREAMER_CACHE_MIN_FREE=10485760
-```
-
-## Verification
-
-After configuring the package, check that everything works:
-
-```bash
-php artisan streamer:info
-```
-
-This command checks that:
-
-- The binary exists and is executable
-- Version information can be retrieved
-- The configuration is set up correctly
-- The logger is working
+The disk's own options are kept, such as `CacheControl` from `options` in `config/filesystems.php`.
