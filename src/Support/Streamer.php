@@ -88,7 +88,7 @@ class Streamer
         if ($this->logger) {
             $this->logger->debug('Opened media collection', [
                 'count' => $mediaCollection->count(),
-                'paths' => $mediaCollection->getLocalPaths(),
+                'paths' => $mediaCollection->collection()->map->getPath()->all(),
             ]);
         }
 
@@ -369,13 +369,25 @@ class Streamer
     /**
      * Enable or disable using system binaries for streaming
      *
+     * The driver is a container singleton shared by every job in a worker,
+     * so it is cloned before changing its arguments; otherwise the flag
+     * would be added again on every job and leak into jobs that never
+     * asked for it.
+     *
      * @param  bool  $use  Whether to use system binaries
      */
     public function useSystemBinaries(bool $use = true): self
     {
+        $arguments = array_values(array_diff(
+            $this->streamer->getAdditionalArguments(),
+            ['--use-system-binaries']
+        ));
+
         if ($use) {
-            $this->streamer->addArgument('--use-system-binaries');
+            $arguments[] = '--use-system-binaries';
         }
+
+        $this->streamer = (clone $this->streamer)->setAdditionalArguments($arguments);
 
         return $this;
     }

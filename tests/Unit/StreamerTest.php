@@ -42,3 +42,26 @@ it('fresh instance has same driver', function () {
 
     expect($streamer2->getStreamer())->toBe($streamer1->getStreamer());
 });
+
+it('does not leak system binaries flag into the shared driver', function () {
+    $driver = new ShakaStreamer;
+
+    $first = (new Streamer($driver))->useSystemBinaries();
+    $second = (new Streamer($driver))->useSystemBinaries();
+
+    expect($driver->getAdditionalArguments())->toBe([])
+        ->and($first->getStreamer()->getAdditionalArguments())->toBe(['--use-system-binaries'])
+        ->and($second->getStreamer()->getAdditionalArguments())->toBe(['--use-system-binaries']);
+});
+
+it('adds the system binaries flag only once when called repeatedly', function () {
+    $streamer = (new Streamer(new ShakaStreamer))
+        ->useSystemBinaries()
+        ->useSystemBinaries();
+
+    expect($streamer->getStreamer()->getAdditionalArguments())->toBe(['--use-system-binaries']);
+
+    $streamer->useSystemBinaries(false);
+
+    expect($streamer->getStreamer()->getAdditionalArguments())->toBe([]);
+});
