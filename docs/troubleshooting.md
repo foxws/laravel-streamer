@@ -5,235 +5,80 @@ order: 2
 
 # Troubleshooting
 
-Common issues you might run into with this package, and how to fix them.
+Start with `php artisan streamer:info`. It shows whether Shaka Streamer runs and where temporary files go.
 
-## Shaka Streamer issues
+## Shaka Streamer is not installed
 
-### Shaka Streamer not installed
-
-**Error:**
-
-```
-Error: shaka-streamer binary not found
+```text
+RuntimeException: Shaka Streamer is not installed or not accessible.
 ```
 
-**Solution:**
+`which shaka-streamer` found nothing. Install it with `pip install shaka-streamer`, or set `STREAMER_BINARY` to its full path, for example inside a Python virtualenv.
 
-1. Install via pip:
+## Invalid Shaka Streamer configuration
 
-    ```bash
-    python3 -m pip install shaka-streamer
-    ```
+Shaka Streamer rejected the config. It stops on any field it doesn't know. Common causes:
 
-2. Verify installation:
+- `withKeyRotationDuration()` was called. Shaka Streamer has no key rotation setting.
+- `STREAMER_EXTRA_INPUT_ARGS` is set. Leave it empty.
+- A protection scheme other than `cenc` or `cbcs`.
+- A typo in `withOption()` or `streamer_options`.
 
-    ```bash
-    python3 -m pip show shaka-streamer
-    ```
+Check the config with `->getCommand()`, and compare it with the [configuration fields](https://shaka-project.github.io/shaka-streamer/configuration_fields.html).
 
-3. Configure in `.env`:
+## FFmpeg or Shaka Packager fails
 
-    ```env
-    STREAMER_BINARY=shaka-streamer
-    ```
+The error output names the tool that failed.
 
-## Temporary directory issues
+- **`ffmpeg` or `packager` not found:** install `shaka-streamer-binaries`, or install both tools yourself and call `useSystemBinaries()`.
+- **An unknown encoder, such as `h264_vaapi`:** your FFmpeg build doesn't support that hardware encoder, or `hwaccel_api` doesn't match your hardware. Try without the `hw:` prefix first.
+- **Input file not found:** the path wasn't opened with `open()`, or the file is gone.
 
-### Permission denied
+## The job times out
 
-**Error:**
+`Illuminate\Process\Exceptions\ProcessTimedOutException` means Shaka Streamer ran longer than `STREAMER_TIMEOUT` (default 4 hours). Encode fewer qualities, use hardware encoding, or raise the timeout. Check the job and queue timeouts too. See [Queues](queue-integration.md).
 
-```
-Permission denied: /var/www/html/storage/app/streamer/temp
-```
+## Not enough space
 
-**Solution:**
-
-1. Create directory:
-
-    ```bash
-    mkdir -p storage/app/streamer/temp
-    chmod 755 storage/app/streamer/temp
-    ```
-
-2. Set proper ownership:
-
-    ```bash
-    sudo chown -R www-data:www-data storage/app/streamer/temp
-    ```
-
-3. Or configure alternate path in `config/streamer.php`:
-
-    ```php
-    'temporary_files_root' => storage_path('app/streamer/temp'),
-    ```
-
-### No space left on device
-
-**Error:**
-
-```
-No space left on device
+```text
+InsufficientStorageException: Insufficient storage space in [/cache/temp/streamer]: 314572800 bytes free, 1073741824 bytes required.
 ```
 
-**Solution:**
+A [storage floor](configuration.md) stopped the job before it started, so nothing needs cleaning up. Free up space, give the mount more room, or run fewer jobs at once.
 
-1. Check disk space:
+A `No space left on device` error from FFmpeg means the disk filled up during the job. Set `STREAMER_TEMPORARY_MIN_FREE` to the largest output you expect.
 
-    ```bash
-    df -h storage/app/streamer/temp
-    ```
+## Files failed to copy
 
-2. Clean up old temporary files:
-
-    ```bash
-    find storage/app/streamer/temp -mtime +7 -delete
-    ```
-
-3. Configure to use alternative disk:
-
-    ```env
-    STREAMER_TEMPORARY_FILES_ROOT=/mnt/alternate-disk/streamer-temp
-    ```
-
-### Insufficient storage space (pre-flight check)
-
-**Error:**
-
-```
-InsufficientStorageException: Insufficient storage space in [/dev/shm]: 31457280 bytes free, 1073741824 bytes required.
+```text
+RuntimeException: 2 file(s) failed to copy to disk "s3": ...
 ```
 
-Unlike "No space left on device" above, this error is thrown *before*
-packaging starts, by a deliberate pre-flight check (see [Storage space
-guards](./configuration.md#storage-space-guards)). Nothing ran yet, so
-there's nothing to clean up.
+The upload failed for the files listed. Common causes:
 
-**Solution:**
+- Wrong S3 credentials, bucket or endpoint in `config/filesystems.php`.
+- `withVisibility('public')` on a bucket that blocks public ACLs. Leave visibility unset, or allow ACLs.
+- A self-hosted S3 store that needs `use_path_style_endpoint`.
 
-1. If `temporary_files_root` or `cache_files_root` is a size-limited mount
-   (e.g. a tmpfs), free up space or make it bigger.
-2. If this happens often under concurrent load, lower your queue's
-   concurrency instead of raising the floor further — the floor is a safety
-   net, not a capacity plan.
-3. Tune or disable the checks via `STREAMER_TEMPORARY_MIN_FREE` /
-   `STREAMER_CACHE_MIN_FREE` (in bytes; `0` disables the check).
+## Temporary files pile up
 
-## Timeout issues
+Something isn't calling `cleanupTemporaryFiles()` after a failure. Call it in `finally` in every job. See [Usage](usage.md).
 
-### Operation timed out
+## The player won't play the stream
 
-**Error:**
+- **Nothing loads in the browser:** the bucket needs a CORS policy that allows your site.
+- **It stops after a while:** signed URLs in the playlist expired. Give segment URLs a longer lifetime, or reload the playlist.
+- **Encrypted HLS doesn't play:** set `hls_key_uri`, and serve the key. See [Encryption](aes-encryption.md).
+- **Encrypted video doesn't play in Safari:** use the `cbcs` protection scheme.
 
-```
-The process timed out
-```
+## Logs
 
-**Solution:**
-
-1. Increase timeout in `.env`:
-
-    ```env
-    STREAMER_TIMEOUT=28800  # 8 hours
-    ```
-
-2. Check server PHP configuration:
-
-    ```bash
-    php -r "echo ini_get('max_execution_time');"
-    ```
-
-3. Adjust if necessary:
-
-    ```php
-    set_time_limit(0); // Unlimited for CLI
-    ```
-
-## Logging issues
-
-### Logs not being written
-
-**Error:**
-
-```
-Log channel not working
-```
-
-**Solution:**
-
-1. Verify logging is enabled:
-
-    ```env
-    STREAMER_LOG_CHANNEL=streamer
-    ```
-
-2. Ensure channel exists in `config/logging.php`:
-
-    ```php
-    'channels' => [
-        'streamer' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/streamer.log'),
-            'level' => 'debug',
-            'days' => 14,
-        ],
-    ],
-    ```
-
-3. Check directory permissions:
-
-    ```bash
-    chmod 755 storage/logs
-    ```
-
-## General troubleshooting
-
-### Configuration check
-
-Check that your configuration is correct:
-
-```bash
-php artisan streamer:info
-```
-
-### Enable debug logging
-
-For more detailed information:
+Shaka Streamer's config, with keys redacted, and its output are logged to `STREAMER_LOG_CHANNEL`. Use a separate channel to keep them apart:
 
 ```env
 STREAMER_LOG_CHANNEL=streamer
-APP_DEBUG=true
 ```
 
-### Clear cache
+## Still stuck?
 
-Reset the configuration cache:
-
-```bash
-php artisan config:clear
-php artisan cache:clear
-```
-
-### Test command execution
-
-Check that the streamer binary can actually run:
-
-```php
-use Foxws\Streamer\Support\ShakaStreamer;
-
-$driver = ShakaStreamer::create();
-$version = $driver->getVersion();
-echo "Streamer Version: {$version}";
-```
-
-## Getting help
-
-If the problem doesn't go away:
-
-1. Check the application logs: `storage/logs/streamer.log`
-2. Review debug output with `php artisan tinker`
-3. File an issue on GitHub with:
-    - The complete error message
-    - Your configuration (with any sensitive data removed)
-    - Your PHP and OS versions
-    - Steps to reproduce the problem
+Open an [issue](https://github.com/foxws/laravel-streamer/issues) with the output of `php artisan streamer:info`, the config from `getCommand()`, and the error message.

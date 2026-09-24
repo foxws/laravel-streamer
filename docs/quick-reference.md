@@ -5,264 +5,98 @@ order: 1
 
 # Quick Reference
 
-## Fluent API with fromDisk support
+## Opening media
 
-### Basic usage
+Called on the `Streamer` facade.
 
-```php
-use Foxws\Streamer\Facades\Streamer;
-
-// Default disk
-$result = Streamer::open('input.mp4')
-    ->addVideoStream('input.mp4', 'video.mp4')
-    ->addAudioStream('input.mp4', 'audio.mp4')
-    ->withMpdOutput('manifest.mpd')
-    ->export();
-```
-
-### Using different disks
-
-```php
-// From S3, save to a different disk (e.g., local, s3, etc.)
-$result = Streamer::fromDisk('s3')
-    ->open('videos/input.mp4')
-    ->addVideoStream('videos/input.mp4', 'video.mp4')
-    ->withMpdOutput('manifest.mpd')
-    ->export()
-    ->toDisk('export')
-    ->save();
-
-// Helper method
-$result = Streamer::openFromDisk('s3', 'videos/input.mp4')
-    ->addVideoStream('videos/input.mp4', 'video.mp4')
-    ->export()
-    ->toDisk('export')
-    ->save();
-```
-
-## Available methods
-
-### Disk management
-
-| Method | Description |
+| Method | Purpose |
 | --- | --- |
-| `fromDisk(string $disk)` | Set the disk to use |
-| `openFromDisk(string $disk, $paths)` | Set disk and open files in one call |
-| `getDisk()` | Get current disk instance |
+| `fromDisk($disk)` | Disk to read input from. A disk name or a `Filesystem`. |
+| `open($paths)` | Open one path, an array of paths, or an `UploadedFile`. |
+| `openFromDisk($disk, $paths)` | `fromDisk()` and `open()` in one call. |
+| `get()` | The opened `MediaCollection`. |
+| `each($items, $callback)` | Run the callback with a fresh opener for each item. |
+| `cleanupTemporaryFiles()` | Delete all temporary files. |
+| `dynamicHLSPlaylist($disk)` | See [URL Resolvers](url-resolvers.md). |
+| `dynamicDASHManifest($disk)` | See [URL Resolvers](url-resolvers.md). |
 
-### Media management
+## Streams
 
-| Method | Description |
+| Method | Purpose |
 | --- | --- |
-| `open($paths)` | Open one or more media files |
-| `get()` | Get the MediaCollection |
-| `streams()` | Get auto-generated Stream objects |
+| `addVideoStream($input, $output, $options = [])` | Video from an opened input. |
+| `addAudioStream($input, $output, $options = [])` | Audio from an opened input. |
+| `addTextStream($input, $output, $options = [])` | Subtitles from an opened input. |
+| `addStream(Stream\|array $stream)` | A raw stream. Paths aren't resolved, so use absolute paths. |
 
-### Stream configuration
+`$options` are fields of Shaka Streamer's [input config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html), such as `language` or `track_num`. Shaka Streamer names the output files itself, so `$output` is only a label.
 
-| Method | Description |
+## Encoding
+
+| Method | Purpose |
 | --- | --- |
-| `addVideoStream(string $input, string $output, array $options = [])` | Add a video stream |
-| `addAudioStream(string $input, string $output, array $options = [])` | Add an audio stream |
-| `addTextStream(string $input, string $output, array $options = [])` | Add a text/caption/subtitle stream |
-| `addStream(array $stream)` | Add a custom stream with full control |
+| `withResolutions($resolutions)` | Qualities to encode, such as `['1080p', '720p']`. |
+| `withVideoCodecs($codecs)` | Video codecs, such as `['h264', 'hw:av1']`. |
+| `withAudioCodecs($codecs)` | Audio codecs, such as `['aac', 'opus']`. |
+| `withHwaccelApi($api)` | `vaapi`, `nvenc` or `videotoolbox`. |
+| `withLimitResolutionBy($dimension)` | Compare resolutions by `height` or `max_dimension`. |
+| `withChannelLayouts($layouts)` | Audio channel layouts. |
+| `useSystemBinaries()` | Use `ffmpeg` and `packager` from `PATH`. |
 
-### Output configuration
+## Output
 
-| Method | Description |
+| Method | Purpose |
 | --- | --- |
-| `withMpdOutput(string $path)` | Set DASH manifest output |
-| `withHlsMasterPlaylist(string $path)` | Set HLS master playlist output |
-| `withSegmentDuration(int $seconds)` | Set segment duration |
-| `withEncryption(array $config)` | Enable encryption |
-| `toDisk(string $disk)` | Set the target disk for output |
-| `toPath(string $path)` | Set the target output path (subdirectory) |
-| `withVisibility(string $visibility)` | Set file visibility (e.g. `'public'`, `'private'`) |
+| `withMpdOutput($path)` | Write a DASH manifest. |
+| `withHlsMasterPlaylist($path)` | Write an HLS master playlist. |
+| `withManifestFormat($formats)` | Override the manifest formats, such as `['dash']`. |
+| `withSegmentDuration($seconds)` | Segment length. |
+| `withSegmentPerFile()` | One file per segment. |
+| `withSegmentFolder($folder)` | Put segments in a subfolder. |
+| `withStreamingMode($mode)` | `vod` (default) or `live`. |
+| `withGenerateIframePlaylist()` | HLS trick-play playlists. |
+| `withLowLatencyDashMode()` | Low-latency DASH. |
+| `withOption($key, $value)` | Any other pipeline config field. |
 
-### Execution & utilities
+## Encryption
 
-| Method | Description |
+| Method | Purpose |
 | --- | --- |
-| `export()` | Export the packaging operation (returns a result object) |
-| `save(?string $path = null)` | Save outputs to disk (optionally to a specific path) |
-| `getCommand()` | Get the final command string (for debugging) |
-| `dd()` | Dump the final command and stop the script |
-| `afterSaving(callable $callback)` | Register a callback to run after saving |
+| `withAESEncryption($keyFilename = 'key', $scheme = null, $label = null)` | Generate a key and encrypt. Returns an `EncryptionKey`. |
+| `withEncryption($config)` | Set Shaka Streamer's encryption config directly. |
 
-### Dynamic URL resolvers
+See [Encryption](aes-encryption.md). `withKeyRotationDuration()` exists but doesn't work with Shaka Streamer.
 
-**DynamicHLSPlaylist:**
+## Exporting
 
-| Method | Description |
+Called on the result of `export()`.
+
+| Method | Purpose |
 | --- | --- |
-| `new DynamicHLSPlaylist(?string $disk)` | Create an HLS playlist processor |
-| `open(string $path)` | Open a playlist file |
-| `setKeyUrlResolver(callable $resolver)` | Set the resolver for encryption key URLs |
-| `setMediaUrlResolver(callable $resolver)` | Set the resolver for media segment URLs |
-| `setPlaylistUrlResolver(callable $resolver)` | Set the resolver for sub-playlist URLs |
-| `get()` | Get processed playlist content |
-| `all()` | Get all processed playlists (master + segments) |
-| `toResponse($request)` | Return as an HTTP response |
+| `toDisk($disk)` | Disk to write to. Defaults to the input disk. |
+| `toPath($path)` | Folder on that disk. Defaults to the root. |
+| `withVisibility($visibility)` | `public` or `private`. |
+| `afterSaving($callback)` | Runs after upload, with `($exporter, $result)`. |
+| `save()` | Run Shaka Streamer and upload the output. |
+| `getCommand()` | The config that would be sent, without running it. |
+| `dd()` | Dump the config and stop. |
 
-**DynamicDASHManifest:**
+## Artisan
 
-| Method | Description |
+| Command | Purpose |
 | --- | --- |
-| `new DynamicDASHManifest(?string $disk)` | Create a DASH manifest processor |
-| `open(string $path)` | Open a manifest file |
-| `setMediaUrlResolver(callable $resolver)` | Set the resolver for media segment URLs |
-| `setInitUrlResolver(callable $resolver)` | Set the resolver for initialization segment URLs |
-| `get()` | Get processed manifest content |
-| `toResponse($request)` | Return as an HTTP response |
+| `streamer:info` | Check the binary, version and temporary directory. |
 
-## Common patterns
+## Classes
 
-### Adding captions/subtitles (WebVTT)
-
-```php
-Streamer::fromDisk('s3')
-    ->open('videos/source.mp4')
-    ->addVideoStream('videos/source.mp4', 'video_1080p.mp4', [
-        'bandwidth' => '5000000',
-    ])
-    ->addAudioStream('videos/source.mp4', 'audio.mp4')
-    ->addTextStream('captions/english.vtt', 'english.vtt', [
-        'language' => 'en',
-    ])
-    ->withMpdOutput('manifest.mpd')
-    ->withSegmentDuration(6)
-    ->export();
-```
-
-### Adaptive bitrate streaming
-
-```php
-Streamer::fromDisk('s3')
-    ->open('videos/source.mp4')
-    ->addVideoStream('videos/source.mp4', 'video_1080p.mp4', [
-        'bandwidth' => '5000000',
-    ])
-    ->addVideoStream('videos/source.mp4', 'video_720p.mp4', [
-        'bandwidth' => '3000000',
-    ])
-    ->addVideoStream('videos/source.mp4', 'video_480p.mp4', [
-        'bandwidth' => '1500000',
-    ])
-    ->addAudioStream('videos/source.mp4', 'audio.mp4')
-    ->withMpdOutput('manifest.mpd')
-    ->withSegmentDuration(6)
-    ->export();
-```
-
-### HLS with encryption
-
-```php
-Streamer::fromDisk('s3')
-    ->open('secure/video.mp4')
-    ->addVideoStream('secure/video.mp4', 'video.m3u8')
-    ->addAudioStream('secure/video.mp4', 'audio.m3u8')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->withEncryption([
-        'keys' => 'label=:key_id=abc:key=def',
-        'key_server_url' => 'https://example.com/license',
-    ])
-    ->export();
-```
-
-### Multiple files
-
-```php
-Streamer::fromDisk('videos')
-    ->open(['intro.mp4', 'main.mp4', 'outro.mp4'])
-    ->addVideoStream('intro.mp4', 'intro_video.mp4')
-    ->addVideoStream('main.mp4', 'main_video.mp4')
-    ->addVideoStream('outro.mp4', 'outro_video.mp4')
-    ->withMpdOutput('manifest.mpd')
-    ->export();
-```
-
-### Error handling
-
-```php
-try {
-    $result = Streamer::fromDisk('s3')
-        ->open('video.mp4')
-        ->addVideoStream('video.mp4', 'output.mp4')
-        ->withMpdOutput('manifest.mpd')
-        ->export();
-
-    logger()->info('Success', $result->getOutput());
-} catch (\Foxws\Streamer\Exceptions\RuntimeException $e) {
-    logger()->error('Packaging failed', ['error' => $e->getMessage()]);
-} catch (\InvalidArgumentException $e) {
-    logger()->error('Invalid input', ['error' => $e->getMessage()]);
-}
-```
-
-## Configuration
-
-See the [Configuration](./configuration.md) page for the full list of options and environment variables.
-
-## Artisan commands
-
-```bash
-# Show binary and configuration status
-php artisan streamer:info
-```
-
-## Direct driver usage
-
-```php
-use Foxws\Streamer\Support\ShakaStreamer;
-
-$driver = ShakaStreamer::create();
-$version = $driver->getVersion();
-$driver->setTimeout(7200);
-```
-
-## CommandBuilder direct usage
-
-```php
-use Foxws\Streamer\Support\CommandBuilder;
-use Foxws\Streamer\Support\Streamer;
-
-$builder = CommandBuilder::make()
-    ->addVideoStream('input.mp4', 'output.mp4')
-    ->withMpdOutput('manifest.mpd');
-
-$streamer = app(Streamer::class);
-$result = $streamer->streamWithBuilder($builder);
-```
-
-## Stream objects
-
-```php
-use Foxws\Streamer\Support\Stream;
-use Foxws\Streamer\Filesystem\Media;
-
-$media = Media::make('videos', 'input.mp4');
-
-$videoStream = Stream::video($media)
-    ->setOutput('video.mp4')
-    ->addOption('bandwidth', '5000000');
-
-$audioStream = Stream::audio($media)
-    ->setOutput('audio.mp4');
-
-$commandString = $videoStream->toCommandString();
-```
-
-## Examples location
-
-- Basic examples: `examples/StreamerExamples.php`
-- Fluent API examples: `examples/FluentBuilderExamples.php`
-- fromDisk examples: `examples/FromDiskExamples.php`
-
-## Testing
-
-```php
-// Unit tests
-vendor/bin/pest tests/Unit/ShakaStreamerDriverTest.php
-vendor/bin/pest tests/Unit/StreamerTest.php
-vendor/bin/pest tests/Unit/FromDiskTest.php
-```
+| Class | Purpose |
+| --- | --- |
+| `Foxws\Streamer\Facades\Streamer` | Entry point. |
+| `Foxws\Streamer\Support\Streamer` | Holds the streams and runs a job. |
+| `Foxws\Streamer\Support\CommandBuilder` | Builds the input and pipeline config. |
+| `Foxws\Streamer\Support\ShakaStreamer` | Runs the binary. |
+| `Foxws\Streamer\Support\StreamerResult` | Output of a run. Uploads it with `toDisk()`. |
+| `Foxws\Streamer\Support\VideoResolution` | Standard qualities up to a height. |
+| `Foxws\Streamer\Support\EncryptionKey` | A generated key: `key`, `keyId`, `filePath`. |
+| `Foxws\Streamer\Http\DynamicHLSPlaylist` | Rewrites HLS playlists. |
+| `Foxws\Streamer\Http\DynamicDASHManifest` | Rewrites DASH manifests. |
