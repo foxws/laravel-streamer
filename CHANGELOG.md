@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.2.0 - 2026-09-24
+
+### What's Changed
+
+* Boost skills and upload performance by @francoism90 in https://github.com/foxws/laravel-streamer/pull/28
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/2.1.1...2.2.0
+
 ## 2.1.1 - 2026-09-16
 
 ### What's Changed
