@@ -31,7 +31,7 @@ This creates `config/streamer.php`. Most options can also be set in `.env`.
 | `hwaccel_api` | `STREAMER_HWACCEL_API` | `null` | Hardware encoding API for `hw:` codecs: `vaapi`, `nvenc` or `videotoolbox`. |
 | `streamer_options` | | `[]` | Extra fields for Shaka Streamer's [pipeline config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html), added to every job. |
 | `force_generic_input` | `STREAMER_FORCE_GENERIC_INPUT` | `true` | Links each input as `input.<ext>` in a temporary folder, so special characters in names can't cause problems. |
-| `extra_input_args` | `STREAMER_EXTRA_INPUT_ARGS` | `null` | Leave this empty. It's added to the pipeline config, but Shaka Streamer only accepts it per input, so any value makes jobs fail. |
+| `extra_input_args` | `STREAMER_EXTRA_INPUT_ARGS` | `null` | Extra FFmpeg input arguments, added to every input. A stream's own `extra_input_args` option wins. |
 
 A codec with the `hw:` prefix needs `hwaccel_api`, and an FFmpeg build with that encoder. Use your own FFmpeg with [`useSystemBinaries()`](usage.md) if the bundled one doesn't have it.
 

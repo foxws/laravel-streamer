@@ -40,7 +40,7 @@ Called on the `Streamer` facade.
 | `withAudioCodecs($codecs)` | Audio codecs, such as `['aac', 'opus']`. |
 | `withHwaccelApi($api)` | `vaapi`, `nvenc` or `videotoolbox`. |
 | `withLimitResolutionBy($dimension)` | Compare resolutions by `height` or `max_dimension`. |
-| `withChannelLayouts($layouts)` | Audio channel layouts. |
+| `withChannelLayouts($layouts)` | Audio channel layouts, as a list or a comma-separated string. |
 | `useSystemBinaries()` | Use `ffmpeg` and `packager` from `PATH`. |
 
 ## Output
@@ -65,7 +65,7 @@ Called on the `Streamer` facade.
 | `withAESEncryption($keyFilename = 'key', $scheme = null, $label = null)` | Generate a key and encrypt. Returns an `EncryptionKey`. |
 | `withEncryption($config)` | Set Shaka Streamer's encryption config directly. |
 
-See [Encryption](aes-encryption.md). `withKeyRotationDuration()` exists but doesn't work with Shaka Streamer.
+See [Encryption](aes-encryption.md). Shaka Streamer has no key rotation, so `withKeyRotationDuration()` throws.
 
 ## Exporting
 
@@ -77,7 +77,7 @@ Called on the result of `export()`.
 | `toPath($path)` | Folder on that disk. Defaults to the root. |
 | `withVisibility($visibility)` | `public` or `private`. |
 | `afterSaving($callback)` | Runs after upload, with `($exporter, $result)`. |
-| `save()` | Run Shaka Streamer and upload the output. |
+| `save($path = null)` | Run Shaka Streamer and upload the output. A path works like `toPath()`. |
 | `getCommand()` | The config that would be sent, without running it. |
 | `dd()` | Dump the config and stop. |
 

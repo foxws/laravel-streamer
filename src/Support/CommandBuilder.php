@@ -30,6 +30,8 @@ class CommandBuilder
     /** @var array<int, string>|null */
     protected ?array $manifestFormats = null;
 
+    protected ?string $extraInputArgs = null;
+
     public function __construct()
     {
         $this->streams = new Collection;
@@ -155,9 +157,29 @@ class CommandBuilder
 
     /**
      * Configure encryption
+     *
+     * @throws InvalidStreamConfigurationException
      */
     public function withEncryption(array $encryptionConfig): self
     {
+        $scheme = $encryptionConfig['protection_scheme'] ?? null;
+
+        if ($scheme instanceof ProtectionScheme) {
+            $scheme = $encryptionConfig['protection_scheme'] = $scheme->value;
+        }
+
+        if (filled($scheme) && ! in_array($scheme, ['cenc', 'cbcs'], true)) {
+            throw new InvalidStreamConfigurationException(
+                "Shaka Streamer only supports the 'cenc' and 'cbcs' protection schemes, '{$scheme}' given."
+            );
+        }
+
+        if (array_key_exists('crypto_period_duration', $encryptionConfig)) {
+            throw new InvalidStreamConfigurationException(
+                'Shaka Streamer does not support key rotation (crypto_period_duration).'
+            );
+        }
+
         $this->pipelineOptions->put('encryption', $encryptionConfig);
 
         return $this;
@@ -267,10 +289,14 @@ class CommandBuilder
 
     /**
      * Set the audio channel layouts (e.g. 'stereo', 'surround')
+     *
+     * @param  string|array<int, string>  $layouts  A list, or a comma-separated string
      */
-    public function withChannelLayouts(string $layouts): self
+    public function withChannelLayouts(string|array $layouts): self
     {
-        $this->pipelineOptions->put('channel_layouts', $layouts);
+        $layouts = is_string($layouts) ? array_map(trim(...), explode(',', $layouts)) : $layouts;
+
+        $this->pipelineOptions->put('channel_layouts', array_values(array_filter($layouts)));
 
         return $this;
     }
@@ -286,11 +312,15 @@ class CommandBuilder
     }
 
     /**
-     * Set extra input arguments passed directly to the packager
+     * Set extra FFmpeg input arguments for every input.
+     *
+     * Shaka Streamer only accepts extra_input_args per input, so it's added
+     * to each input rather than to the pipeline config. A stream's own
+     * extra_input_args option takes precedence.
      */
     public function withExtraInputArgs(string $args): self
     {
-        $this->pipelineOptions->put('extra_input_args', $args);
+        $this->extraInputArgs = $args;
 
         return $this;
     }
@@ -359,18 +389,14 @@ class CommandBuilder
      */
     protected function buildInputConfig(): array
     {
-        $inputs = [];
-        $processedInputs = [];
-
-        foreach ($this->streams as $stream) {
-            $input = $stream['input'];
-
-            // Only add each unique input once
-            if (! isset($processedInputs[$input])) {
-                $inputs[] = $this->buildInputStream($stream);
-                $processedInputs[$input] = count($inputs) - 1;
-            }
-        }
+        // Each stream is its own input: Shaka Streamer reads video, audio
+        // and text from the same file as separate inputs with their own
+        // media_type. Only exact duplicates are skipped.
+        $inputs = $this->streams
+            ->map(fn (array $stream) => $this->buildInputStream($stream))
+            ->unique(fn (array $input) => serialize($input))
+            ->values()
+            ->all();
 
         return ['inputs' => $inputs];
     }
@@ -420,11 +446,15 @@ class CommandBuilder
      */
     protected function buildInputStream(array $stream): array
     {
-        return array_merge([
-            'input_type' => 'file',
-            'name' => $stream['input'],
-            'media_type' => $stream['type'],
-        ], array_filter($stream['options'] ?? []));
+        return array_merge(
+            [
+                'input_type' => 'file',
+                'name' => $stream['input'],
+                'media_type' => $stream['type'],
+            ],
+            filled($this->extraInputArgs) ? ['extra_input_args' => $this->extraInputArgs] : [],
+            array_filter($stream['options'] ?? []),
+        );
     }
 
     /**

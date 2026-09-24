@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use Foxws\Streamer\Exporters\MediaExporter;
 use Foxws\Streamer\Facades\Streamer;
+use Foxws\Streamer\Filesystem\Media;
+use Foxws\Streamer\Filesystem\MediaCollection;
+use Foxws\Streamer\Support\Streamer as StreamerDriver;
+use Foxws\Streamer\Support\StreamerResult;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -94,4 +98,18 @@ it('can handle multiple export destinations', function () {
 
     expect($exporter1)->toBeInstanceOf(MediaExporter::class);
     expect($exporter2)->toBeInstanceOf(MediaExporter::class);
+});
+
+it('saves to the path given to save()', function () {
+    $outputDirectory = sys_get_temp_dir().'/test-save-path-'.bin2hex(random_bytes(4));
+    mkdir($outputDirectory);
+    file_put_contents("{$outputDirectory}/index.mpd", '<MPD/>');
+
+    $streamer = Mockery::mock(StreamerDriver::class);
+    $streamer->shouldReceive('export')->andReturn(new StreamerResult('ok', null, $outputDirectory));
+    $streamer->shouldReceive('getMediaCollection')->andReturn(MediaCollection::make([Media::make('local', 'video.mp4', false)]));
+
+    (new MediaExporter($streamer))->toDisk('export')->save('streams/clip');
+
+    Storage::disk('export')->assertExists('streams/clip/index.mpd');
 });
