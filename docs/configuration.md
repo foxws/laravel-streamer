@@ -257,6 +257,28 @@ progress holds an open file stream, so memory usage grows with this value.
 STREAMER_CONCURRENCY_WORKERS=30
 ```
 
+### Multipart uploads
+
+Files at or above `multipart_threshold` bytes are uploaded to S3-backed disks
+as a multipart upload, sending `multipart_concurrency` parts of
+`multipart_part_size` bytes in parallel for each file. This speeds up large
+single-file outputs and is required for objects over 5 GB. Part size must be
+at least 5 MB. If a multipart upload fails, it's aborted so its parts don't
+keep taking up storage.
+
+```php
+'multipart_threshold' => env('STREAMER_MULTIPART_THRESHOLD', 64 * 1024 * 1024),
+'multipart_part_size' => env('STREAMER_MULTIPART_PART_SIZE', 16 * 1024 * 1024),
+'multipart_concurrency' => env('STREAMER_MULTIPART_CONCURRENCY', 5),
+```
+
+A file with a large multipart upload can have up to `concurrency_workers x
+multipart_concurrency` requests in flight at once.
+
+When the target is a local disk, output files are moved with `rename()` instead
+of being copied, which is near-instant when the temporary directory is on the
+same filesystem.
+
 ## Environment configuration
 
 An example `.env` configuration:

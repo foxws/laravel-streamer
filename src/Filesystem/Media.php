@@ -144,17 +144,20 @@ class Media
         $disk = $this->getDisk();
         $temporaryDirectoryDisk = $this->temporaryDirectoryDisk();
 
-        // Copy or link the source to a generic name in temp directory
+        // Link the source to a generic name in the temp directory, and only
+        // download it when there is no local copy to link to yet.
         if (! $temporaryDirectoryDisk->exists($name)) {
-            if ($disk->isLocalDisk() && function_exists('symlink')) {
-                // Use symlink for local files (faster)
-                $sourcePath = $disk->path($this->getPath());
+            $localSourcePath = match (true) {
+                $disk->isLocalDisk() => $disk->path($this->getPath()),
+                $temporaryDirectoryDisk->exists($this->getPath()) => $temporaryDirectoryDisk->path($this->getPath()),
+                default => null,
+            };
 
-                $targetPath = $temporaryDirectoryDisk->path($name);
+            $linked = $localSourcePath !== null
+                && function_exists('symlink')
+                && @symlink($localSourcePath, $temporaryDirectoryDisk->path($name));
 
-                @symlink($sourcePath, $targetPath);
-            } else {
-                // Copy for remote disks or when symlink unavailable
+            if (! $linked) {
                 $temporaryDirectoryDisk->writeStream(
                     $name,
                     $disk->readStream($this->getPath())
