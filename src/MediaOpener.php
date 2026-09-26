@@ -17,6 +17,47 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Traits\ForwardsCalls;
 
+/**
+ * @method \Foxws\Streamer\Support\Streamer fresh()
+ * @method $this setStreamer(\Foxws\Streamer\Support\ShakaStreamer $streamer)
+ * @method \Foxws\Streamer\Filesystem\MediaCollection getMediaCollection()
+ * @method ?\Foxws\Streamer\Support\CommandBuilder getBuilder()
+ * @method \Foxws\Streamer\Support\CommandBuilder builder()
+ * @method \Illuminate\Support\Collection streams()
+ * @method $this addVideoStream(string $input, string $output, array $options = [])
+ * @method $this addAudioStream(string $input, string $output, array $options = [])
+ * @method $this addTextStream(string $input, string $output, array $options = [])
+ * @method $this addStream(\Foxws\Streamer\Support\Stream|array $stream)
+ * @method $this withMpdOutput(string $path)
+ * @method $this withHlsMasterPlaylist(string $path)
+ * @method \Foxws\Streamer\Support\EncryptionKey withAESEncryption(string $keyFilename = 'key', \Foxws\Streamer\Support\ProtectionScheme|string|null $protectionScheme = null, ?string $label = null)
+ * @method $this withKeyRotationDuration(int $seconds)
+ * @method $this useSystemBinaries(bool $use = true)
+ * @method array getCommand()
+ * @method \Foxws\Streamer\Support\StreamerResult streamWithBuilder(\Foxws\Streamer\Support\CommandBuilder $builder)
+ * @method $this withSegmentDuration(float $seconds)
+ * @method $this withStreamingMode(string $mode)
+ * @method $this withEncryption(array $encryptionConfig)
+ * @method $this withManifestFormat(array $formats)
+ * @method $this withResolutions(array $resolutions = [])
+ * @method $this withSegmentPerFile(bool $enabled = true)
+ * @method $this withAudioCodecs(array $codecs)
+ * @method $this withVideoCodecs(array $codecs)
+ * @method $this withGenerateIframePlaylist(bool $enabled = true)
+ * @method $this withLowLatencyDashMode(bool $enabled = true)
+ * @method $this withLimitResolutionBy(string $dimension)
+ * @method $this withHwaccelApi(string $api)
+ * @method $this withChannelLayouts(string|array $layouts)
+ * @method $this withSegmentFolder(string $folder)
+ * @method $this withExtraInputArgs(string $args)
+ * @method $this withOption(string $key, mixed $value)
+ * @method \Illuminate\Support\Collection getStreams()
+ * @method \Illuminate\Support\Collection getOptions()
+ * @method ?string getMpdOutput()
+ * @method ?string getHlsOutput()
+ * @method array buildArray()
+ * @method array build()
+ */
 class MediaOpener
 {
     use ForwardsCalls;
