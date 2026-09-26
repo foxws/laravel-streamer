@@ -15,6 +15,30 @@ use Illuminate\Support\Traits\ForwardsCalls;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
+/**
+ * @method $this withSegmentDuration(float $seconds)
+ * @method $this withStreamingMode(string $mode)
+ * @method $this withEncryption(array $encryptionConfig)
+ * @method $this withManifestFormat(array $formats)
+ * @method $this withResolutions(array $resolutions = [])
+ * @method $this withSegmentPerFile(bool $enabled = true)
+ * @method $this withAudioCodecs(array $codecs)
+ * @method $this withVideoCodecs(array $codecs)
+ * @method $this withGenerateIframePlaylist(bool $enabled = true)
+ * @method $this withLowLatencyDashMode(bool $enabled = true)
+ * @method $this withLimitResolutionBy(string $dimension)
+ * @method $this withHwaccelApi(string $api)
+ * @method $this withChannelLayouts(string|array $layouts)
+ * @method $this withSegmentFolder(string $folder)
+ * @method $this withExtraInputArgs(string $args)
+ * @method $this withOption(string $key, mixed $value)
+ * @method \Illuminate\Support\Collection getStreams()
+ * @method \Illuminate\Support\Collection getOptions()
+ * @method ?string getMpdOutput()
+ * @method ?string getHlsOutput()
+ * @method array buildArray()
+ * @method array build()
+ */
 class Streamer
 {
     use ForwardsCalls;
