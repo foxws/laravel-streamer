@@ -2,6 +2,17 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 2.3.1 - 2026-09-26
+
+<!-- Release notes generated using configuration in .github/release.yml at 2.3.1 -->
+### What's Changed
+
+#### Other Changes
+
+* Document forwarded methods for static analysis by @francoism90 in https://github.com/foxws/laravel-streamer/pull/31
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/2.3.0...2.3.1
+
 ## 2.3.0 - 2026-09-24
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
