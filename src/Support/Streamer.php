@@ -7,8 +7,8 @@ namespace Foxws\Streamer\Support;
 use Foxws\Streamer\Events\StreamingCompleted;
 use Foxws\Streamer\Events\StreamingFailed;
 use Foxws\Streamer\Events\StreamingStarted;
+use Foxws\Streamer\Exceptions\EncryptionKeyFileException;
 use Foxws\Streamer\Exceptions\InvalidStreamConfigurationException;
-use Foxws\Streamer\Exceptions\RuntimeException;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Collection;
@@ -354,7 +354,7 @@ class Streamer
         $encryptionKey = EncryptionKey::generateAndWrite($keyFilename);
 
         // Store cache directory for later use in StreamerResult
-        $this->cacheDirectory = dirname($encryptionKey->filePath ?? throw new RuntimeException('The encryption key was generated without a key file.'));
+        $this->cacheDirectory = dirname($encryptionKey->filePath ?? throw EncryptionKeyFileException::missing());
 
         // Build Shaka Streamer EncryptionConfig object
         // Ref: https://shaka-project.github.io/shaka-streamer/configuration_fields.html#pipeline-configs

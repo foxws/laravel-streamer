@@ -217,6 +217,6 @@ class Media
     protected function readStream(Disk $disk, string $path): mixed
     {
         return $disk->readStream($path)
-            ?? throw new MediaNotFoundException("Can't read {$path}: it no longer exists on its disk.");
+            ?? throw MediaNotFoundException::unreadable($path);
     }
 }

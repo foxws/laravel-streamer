@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Foxws\Streamer\Exceptions\InvalidEncryptionKeyException;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Facades\Storage;
-use InvalidArgumentException;
 
 class EncryptionKeyGenerator
 {
@@ -50,7 +50,7 @@ class EncryptionKeyGenerator
         $binary = strlen($key) % 2 === 0 && ctype_xdigit($key) ? hex2bin($key) : false;
 
         if ($binary === false || $binary === '') {
-            throw new InvalidArgumentException('The encryption key must be a non-empty hex string.');
+            throw InvalidEncryptionKeyException::notHex();
         }
 
         Storage::disk($disk)->put($path, $binary);

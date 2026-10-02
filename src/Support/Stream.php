@@ -99,7 +99,7 @@ class Stream implements Arrayable
     {
         return $this->input
             ?? $this->media?->getLocalPath()
-            ?? throw new InvalidStreamConfigurationException('A stream needs a Media item or an input path.');
+            ?? throw InvalidStreamConfigurationException::missingInput();
     }
 
     public function setOutput(string $output): self
