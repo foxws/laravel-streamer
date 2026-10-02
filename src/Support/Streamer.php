@@ -8,6 +8,7 @@ use Foxws\Streamer\Events\StreamingCompleted;
 use Foxws\Streamer\Events\StreamingFailed;
 use Foxws\Streamer\Events\StreamingStarted;
 use Foxws\Streamer\Exceptions\InvalidStreamConfigurationException;
+use Foxws\Streamer\Exceptions\RuntimeException;
 use Foxws\Streamer\Filesystem\MediaCollection;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Collection;
@@ -18,26 +19,26 @@ use Throwable;
 /**
  * @method $this withSegmentDuration(float $seconds)
  * @method $this withStreamingMode(string $mode)
- * @method $this withEncryption(array $encryptionConfig)
- * @method $this withManifestFormat(array $formats)
- * @method $this withResolutions(array $resolutions = [])
+ * @method $this withEncryption(array<string, mixed> $encryptionConfig)
+ * @method $this withManifestFormat(array<int, string> $formats)
+ * @method $this withResolutions(array<int, string> $resolutions = [])
  * @method $this withSegmentPerFile(bool $enabled = true)
- * @method $this withAudioCodecs(array $codecs)
- * @method $this withVideoCodecs(array $codecs)
+ * @method $this withAudioCodecs(array<int, string> $codecs)
+ * @method $this withVideoCodecs(array<int, string> $codecs)
  * @method $this withGenerateIframePlaylist(bool $enabled = true)
  * @method $this withLowLatencyDashMode(bool $enabled = true)
  * @method $this withLimitResolutionBy(string $dimension)
  * @method $this withHwaccelApi(string $api)
- * @method $this withChannelLayouts(string|array $layouts)
+ * @method $this withChannelLayouts(string|array<int, string> $layouts)
  * @method $this withSegmentFolder(string $folder)
  * @method $this withExtraInputArgs(string $args)
  * @method $this withOption(string $key, mixed $value)
- * @method \Illuminate\Support\Collection getStreams()
- * @method \Illuminate\Support\Collection getOptions()
+ * @method \Illuminate\Support\Collection<int, array<string, mixed>> getStreams()
+ * @method \Illuminate\Support\Collection<string, mixed> getOptions()
  * @method ?string getMpdOutput()
  * @method ?string getHlsOutput()
- * @method array buildArray()
- * @method array build()
+ * @method array<string, mixed> buildArray()
+ * @method array<string, mixed> build()
  */
 class Streamer
 {
@@ -45,7 +46,7 @@ class Streamer
 
     protected ShakaStreamer $streamer;
 
-    protected ?MediaCollection $mediaCollection = null;
+    protected MediaCollection $mediaCollection;
 
     protected ?LoggerInterface $logger;
 
@@ -55,8 +56,12 @@ class Streamer
 
     protected ?string $cacheDirectory = null;
 
+    /** @var array<string, mixed>|null */
     protected ?array $configuration = null;
 
+    /**
+     * @param  array<string, mixed>  $configuration
+     */
     public function __construct(
         ShakaStreamer $streamer,
         ?LoggerInterface $logger = null,
@@ -65,8 +70,12 @@ class Streamer
         $this->streamer = $streamer;
         $this->logger = $logger;
         $this->configuration = $configuration;
+        $this->mediaCollection = new MediaCollection;
     }
 
+    /**
+     * @param  array<string, mixed>  $configuration
+     */
     public static function create(
         ?LoggerInterface $logger = null,
         ?array $configuration = null
@@ -181,6 +190,8 @@ class Streamer
 
     /**
      * Add a video stream to the builder
+     *
+     * @param  array<string, mixed>  $options
      */
     public function addVideoStream(string $input, string $output, array $options = []): self
     {
@@ -204,6 +215,8 @@ class Streamer
 
     /**
      * Add an audio stream to the builder
+     *
+     * @param  array<string, mixed>  $options
      */
     public function addAudioStream(string $input, string $output, array $options = []): self
     {
@@ -225,6 +238,8 @@ class Streamer
 
     /**
      * Add an text stream to the builder
+     *
+     * @param  array<string, mixed>  $options
      */
     public function addTextStream(string $input, string $output, array $options = []): self
     {
@@ -241,6 +256,8 @@ class Streamer
 
     /**
      * Add a stream to the builder
+     *
+     * @param  Stream|array<string, mixed>  $stream
      */
     public function addStream(Stream|array $stream): self
     {
@@ -255,12 +272,10 @@ class Streamer
     protected function resolveInputPath(string $input): string
     {
         // Try to find media in collection
-        if ($this->mediaCollection) {
-            $media = $this->mediaCollection->findByPath($input);
+        $media = $this->mediaCollection->findByPath($input);
 
-            if ($media) {
-                return $media->getSafeInputPath();
-            }
+        if ($media) {
+            return $media->getSafeInputPath();
         }
 
         // If not found, assume it's already a full path
@@ -339,7 +354,7 @@ class Streamer
         $encryptionKey = EncryptionKey::generateAndWrite($keyFilename);
 
         // Store cache directory for later use in StreamerResult
-        $this->cacheDirectory = dirname($encryptionKey->filePath);
+        $this->cacheDirectory = dirname($encryptionKey->filePath ?? throw new RuntimeException('The encryption key was generated without a key file.'));
 
         // Build Shaka Streamer EncryptionConfig object
         // Ref: https://shaka-project.github.io/shaka-streamer/configuration_fields.html#pipeline-configs
@@ -413,6 +428,8 @@ class Streamer
 
     /**
      * Returns the final config that would be executed, useful for debugging purposes.
+     *
+     * @return array<string, mixed>
      */
     public function getCommand(): array
     {
@@ -425,6 +442,9 @@ class Streamer
 
     /**
      * Filter sensitive data from options before logging
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
      */
     protected function filterSensitiveOptions(array $options): array
     {
@@ -521,7 +541,7 @@ class Streamer
             ]);
         }
 
-        if ($this->mediaCollection) {
+        if ($this->mediaCollection->count() > 0) {
             StreamingStarted::dispatch($this->mediaCollection, $config);
         }
 
@@ -532,7 +552,7 @@ class Streamer
 
             $rawResult = $this->streamer->packageWithConfig($config, $outputDirectory);
 
-            $sourceDisk = $this->mediaCollection?->collection()->first()?->getDisk();
+            $sourceDisk = $this->mediaCollection->collection()->first()?->getDisk();
 
             $result = new StreamerResult($rawResult, $sourceDisk, $this->temporaryDirectory, $this->cacheDirectory, $this->configuration);
 
@@ -563,6 +583,10 @@ class Streamer
 
     /**
      * Parse comma-separated string or return default
+     *
+     * @param  string|array<int, string>|null  $value
+     * @param  array<int, string>  $default
+     * @return array<int, string>
      */
     protected function parseCodecs(string|array|null $value, array $default = []): array
     {
@@ -580,6 +604,8 @@ class Streamer
     /**
      * Forward all other method calls to the underlying CommandBuilder,
      * returning $this for fluent chaining when the builder returns itself.
+     *
+     * @param  array<int, mixed>  $arguments
      */
     public function __call(string $name, array $arguments): mixed
     {

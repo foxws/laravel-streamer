@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Filesystem;
 
+use Foxws\Streamer\Exceptions\MediaNotFoundException;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Config;
 
 class Media
 {
-    protected ?Disk $disk = null;
+    protected Disk $disk;
 
-    protected ?string $path = null;
+    protected string $path;
 
     protected ?string $temporaryDirectory = null;
 
@@ -27,6 +29,9 @@ class Media
         }
     }
 
+    /**
+     * @param  Disk|Filesystem|string  $disk
+     */
     public static function make($disk, string $path, bool $createTemp = true): self
     {
         return new self(Disk::make($disk), $path, $createTemp);
@@ -42,9 +47,9 @@ class Media
         return $this->path;
     }
 
-    public function getDirectory(): ?string
+    public function getDirectory(): string
     {
-        $directory = rtrim(pathinfo($this->getPath())['dirname'], DIRECTORY_SEPARATOR);
+        $directory = rtrim(pathinfo($this->getPath(), PATHINFO_DIRNAME), DIRECTORY_SEPARATOR);
 
         if ($directory === '.') {
             $directory = '';
@@ -115,7 +120,7 @@ class Media
         $temporaryDirectoryDisk = $this->temporaryDirectoryDisk();
 
         if ($disk->exists($path) && ! $temporaryDirectoryDisk->exists($path)) {
-            $temporaryDirectoryDisk->writeStream($path, $disk->readStream($path));
+            $temporaryDirectoryDisk->writeStream($path, $this->readStream($disk, $path));
         }
 
         return $temporaryDirectoryDisk->path($path);
@@ -160,7 +165,7 @@ class Media
             if (! $linked) {
                 $temporaryDirectoryDisk->writeStream(
                     $name,
-                    $disk->readStream($this->getPath())
+                    $this->readStream($disk, $this->getPath())
                 );
             }
         }
@@ -171,7 +176,7 @@ class Media
         return $this->genericAlias;
     }
 
-    public function copyAllFromTemporaryDirectory(?string $visibility = null)
+    public function copyAllFromTemporaryDirectory(?string $visibility = null): self
     {
         if (! $this->temporaryDirectory) {
             return $this;
@@ -182,7 +187,7 @@ class Media
         $destinationAdapter = $this->getDisk()->getFilesystemAdapter();
 
         foreach ($temporaryDirectoryDisk->allFiles() as $path) {
-            $destinationAdapter->writeStream($path, $temporaryDirectoryDisk->readStream($path));
+            $destinationAdapter->writeStream($path, $this->readStream($temporaryDirectoryDisk, $path));
 
             if ($visibility) {
                 $destinationAdapter->setVisibility($path, $visibility);
@@ -192,7 +197,7 @@ class Media
         return $this;
     }
 
-    public function setVisibility(string $path, ?string $visibility = null)
+    public function setVisibility(string $path, ?string $visibility = null): self
     {
         $disk = $this->getDisk();
 
@@ -201,5 +206,17 @@ class Media
         }
 
         return $this;
+    }
+
+    /**
+     * Open a file on a disk for reading, failing clearly when it's gone
+     * instead of passing null on to writeStream().
+     *
+     * @return resource
+     */
+    protected function readStream(Disk $disk, string $path): mixed
+    {
+        return $disk->readStream($path)
+            ?? throw new MediaNotFoundException("Can't read {$path}: it no longer exists on its disk.");
     }
 }

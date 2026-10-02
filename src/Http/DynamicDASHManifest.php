@@ -4,35 +4,45 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Http;
 
+use Foxws\Streamer\Exceptions\MediaNotFoundException;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Response;
 
 class DynamicDASHManifest implements Responsable
 {
-    protected ?Disk $disk = null;
+    protected Disk $disk;
 
     protected ?Media $media = null;
 
     /**
      * Callable to retrieve the URL for media files.
+     *
+     * @var (callable(string): string)|null
      */
     protected $mediaUrlResolver = null;
 
     /**
      * Callable to retrieve the URL for initialization segments.
+     *
+     * @var (callable(string): string)|null
      */
     protected $initUrlResolver = null;
 
     /**
      * Cache for resolved media URLs.
+     *
+     * @var array<string, string>
      */
     protected array $mediaCache = [];
 
     /**
      * Cache for resolved init URLs.
+     *
+     * @var array<string, string>
      */
     protected array $initCache = [];
 
@@ -46,6 +56,8 @@ class DynamicDASHManifest implements Responsable
 
     /**
      * Set the disk to open files from.
+     *
+     * @param  Disk|Filesystem|string  $disk
      */
     public function fromDisk($disk): self
     {
@@ -110,7 +122,7 @@ class DynamicDASHManifest implements Responsable
      */
     protected function resolveMediaUrl(string $filename): string
     {
-        return $this->mediaCache[$filename] ??= call_user_func($this->mediaUrlResolver, $filename);
+        return $this->mediaCache[$filename] ??= ($this->mediaUrlResolver ?? fn (string $filename): string => $filename)($filename);
     }
 
     /**
@@ -118,7 +130,7 @@ class DynamicDASHManifest implements Responsable
      */
     protected function resolveInitUrl(string $filename): string
     {
-        return $this->initCache[$filename] ??= call_user_func($this->initUrlResolver, $filename);
+        return $this->initCache[$filename] ??= ($this->initUrlResolver ?? fn (string $filename): string => $filename)($filename);
     }
 
     /**
@@ -126,12 +138,7 @@ class DynamicDASHManifest implements Responsable
      */
     public function get(): string
     {
-        if (! $this->media) {
-            throw new \RuntimeException('No manifest file opened. Call open() first.');
-        }
-
-        $content = $this->disk->get($this->media->getPath());
-        $manifest = $this->processManifest($content);
+        $manifest = $this->processManifest($this->read($this->openedMedia()->getPath()));
 
         // Ensure XML declaration is present for proper parsing by media players
         if (! str_starts_with(trim($manifest), '<?xml')) {
@@ -151,7 +158,7 @@ class DynamicDASHManifest implements Responsable
 
         // Replace BaseURL elements with resolved URLs
         if ($this->mediaUrlResolver) {
-            $content = preg_replace_callback(
+            $content = $this->replace(
                 '/<BaseURL>([^<]+)<\/BaseURL>/',
                 fn ($matches) => '<BaseURL>'.htmlspecialchars($this->resolveMediaUrl($matches[1]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'</BaseURL>',
                 $content
@@ -160,7 +167,7 @@ class DynamicDASHManifest implements Responsable
 
         // Replace initialization attribute URLs (sourceURL for SegmentList)
         if ($this->initUrlResolver) {
-            $content = preg_replace_callback(
+            $content = $this->replace(
                 '/(initialization|sourceURL)="([^"]+)"/',
                 fn ($matches) => $matches[1].'="'.htmlspecialchars($this->resolveInitUrl($matches[2]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'"',
                 $content
@@ -169,7 +176,7 @@ class DynamicDASHManifest implements Responsable
 
         // Replace media attribute URLs
         if ($this->mediaUrlResolver) {
-            $content = preg_replace_callback(
+            $content = $this->replace(
                 '/media="([^"]+)"/',
                 fn ($matches) => 'media="'.htmlspecialchars($this->resolveMediaUrl($matches[1]), ENT_XML1 | ENT_COMPAT, 'UTF-8').'"',
                 $content
@@ -184,7 +191,7 @@ class DynamicDASHManifest implements Responsable
      */
     protected function expandSegmentTemplates(string $content): string
     {
-        return preg_replace_callback(
+        return $this->replace(
             '/<SegmentTemplate\s+([^>]*)>(.*?)<\/SegmentTemplate>/s',
             function ($matches) {
                 $attributes = $matches[1];
@@ -273,5 +280,31 @@ class DynamicDASHManifest implements Responsable
         $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
 
         return $response;
+    }
+
+    /**
+     * The opened manifest, failing clearly when open() wasn't called.
+     */
+    protected function openedMedia(): Media
+    {
+        return $this->media ?? throw new \RuntimeException('No manifest file opened. Call open() first.');
+    }
+
+    /**
+     * The contents of a file on the manifest's disk, failing clearly when it's gone.
+     */
+    protected function read(string $path): string
+    {
+        return $this->disk->get($path) ?? throw new MediaNotFoundException("The manifest file {$path} doesn't exist on its disk.");
+    }
+
+    /**
+     * preg_replace_callback(), failing clearly instead of returning null when
+     * the regex fails, e.g. on the backtrack limit for a very large manifest.
+     */
+    protected function replace(string $pattern, callable $callback, string $subject): string
+    {
+        return preg_replace_callback($pattern, $callback, $subject)
+            ?? throw new \RuntimeException('Processing the DASH manifest failed: '.preg_last_error_msg());
     }
 }

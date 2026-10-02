@@ -49,6 +49,10 @@ it('formats encryption config without label', function () {
     expect($formatted)->toBe('label=:key_id=keyid123:key=key456');
 });
 
+it('refuses to write an empty key file for a key that is not hex', function () {
+    EncryptionKeyGenerator::writeKeyFile('test', 'encryption.key', 'not-a-hex-key');
+})->throws(InvalidArgumentException::class, 'The encryption key must be a non-empty hex string.');
+
 it('writes key file to disk', function () {
     $key = EncryptionKeyGenerator::generateKey();
 

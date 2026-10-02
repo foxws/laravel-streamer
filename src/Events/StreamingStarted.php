@@ -12,6 +12,9 @@ class StreamingStarted
 {
     use Dispatchable, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function __construct(
         public MediaCollection $mediaCollection,
         public array $options

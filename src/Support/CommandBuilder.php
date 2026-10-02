@@ -17,8 +17,10 @@ use Illuminate\Support\Collection;
  */
 class CommandBuilder
 {
+    /** @var Collection<int, array<string, mixed>> */
     protected Collection $streams;
 
+    /** @var Collection<string, mixed> */
     protected Collection $pipelineOptions;
 
     protected ?string $mpdOutput = null;
@@ -49,6 +51,7 @@ class CommandBuilder
      * @param  string  $input  Input file path
      * @param  string  $output  Output file name (not path)
      * @param  array  $options  Stream-specific options (bandwidth, resolution, codec, etc.)
+     * @param  array<string, mixed>  $options
      */
     public function addVideoStream(string $input, string $output, array $options = []): self
     {
@@ -64,6 +67,8 @@ class CommandBuilder
 
     /**
      * Add audio stream with codec specification
+     *
+     * @param  array<string, mixed>  $options
      */
     public function addAudioStream(string $input, string $output, array $options = []): self
     {
@@ -79,6 +84,8 @@ class CommandBuilder
 
     /**
      * Add text/subtitle stream
+     *
+     * @param  array<string, mixed>  $options
      */
     public function addTextStream(string $input, string $output, array $options = []): self
     {
@@ -96,6 +103,9 @@ class CommandBuilder
      * Add a stream from a Stream value object or a raw Shaka Packager
      * stream descriptor (in, stream, output), normalising it to the
      * internal format used by the builder.
+     *
+     *
+     * @param  Stream|array<string, mixed>  $stream
      *
      * @throws InvalidStreamConfigurationException
      */
@@ -157,6 +167,9 @@ class CommandBuilder
 
     /**
      * Configure encryption
+     *
+     *
+     * @param  array<string, mixed>  $encryptionConfig
      *
      * @throws InvalidStreamConfigurationException
      */
@@ -335,11 +348,17 @@ class CommandBuilder
         return $this;
     }
 
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
     public function getStreams(): Collection
     {
         return $this->streams;
     }
 
+    /**
+     * @return Collection<string, mixed>
+     */
     public function getOptions(): Collection
     {
         return $this->pipelineOptions;
@@ -358,6 +377,8 @@ class CommandBuilder
     /**
      * Build complete Shaka Streamer config array
      * Returns both InputConfig and PipelineConfig as expected by Shaka Streamer
+     *
+     * @return array<string, mixed>
      */
     public function buildArray(): array
     {
@@ -367,7 +388,7 @@ class CommandBuilder
     /**
      * Build config compatible with Shaka Streamer's expected format
      *
-     * @return array{input_config: array, pipeline_config: array}
+     * @return array{input_config: array<string, mixed>, pipeline_config: array<string, mixed>}
      */
     public function build(): array
     {
@@ -386,6 +407,8 @@ class CommandBuilder
      *     {"input_type": "file", "name": "path/to/file.mp4", "media_type": "video"}
      *   ]
      * }
+     *
+     * @return array<string, mixed>
      */
     protected function buildInputConfig(): array
     {
@@ -413,6 +436,8 @@ class CommandBuilder
      *   "hls_output": "master.m3u8",
      *   "segment_size": 10
      * }
+     *
+     * @return array<string, mixed>
      */
     protected function buildPipelineConfig(): array
     {
@@ -443,6 +468,10 @@ class CommandBuilder
 
     /**
      * Build a single input entry for InputConfig
+     *
+     * @param  Stream|array<string, mixed>  $stream
+     * @param  array<string, mixed>  $stream
+     * @return array<string, mixed>
      */
     protected function buildInputStream(array $stream): array
     {
@@ -459,6 +488,8 @@ class CommandBuilder
 
     /**
      * Build manifest formats array based on outputs
+     *
+     * @return array<int, string>
      */
     protected function buildManifestFormats(): array
     {

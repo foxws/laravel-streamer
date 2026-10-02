@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Foxws\Streamer\Filesystem;
 
 use Closure;
+use Foxws\Streamer\Exceptions\RuntimeException;
 use Foxws\Streamer\MediaOpener;
 use Foxws\Streamer\Support\Streamer;
 use Illuminate\Support\Traits\ForwardsCalls;
@@ -35,7 +36,8 @@ class MediaOpenerFactory
             return $this->streamer;
         }
 
-        $resolver = $this->streamerResolver;
+        $resolver = $this->streamerResolver
+            ?? throw new RuntimeException('MediaOpenerFactory needs a streamer or a streamer resolver.');
 
         return ($resolver)();
     }
@@ -50,6 +52,7 @@ class MediaOpenerFactory
      *
      * @param  string  $method
      * @param  array  $parameters
+     * @param  array<int, mixed>  $parameters
      * @return mixed
      */
     public function __call($method, $parameters)

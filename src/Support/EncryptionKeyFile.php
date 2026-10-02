@@ -9,6 +9,8 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * A single encryption key file discovered on disk after streaming,
  * as produced by key rotation (e.g. "encryption_0.key", "encryption_1.key").
+ *
+ * @implements Arrayable<string, mixed>
  */
 final readonly class EncryptionKeyFile implements Arrayable
 {
