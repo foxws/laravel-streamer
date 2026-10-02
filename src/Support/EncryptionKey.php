@@ -8,6 +8,8 @@ use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * An AES-128 encryption key pair for Shaka Streamer raw key encryption.
+ *
+ * @implements Arrayable<string, mixed>
  */
 final readonly class EncryptionKey implements Arrayable
 {

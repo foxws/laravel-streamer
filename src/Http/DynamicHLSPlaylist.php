@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Http;
 
+use Foxws\Streamer\Exceptions\ManifestNotOpenedException;
+use Foxws\Streamer\Exceptions\MediaNotFoundException;
 use Foxws\Streamer\Filesystem\Disk;
 use Foxws\Streamer\Filesystem\Media;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
@@ -13,37 +16,49 @@ use Illuminate\Support\Facades\Response;
 
 class DynamicHLSPlaylist implements Responsable
 {
-    protected ?Disk $disk = null;
+    protected Disk $disk;
 
     protected ?Media $media = null;
 
     /**
      * Callable to retrieve the URL for encryption keys.
+     *
+     * @var (callable(string): string)|null
      */
     protected $keyUrlResolver = null;
 
     /**
      * Callable to retrieve the URL for media files.
+     *
+     * @var (callable(string): string)|null
      */
     protected $mediaUrlResolver = null;
 
     /**
      * Callable to retrieve the URL for playlist files.
+     *
+     * @var (callable(string): string)|null
      */
     protected $playlistUrlResolver = null;
 
     /**
      * Cache for resolved key URLs.
+     *
+     * @var array<string, string>
      */
     protected array $keyCache = [];
 
     /**
      * Cache for resolved media URLs.
+     *
+     * @var array<string, string>
      */
     protected array $mediaCache = [];
 
     /**
      * Cache for resolved playlist URLs.
+     *
+     * @var array<string, string>
      */
     protected array $playlistCache = [];
 
@@ -57,6 +72,8 @@ class DynamicHLSPlaylist implements Responsable
 
     /**
      * Set the disk to open files from.
+     *
+     * @param  Disk|Filesystem|string  $disk
      */
     public function fromDisk($disk): self
     {
@@ -145,7 +162,7 @@ class DynamicHLSPlaylist implements Responsable
             return $key;
         }
 
-        return $this->keyCache[$key] ??= call_user_func($this->keyUrlResolver, $key);
+        return $this->keyCache[$key] ??= ($this->keyUrlResolver ?? fn (string $key): string => $key)($key);
     }
 
     /**
@@ -157,7 +174,7 @@ class DynamicHLSPlaylist implements Responsable
             return $filename;
         }
 
-        return $this->mediaCache[$filename] ??= call_user_func($this->mediaUrlResolver, $filename);
+        return $this->mediaCache[$filename] ??= ($this->mediaUrlResolver ?? fn (string $filename): string => $filename)($filename);
     }
 
     /**
@@ -169,15 +186,17 @@ class DynamicHLSPlaylist implements Responsable
             return $filename;
         }
 
-        return $this->playlistCache[$filename] ??= call_user_func($this->playlistUrlResolver, $filename);
+        return $this->playlistCache[$filename] ??= ($this->playlistUrlResolver ?? fn (string $filename): string => $filename)($filename);
     }
 
     /**
      * Parses the lines into a Collection.
+     *
+     * @return Collection<int, string>
      */
     public static function parseLines(string $lines): Collection
     {
-        return Collection::make(preg_split('/\n|\r\n?/', $lines));
+        return Collection::make(preg_split('/\n|\r\n?/', $lines) ?: []);
     }
 
     /**
@@ -256,17 +275,17 @@ class DynamicHLSPlaylist implements Responsable
     /**
      * Returns a collection of all processed segment playlists
      * and the processed main playlist.
+     *
+     * @return Collection<string, string>
      */
     public function all(): Collection
     {
-        return static::parseLines(
-            $this->disk->get($this->media->getPath())
-        )->filter(static fn ($line) => static::lineHasMediaFilename($line)
-        )->mapWithKeys(fn ($segmentPlaylist) => [$segmentPlaylist => $this->getProcessedPlaylist($segmentPlaylist)]
-        )->prepend(
-            $this->getProcessedPlaylist($this->media->getPath()),
-            $this->media->getPath()
-        );
+        $path = $this->openedMedia()->getPath();
+
+        return static::parseLines($this->read($path))
+            ->filter(static fn ($line) => static::lineHasMediaFilename($line))
+            ->mapWithKeys(fn ($segmentPlaylist) => [$segmentPlaylist => $this->getProcessedPlaylist($segmentPlaylist)])
+            ->prepend($this->getProcessedPlaylist($path), $path);
     }
 
     /**
@@ -274,7 +293,7 @@ class DynamicHLSPlaylist implements Responsable
      */
     public function getProcessedPlaylist(string $playlistPath): string
     {
-        return static::parseLines($this->disk->get($playlistPath))->map(function (string $line) {
+        return static::parseLines($this->read($playlistPath))->map(function (string $line) {
             if (static::lineHasMediaFilename($line)) {
                 // Use playlist resolver for .m3u8 files, media resolver for everything else
                 return str_ends_with($line, '.m3u8')
@@ -324,5 +343,21 @@ class DynamicHLSPlaylist implements Responsable
         return Response::make($this->get(), 200, [
             'Content-Type' => 'application/vnd.apple.mpegurl',
         ]);
+    }
+
+    /**
+     * The opened playlist, failing clearly when open() wasn't called.
+     */
+    protected function openedMedia(): Media
+    {
+        return $this->media ?? throw ManifestNotOpenedException::playlist();
+    }
+
+    /**
+     * The contents of a file on the playlist's disk, failing clearly when it's gone.
+     */
+    protected function read(string $path): string
+    {
+        return $this->disk->get($path) ?? throw MediaNotFoundException::playlistFile($path);
     }
 }

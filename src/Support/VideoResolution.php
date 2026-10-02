@@ -7,6 +7,9 @@ namespace Foxws\Streamer\Support;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 class VideoResolution implements Arrayable
 {
     /** @var array<int, string> */

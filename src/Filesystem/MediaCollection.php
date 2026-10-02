@@ -11,13 +11,20 @@ class MediaCollection
 {
     use ForwardsCalls;
 
-    protected ?Collection $items = null;
+    /** @var Collection<int, Media> */
+    protected Collection $items;
 
+    /**
+     * @param  array<int, Media>  $items
+     */
     public function __construct(array $items = [])
     {
         $this->items = Collection::make($items);
     }
 
+    /**
+     * @param  array<int, Media>  $items
+     */
     public static function make(array $items = []): self
     {
         return new self($items);
@@ -25,6 +32,8 @@ class MediaCollection
 
     /**
      * Returns an array with all locals paths of the Media items.
+     *
+     * @return array<int, string>
      */
     public function getLocalPaths(): array
     {
@@ -67,6 +76,9 @@ class MediaCollection
         return $this;
     }
 
+    /**
+     * @return Collection<int, Media>
+     */
     public function collection(): Collection
     {
         return $this->items;
@@ -80,6 +92,11 @@ class MediaCollection
         return $this->items->count();
     }
 
+    /**
+     * @param  string  $method
+     * @param  array<int, mixed>  $parameters
+     * @return mixed
+     */
     public function __call($method, $parameters)
     {
         return $this->forwardCallTo($this->collection(), $method, $parameters);

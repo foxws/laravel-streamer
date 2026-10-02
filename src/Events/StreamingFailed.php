@@ -12,6 +12,9 @@ class StreamingFailed
 {
     use Dispatchable, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
     public function __construct(
         public Throwable $exception,
         public float $executionTime = 0,

@@ -16,9 +16,14 @@ use Illuminate\Contracts\Support\Arrayable;
  *
  * @phpstan-consistent-constructor Subclasses must keep this constructor's
  * signature: mutators use `new static(...)` so a subclass survives with*() calls.
+ *
+ * @implements Arrayable<string, mixed>
  */
 class Stream implements Arrayable
 {
+    /**
+     * @param  array<string, mixed>  $options
+     */
     protected function __construct(
         protected ?Media $media,
         protected ?string $input,
@@ -52,6 +57,9 @@ class Stream implements Arrayable
      * CommandBuilder::addStream(). The 'in' and 'stream' keys are required;
      * any keys beyond 'in', 'stream', and 'output' are treated as additional
      * descriptor options.
+     *
+     *
+     * @param  array<string, mixed>  $stream
      *
      * @throws InvalidStreamConfigurationException
      */
@@ -89,7 +97,9 @@ class Stream implements Arrayable
      */
     public function getInput(): string
     {
-        return $this->input ?? $this->media->getLocalPath();
+        return $this->input
+            ?? $this->media?->getLocalPath()
+            ?? throw InvalidStreamConfigurationException::missingInput();
     }
 
     public function setOutput(string $output): self
@@ -102,6 +112,9 @@ class Stream implements Arrayable
         return $this->output;
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function setOptions(array $options): self
     {
         return new static($this->media, $this->input, $this->type, $this->output, $options);
@@ -112,6 +125,9 @@ class Stream implements Arrayable
         return new static($this->media, $this->input, $this->type, $this->output, [...$this->options, $key => $value]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
         return $this->options;
@@ -120,6 +136,8 @@ class Stream implements Arrayable
     /**
      * Flat descriptor fields as consumed by Shaka Packager's stream syntax:
      * in=..,stream=..,output=..,<extra option>=..
+     *
+     * @return array<string, mixed>
      */
     public function toDescriptorArray(): array
     {

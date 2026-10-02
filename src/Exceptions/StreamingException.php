@@ -6,4 +6,4 @@ namespace Foxws\Streamer\Exceptions;
 
 use Exception;
 
-class PackagingException extends Exception {}
+class StreamingException extends Exception {}

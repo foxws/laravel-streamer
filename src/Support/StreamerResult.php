@@ -8,6 +8,7 @@ use Aws\CommandInterface;
 use Aws\Exception\MultipartUploadException;
 use Aws\S3\MultipartUploader;
 use Aws\S3\S3ClientInterface;
+use Foxws\Streamer\Exceptions\EncryptionKeyFileException;
 use Foxws\Streamer\Filesystem\Disk;
 use Generator;
 use GuzzleHttp\Promise\Create;
@@ -27,6 +28,9 @@ class StreamerResult
 
     protected ?Filesystem $cacheFilesystem = null;
 
+    /**
+     * @param  array<string, mixed>  $configuration
+     */
     public function __construct(
         protected string $output,
         protected ?Disk $sourceDisk = null,
@@ -47,9 +51,9 @@ class StreamerResult
     {
         $targetDisk = Disk::make($disk);
 
-        if (! $this->temporaryDirectory) {
-            throw new RuntimeException('Cannot copy files: temporary directory not set');
-        }
+        $temporaryDirectory = $this->temporaryDirectory
+            ?? throw new RuntimeException('Cannot copy files: temporary directory not set');
+        $cacheDirectory = $this->cacheDirectory;
 
         $targetDirectory = $outputPath ?: $this->getSourceDirectory();
 
@@ -57,8 +61,8 @@ class StreamerResult
         $cacheDisk = $this->getCacheFilesystem();
 
         $fileOps = array_merge(
-            $tempDisk ? $this->buildFileOperations($tempDisk->allFiles(), $targetDirectory, $this->temporaryDirectory) : [],
-            $cacheDisk ? $this->buildFileOperations($cacheDisk->allFiles(), $targetDirectory, $this->cacheDirectory) : [],
+            $tempDisk ? $this->buildFileOperations($tempDisk->allFiles(), $targetDirectory, $temporaryDirectory) : [],
+            $cacheDisk && $cacheDirectory !== null ? $this->buildFileOperations($cacheDisk->allFiles(), $targetDirectory, $cacheDirectory) : [],
         );
 
         throw_if(
@@ -70,14 +74,14 @@ class StreamerResult
         $this->copyFilesConcurrently($fileOps, $targetDisk, $visibility, move: $cleanup);
 
         if ($cleanup) {
-            if ($tempDisk && is_dir($this->temporaryDirectory)) {
+            if ($tempDisk && is_dir($temporaryDirectory)) {
                 $tempDisk->deleteDirectory('/');
-                @rmdir($this->temporaryDirectory);
+                @rmdir($temporaryDirectory);
             }
 
-            if ($cacheDisk && $this->cacheDirectory && is_dir($this->cacheDirectory)) {
+            if ($cacheDisk && $cacheDirectory !== null && is_dir($cacheDirectory)) {
                 $cacheDisk->deleteDirectory('/');
-                @rmdir($this->cacheDirectory);
+                @rmdir($cacheDirectory);
             }
         }
 
@@ -417,12 +421,12 @@ class StreamerResult
         $keys = [];
 
         // Check temp directory for keys
-        if ($tempDisk = $this->getTempFilesystem()) {
+        if (($tempDisk = $this->getTempFilesystem()) && $this->temporaryDirectory !== null) {
             $keys = array_merge($keys, $this->extractKeysFromDisk($tempDisk, $this->temporaryDirectory));
         }
 
         // Check cache directory for keys (where rotation keys are stored)
-        if ($cacheDisk = $this->getCacheFilesystem()) {
+        if (($cacheDisk = $this->getCacheFilesystem()) && $this->cacheDirectory !== null) {
             $keys = array_merge($keys, $this->extractKeysFromDisk($cacheDisk, $this->cacheDirectory));
         }
 
@@ -453,7 +457,7 @@ class StreamerResult
                 $keys[] = new EncryptionKeyFile(
                     path: $basePath.'/'.$relativePath,
                     filename: $filename,
-                    content: bin2hex($disk->get($relativePath)),
+                    content: bin2hex($disk->get($relativePath) ?? throw EncryptionKeyFileException::unreadable($relativePath)),
                 );
             }
         }

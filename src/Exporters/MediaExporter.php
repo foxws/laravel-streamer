@@ -10,13 +10,14 @@ use Foxws\Streamer\MediaOpener;
 use Foxws\Streamer\Support\CopyFailure;
 use Foxws\Streamer\Support\Streamer;
 use Foxws\Streamer\Support\StreamerResult;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Traits\ForwardsCalls;
 
 class MediaExporter
 {
     use ForwardsCalls;
 
-    protected ?Streamer $streamer = null;
+    protected Streamer $streamer;
 
     protected ?Disk $toDisk = null;
 
@@ -24,6 +25,7 @@ class MediaExporter
 
     protected ?string $toPath = null;
 
+    /** @var array<int, callable>|null */
     protected ?array $afterSavingCallbacks = [];
 
     protected ?StreamerResult $lastResult = null;
@@ -47,6 +49,9 @@ class MediaExporter
         return $this->toDisk = $disk->clone();
     }
 
+    /**
+     * @param  Disk|Filesystem|string  $disk
+     */
     public function toDisk($disk): self
     {
         $this->toDisk = Disk::make($disk);
@@ -70,6 +75,8 @@ class MediaExporter
 
     /**
      * Returns the final config, useful for debugging purposes.
+     *
+     * @return array<string, mixed>
      */
     public function getCommand(): array
     {
@@ -101,7 +108,7 @@ class MediaExporter
         return $outputMedia;
     }
 
-    protected function runAfterSavingCallbacks(StreamerResult $result)
+    protected function runAfterSavingCallbacks(StreamerResult $result): void
     {
         if (empty($this->afterSavingCallbacks)) {
             return;
@@ -179,6 +186,10 @@ class MediaExporter
     /**
      * Forwards the call to the driver object and returns the result
      * if it's something different than the driver object itself.
+     *
+     * @param  array<int, mixed>  $arguments
+     * @param  string  $method
+     * @return mixed
      */
     public function __call($method, $arguments)
     {

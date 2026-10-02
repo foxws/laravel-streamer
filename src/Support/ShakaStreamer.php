@@ -23,6 +23,7 @@ class ShakaStreamer
 
     protected string $streamerBinary = 'shaka-streamer';
 
+    /** @var array<int, string> */
     protected array $additionalArguments = [];
 
     public function __construct(
@@ -35,6 +36,9 @@ class ShakaStreamer
         $this->streamerBinary = $streamerBinary;
     }
 
+    /**
+     * @param  array<string, mixed>  $configuration
+     */
     public static function create(
         ?LoggerInterface $logger = null,
         ?array $configuration = null
@@ -69,6 +73,9 @@ class ShakaStreamer
         return $this->timeout;
     }
 
+    /**
+     * @param  array<int, mixed>  $arguments
+     */
     public function setAdditionalArguments(array $arguments): self
     {
         $this->additionalArguments = $arguments;
@@ -83,6 +90,9 @@ class ShakaStreamer
         return $this;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getAdditionalArguments(): array
     {
         return $this->additionalArguments;
@@ -93,6 +103,7 @@ class ShakaStreamer
      *
      * @param  array  $config  Configuration array with 'input_config' and 'pipeline_config'
      * @param  string|null  $outputDirectory  Optional output directory (passed via -o flag)
+     * @param  array<string, mixed>  $config
      * @return string Output from Shaka Streamer
      *
      * @throws \RuntimeException
@@ -203,8 +214,8 @@ class ShakaStreamer
     /**
      * Create temporary configuration files for input and pipeline configs
      *
-     * @param  array  $config  Configuration array
-     * @return array [inputConfigPath, pipelineConfigPath]
+     * @param  array<string, mixed>  $config  Configuration array
+     * @return array{0: string, 1: string} The input and pipeline config file paths.
      *
      * @throws \RuntimeException
      */
@@ -366,6 +377,7 @@ class ShakaStreamer
      * Validate configuration structure
      *
      * @param  array  $config  Configuration array
+     * @param  array<string, mixed>  $config
      *
      * @throws \RuntimeException
      */

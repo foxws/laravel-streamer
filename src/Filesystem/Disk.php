@@ -21,10 +21,10 @@ use ReflectionProperty;
  * @method string|null get(string $path)
  * @method bool put(string $path, string|resource $contents, mixed $options = [])
  * @method resource|null readStream(string $path)
- * @method bool writeStream(string $path, resource $resource, array $options = [])
+ * @method bool writeStream(string $path, resource $resource, array<string, mixed> $options = [])
  * @method bool makeDirectory(string $path)
  * @method bool setVisibility(string $path, string $visibility)
- * @method array allFiles(string|null $directory = null)
+ * @method array<int, string> allFiles(string|null $directory = null)
  */
 class Disk
 {
@@ -38,6 +38,7 @@ class Disk
 
     protected ?PathPrefixer $s3PathPrefixer = null;
 
+    /** @var array<string, mixed> */
     protected ?array $s3UploadOptions = null;
 
     public function __construct(Filesystem|string $disk)
@@ -222,6 +223,8 @@ class Disk
 
     /**
      * Build a new filesystem instance with the given configuration.
+     *
+     * @param  array<string, mixed>  $config
      */
     public function buildFilesystem(array $config): Filesystem
     {
@@ -231,6 +234,10 @@ class Disk
     /**
      * Forwards all calls to Laravel's FilesystemAdapter which will pass
      * dynamic methods call onto Flysystem.
+     *
+     * @param  string  $method
+     * @param  array<int, mixed>  $parameters
+     * @return mixed
      */
     public function __call($method, $parameters)
     {

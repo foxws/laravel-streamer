@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Foxws\Streamer\Support;
 
+use Foxws\Streamer\Exceptions\InvalidEncryptionKeyException;
 use Foxws\Streamer\Filesystem\TemporaryDirectories;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,7 +47,13 @@ class EncryptionKeyGenerator
      */
     public static function writeKeyFile(string $disk, string $path, string $key): void
     {
-        Storage::disk($disk)->put($path, hex2bin($key));
+        $binary = strlen($key) % 2 === 0 && ctype_xdigit($key) ? hex2bin($key) : false;
+
+        if ($binary === false || $binary === '') {
+            throw InvalidEncryptionKeyException::notHex();
+        }
+
+        Storage::disk($disk)->put($path, $binary);
     }
 
     /**
