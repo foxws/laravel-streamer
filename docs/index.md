@@ -11,9 +11,9 @@ metadata:
   runtime: "Shaka Streamer, FFmpeg, Shaka Packager"
   licence: MIT
   used_by:
-    name: Stry
-    desc: "A self-hosted video streaming app."
-    href: "https://github.com/francoism90/stry"
+    - name: Stry
+      desc: "A self-hosted video streaming app."
+      href: "https://github.com/francoism90/stry"
 ---
 
 # Introduction
