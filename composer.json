@@ -1,11 +1,11 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "foxws/laravel-streamer",
-    "description": "A Laravel package to interact with Shaka Streamer for media packaging.",
+    "description": "Encode video into several qualities and package it into HLS and DASH with Shaka Streamer, on top of foxws/laravel-media.",
     "keywords": [
+        "foxws",
         "laravel",
         "shaka",
-        "streamer",
         "streamer",
         "media",
         "video",
@@ -24,29 +24,20 @@
         }
     ],
     "require": {
-        "php": "^8.3",
-        "illuminate/contracts": "^12.0||^13.0",
-        "illuminate/filesystem": "^12.0||^13.0",
-        "illuminate/process": "^12.0||^13.0",
-        "illuminate/support": "^12.0||^13.0",
-        "aws/aws-sdk-php": "^3.295",
-        "guzzlehttp/promises": "^2.0||^3.0",
-        "psr/log": "^3.0",
-        "spatie/laravel-package-tools": "^1.16"
+        "php": "^8.4",
+        "foxws/laravel-media": "^0.3.4",
+        "illuminate/contracts": "^13.0",
+        "illuminate/filesystem": "^13.0",
+        "illuminate/support": "^13.0"
     },
     "require-dev": {
-        "larastan/larastan": "^3.0",
-        "laravel/pint": "^1.14",
-        "league/flysystem-aws-s3-v3": "^3.35",
-        "nunomaduro/collision": "^8.8",
-        "orchestra/testbench": "^10.0 || ^11.0",
-        "pestphp/pest": "^4.0",
-        "pestphp/pest-plugin-arch": "^4.0",
-        "pestphp/pest-plugin-laravel": "^4.0",
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "spatie/laravel-ray": "^1.35"
+        "larastan/larastan": "^3.9",
+        "laravel/pint": "^1.29",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^5.0",
+        "pestphp/pest-plugin-laravel": "^5.0",
+        "pestphp/pest-plugin-type-coverage": "^5.0.2",
+        "phpstan/extension-installer": "^1.4"
     },
     "autoload": {
         "psr-4": {
@@ -55,17 +46,37 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Foxws\\Streamer\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Foxws\\Streamer\\Tests\\": "tests/"
         }
     },
     "scripts": {
-        "post-autoload-dump": "@composer run prepare",
-        "prepare": "@php vendor/bin/testbench package:discover --ansi",
-        "analyse": "vendor/bin/phpstan analyse",
-        "test": "vendor/bin/pest",
-        "test-coverage": "vendor/bin/pest --coverage",
-        "format": "vendor/bin/pint"
+        "post-autoload-dump": [
+            "@prepare"
+        ],
+        "prepare": [
+            "@php vendor/bin/testbench package:discover --ansi"
+        ],
+        "lint": [
+            "vendor/bin/pint --parallel"
+        ],
+        "lint:check": [
+            "vendor/bin/pint --parallel --test"
+        ],
+        "analyse": [
+            "vendor/bin/phpstan analyse --memory-limit=1G"
+        ],
+        "test:types": [
+            "@php -d memory_limit=1G vendor/bin/pest --type-coverage --min=100"
+        ],
+        "test:unit": [
+            "vendor/bin/pest --parallel"
+        ],
+        "test": [
+            "@analyse",
+            "@lint:check",
+            "@test:types",
+            "@test:unit"
+        ]
     },
     "config": {
         "sort-packages": true,
@@ -78,10 +89,7 @@
         "laravel": {
             "providers": [
                 "Foxws\\Streamer\\StreamerServiceProvider"
-            ],
-            "aliases": {
-                "Streamer": "Foxws\\Streamer\\Facades\\Streamer"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",

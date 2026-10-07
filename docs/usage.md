@@ -7,156 +7,121 @@ order: 1
 
 ## The basic flow
 
-Every job follows the same steps: open the input, add streams, choose qualities and manifests, then export and save.
+Open the input, add streams, choose the qualities and manifests, then save to a directory on the target disk:
 
 ```php
-use Foxws\Streamer\Facades\Streamer;
+use Foxws\Media\Facades\Media;
 
-$streamer = Streamer::fromDisk('media')->open('videos/clip.mp4');
+$result = Media::fromDisk('media')
+    ->open('videos/clip.mp4')
+    ->streamer()
+    ->addVideoStream()
+    ->addAudioStream(language: 'en')
+    ->withResolutions('1080p', '720p', '480p')
+    ->withHlsPlaylist('master.m3u8')
+    ->withDashManifest('manifest.mpd')
+    ->toDisk('s3')
+    ->save('streams/clip');
 
-try {
-    $streamer
-        ->addVideoStream('videos/clip.mp4', 'video.mp4')
-        ->addAudioStream('videos/clip.mp4', 'audio.mp4')
-        ->withResolutions(['1080p', '720p', '480p'])
-        ->withMpdOutput('index.mpd')
-        ->withHlsMasterPlaylist('master.m3u8')
-        ->export()
-        ->toDisk('s3')
-        ->toPath('streams/clip/')
-        ->save();
-} finally {
-    $streamer->cleanupTemporaryFiles();
-}
+$result->paths(); // ['streams/clip/master.m3u8', 'streams/clip/manifest.mpd', ...]
 ```
 
-- `fromDisk()` picks the disk to read from. Without it, your default filesystem disk is used.
-- The first argument of `addVideoStream()` and friends is a path you passed to `open()`. Shaka Streamer names the output files itself, so the second argument is only a label.
-- `export()` returns the exporter. Nothing runs until you call `save()`.
-- `save()` runs Shaka Streamer, copies the output to the target disk and deletes the local copy.
-- `cleanupTemporaryFiles()` removes anything left behind, such as downloaded inputs or the output of a failed run. Always call it in `finally`, especially in queue workers.
-
-## Where the output goes
-
-Shaka Streamer writes to a local temporary directory first. `save()` then copies everything to the target disk:
-
-- `toDisk()` sets the target disk. Without it, the input disk is used.
-- `toPath()` sets the folder on that disk. Without it, files land in the root of the disk.
-- `withVisibility('private')` sets the visibility of the uploaded files.
-
-S3 disks upload in parallel, and large files use multipart uploads. On a local disk, files are moved instead of copied. See [Configuration](configuration.md).
+- `add*Stream()` reads the first opened file unless you pass a path. A path you didn't open is read from the same disk.
+- `addStreamsFrom()` probes every opened file and adds its video and audio streams.
+- Shaka Streamer names the segment files itself. Only the manifest paths are yours to choose.
+- The output defaults to the disk the media was opened from. `withVisibility('private')` sets the visibility of the uploaded files.
+- There's nothing to clean up: laravel-media deletes temporary files after every queue job and request.
 
 ## Qualities
 
-`withResolutions()` sets the qualities to encode. Shaka Streamer knows `144p`, `240p`, `360p`, `480p`, `576p`, `720p`, `1080p`, `1440p`, `4k` and `8k`.
+`withResolutions()` sets the qualities to encode. Shaka Streamer knows `144p`, `240p`, `360p`, `480p`, `576p`, `720p`, `1080p`, `1440p`, `4k` and `8k` (and `-hfr` variants for high frame rates). It skips resolutions above the source.
 
-Don't encode above the source. `VideoResolution` gives you the standard qualities up to a given height:
+`withLadder()` takes the resolutions and video codec of a laravel-media ladder, for example to share one ladder definition across your app. Shaka Streamer chooses the bitrates:
 
 ```php
-use Foxws\Streamer\Support\VideoResolution;
+use Foxws\Media\Encoding\Ladder;
 
-$resolutions = VideoResolution::make($height)->toArray(); // 720 gives ['144p', '240p', '360p', '480p', '576p', '720p']
-$highest = VideoResolution::make($height)->last();        // '720p'
+->withLadder(Ladder::standard()) // 1080p, 720p, 480p and 360p in H.264
 ```
 
 Every extra quality adds encoding time. Three or four is enough for most videos.
 
 ## Codecs
 
-The defaults come from the config (`h264` video, `aac` audio). Change them per job:
+The defaults come from the config (`h264` video, `aac` audio). Change them per run:
 
 ```php
-->withVideoCodecs(['h264', 'av1'])
-->withAudioCodecs(['aac', 'opus'])
+->withVideoCodecs('h264', 'av1')
+->withAudioCodecs('aac', 'opus')
+->withChannelLayouts('stereo', 'surround')
 ```
 
-Each codec is encoded separately, so two codecs roughly double the work. Prefix a video codec with `hw:` to use hardware encoding, such as `hw:h264`. This needs `hwaccel_api` in the config and an FFmpeg build that supports it.
-
-## DASH and HLS together
-
-Streams are written as fragmented MP4 (CMAF), so one set of segments works for both DASH and HLS. Set both outputs and you get both manifests from a single run:
+Each codec is encoded separately, so two codecs roughly double the work. Prefix a video codec with `hw:` to use hardware encoding, and set the API:
 
 ```php
-->withMpdOutput('index.mpd')
-->withHlsMasterPlaylist('master.m3u8')
+->withVideoCodecs('hw:h264')
+->withHardwareAcceleration('vaapi')
 ```
 
-The manifest formats follow from the outputs you set. `withManifestFormat()` is only needed to override that.
+This needs an FFmpeg build that supports it, usually with [system binaries](installation.md#install-shaka-streamer).
 
 ## Other options
 
 ```php
-->withSegmentDuration(6)       // segment length in seconds
-->withSegmentPerFile()         // one file per segment, instead of one file per stream
-->withStreamingMode('vod')     // 'vod' (default) or 'live'
-->withGenerateIframePlaylist() // HLS trick-play playlists
-->withOption('scene_detection', false)
+->segmentDuration(6)       // segment length in seconds
+->segmentPerFile()         // one file per segment, instead of one file per stream
+->withTrickPlay()          // HLS I-frame playlists for fast seeking
+->lowLatencyDashMode()
+->withFFmpegInputArgs('-hwaccel vaapi')
+->withOption('streaming_mode', 'live')
 ```
 
-`withOption()` sets any other field of Shaka Streamer's [pipeline config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html).
+`withOption()` sets any other field of Shaka Streamer's [pipeline config](https://shaka-project.github.io/shaka-streamer/configuration_fields.html), and `null` removes it. The `options` argument of `add*Stream()` sets input fields, such as `track_num`, `start_time` or `extra_input_args`.
 
 ## Subtitles
 
-Open the subtitle file along with the video, then add it as a text stream:
+Add WebVTT files from the same disk as text streams:
 
 ```php
-Streamer::fromDisk('media')
-    ->open(['videos/clip.mp4', 'captions/clip.en.vtt'])
-    ->addVideoStream('videos/clip.mp4', 'video.mp4')
-    ->addAudioStream('videos/clip.mp4', 'audio.mp4')
-    ->addTextStream('captions/clip.en.vtt', 'subtitles-en.mp4', ['language' => 'en'])
-    ->withMpdOutput('index.mpd')
-    ->withHlsMasterPlaylist('master.m3u8')
-    ->export()
-    ->save();
+->addTextStream('captions/clip.en.vtt', 'en')
 ```
 
-A path that you didn't open is passed to Shaka Streamer as-is, so it must be an absolute local path.
-
-## System binaries
-
-By default, Shaka Streamer uses the FFmpeg and Shaka Packager from `shaka-streamer-binaries`. To use the ones on your `PATH` instead:
+## Encryption
 
 ```php
-$streamer = Streamer::fromDisk('media')->open('videos/clip.mp4')->useSystemBinaries();
+use Foxws\Media\Encryption\ProtectionScheme;
+
+$result = Media::fromDisk('media')->open('videos/clip.mp4')
+    ->streamer()
+    ->addStreamsFrom()
+    ->withHlsPlaylist()
+    ->withDashManifest()
+    ->withEncryption(scheme: ProtectionScheme::Cbcs, clearLead: 2)
+    ->save('streams/clip');
+
+$result->encryptionKey(); // store it for your key or license route
 ```
 
-This only applies to this job. Call it on every job that needs it.
+`withEncryption()` generates a key unless you pass a laravel-media `EncryptionKey`. The raw key is saved next to the segments as `key`, and HLS playlists point to it; pass `keyFile: null` and `keyUri` to serve a stored key yourself. DASH manifests have no key URL, so give DASH players the key yourself (e.g. Shaka Player's `drm.clearKeys`).
 
-## After saving
+Shaka Streamer encrypts with `cenc` (the default) or `cbcs`; `cbcs` plays with both HLS and DASH, including Safari. It has no key rotation: package with [laravel-shaka](https://github.com/foxws/laravel-shaka) when you need it.
 
-`afterSaving()` runs after the files are on the target disk:
+## Serving the streams
+
+Serve private streams with laravel-media's `DynamicHLSPlaylist` and `DynamicDASHManifest`, which sign every URL in the playlist when it's requested:
 
 ```php
-->export()
-->toDisk('s3')
-->afterSaving(fn ($exporter, $result) => $video->markAsReady())
-->save();
+return Media::fromDisk('s3')->open('streams/clip/master.m3u8')
+    ->hlsPlaylist()
+    ->resolveMediaUrlsUsing(fn (string $path) => Storage::disk('s3')->temporaryUrl($path, now()->addHour()))
+    ->resolveKeyUrlsUsing(fn (string $key) => route('videos.key', $video))
+    ->toResponse($request);
 ```
 
-## Errors
+## Queues and errors
 
-- A `RuntimeException` from Shaka Streamer means the encode or package step failed. The message includes its error output.
-- A `RuntimeException` from `save()` that lists files means some files couldn't be copied to the target disk.
-- `Foxws\Streamer\Exceptions\InsufficientStorageException` means a storage guard stopped the job before it started. See [Configuration](configuration.md).
-
-## Events
-
-| Event | Properties |
-| --- | --- |
-| `Foxws\Streamer\Events\StreamingStarted` | `$mediaCollection`, `$options` |
-| `Foxws\Streamer\Events\StreamingCompleted` | `$result`, `$executionTime` |
-| `Foxws\Streamer\Events\StreamingFailed` | `$exception`, `$executionTime`, `$context` |
-
-## Debugging
-
-`getCommand()` returns the input and pipeline config that would be sent to Shaka Streamer, without running it:
-
-```php
-$config = Streamer::open('videos/clip.mp4')
-    ->addVideoStream('videos/clip.mp4', 'video.mp4')
-    ->withMpdOutput('index.mpd')
-    ->getCommand();
-```
-
-Or call `->export()->dd()` to dump it and stop.
+- Encode in a queued job. Give long runs `->timeout($seconds)` below the job's `$timeout` (default: `streamer.timeout`).
+- A failed run throws laravel-media's `ProcessFailedException`, with Shaka Streamer's error output; use `isRetryable()` to choose between `release()` and `fail()`. A missing binary throws `ExecutableNotFoundException`.
+- `Foxws\Streamer\Exceptions\StreamerException`: no manifest was chosen, or Shaka Streamer finished without writing one. Saving without streams throws laravel-media's `InvalidMediaException`.
+- `save()` dispatches laravel-media's `ExportCompleted` and `ExportFailed`, with the data from `withContext()`. `beforeSaving()` and `afterSaving()` run around it.
+- `config()` returns the input and pipeline configs, and `command()` the command line, without running it.
