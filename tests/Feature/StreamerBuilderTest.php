@@ -57,10 +57,12 @@ it('describes the inputs and pipeline as shaka streamer configs', function (): v
         ->withOption('scene_detection', false)
         ->config();
 
+    $localPath = fn (string $path): string => Media::fromDisk('media')->open($path)->mediaFor()->localPath();
+
     expect($config['input']['inputs'])->toBe([
-        ['name' => Storage::disk('media')->path('videos/clip.mp4'), 'input_type' => 'file', 'media_type' => 'video'],
-        ['name' => Storage::disk('media')->path('videos/clip.mp4'), 'input_type' => 'file', 'media_type' => 'audio', 'language' => 'en'],
-        ['name' => Storage::disk('media')->path('captions/clip.en.vtt'), 'input_type' => 'file', 'media_type' => 'text', 'language' => 'en'],
+        ['name' => $localPath('videos/clip.mp4'), 'input_type' => 'file', 'media_type' => 'video'],
+        ['name' => $localPath('videos/clip.mp4'), 'input_type' => 'file', 'media_type' => 'audio', 'language' => 'en'],
+        ['name' => $localPath('captions/clip.en.vtt'), 'input_type' => 'file', 'media_type' => 'text', 'language' => 'en'],
     ])->and($config['pipeline'])->toBe([
         'streaming_mode' => 'vod',
         'manifest_format' => ['dash', 'hls'],
