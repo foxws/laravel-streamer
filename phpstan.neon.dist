@@ -1,10 +1,8 @@
-includes:
-    - phpstan-baseline.neon
-
 parameters:
     level: 8
     paths:
         - src
         - config
     tmpDir: build/phpstan
-    checkOctaneCompatibility: true
+    configDirectories:
+        - %currentWorkingDirectory%/config
