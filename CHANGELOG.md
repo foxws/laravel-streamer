@@ -2,6 +2,17 @@
 
 All notable changes to `laravel-streamer` will be documented in this file.
 
+## 3.0.1 - 2026-10-14
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### Other Changes
+
+* Add Laravel Boost tip to README and docs by @francoism90 in https://github.com/foxws/laravel-streamer/pull/35
+
+**Full Changelog**: https://github.com/foxws/laravel-streamer/compare/3.0.0...3.0.1
+
 ## 3.0.0 - 2026-10-07
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
