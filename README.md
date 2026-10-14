@@ -30,6 +30,16 @@ php artisan media:info
 
 See [Installation](docs/installation.md) to use your own FFmpeg and Shaka Packager instead.
 
+> [!TIP]
+> Let your AI agent do the hard parts. This package ships a [Laravel Boost](https://laravel.com/docs/boost) skill, `laravel-streamer-development`, that teaches your agent how to install, configure and use Laravel Streamer. Install Boost and select the skill when prompted:
+>
+> ```bash
+> composer require laravel/boost --dev
+> php artisan boost:install
+> ```
+>
+> Already using Boost? Run `php artisan boost:update --discover` to pick up the skill. Then just ask, for example: *"Turn uploaded videos into 1080p, 720p and 480p HLS and DASH streams."*
+
 ## Quick start
 
 ```php
