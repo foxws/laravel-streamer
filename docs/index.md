@@ -6,7 +6,7 @@ metadata:
   eyebrow: "Video · HLS/DASH · Shaka Streamer"
   desc: "Encode and package video into HLS and DASH streams with Shaka Streamer."
   lead: "Encode a video into several qualities and codecs, and package them into HLS and DASH in one run. Read from any Laravel disk, and write to any disk."
-  requires: "PHP ^8.4"
+  requires: "PHP ^8.5"
   laravel: "13.x"
   runtime: "Shaka Streamer, FFmpeg, Shaka Packager, foxws/laravel-media"
   licence: MIT
@@ -54,7 +54,7 @@ Encoding is slow: it can take longer than the video itself, unless you have hard
 
 ## Requirements
 
-- PHP 8.4 or higher
+- PHP 8.5 or higher
 - Laravel 13
 - [foxws/laravel-media](https://github.com/foxws/laravel-media) 0.3.4 or higher
 - [Shaka Streamer](https://github.com/shaka-project/shaka-streamer), with FFmpeg and Shaka Packager
